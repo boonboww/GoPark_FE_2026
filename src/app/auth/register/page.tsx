@@ -105,10 +105,20 @@ export default function RegisterPage() {
     }
 
     try {
+      // Prepare payload for backend
+      const payload = {
+        email: formData.email,
+        password: formData.password,
+        confirmPassword: formData.passwordConfirm,
+        fullName: formData.userName,
+        phoneNumber: formData.phoneNumber,
+        // profilePicture ignored as backend doesn't support it yet
+      };
+
       // Adapted to use the existing apiClient
       await apiClient("/auth/register", {
         method: "POST",
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       // Navigate to login on success
