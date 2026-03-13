@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { Mail, Lock, LogIn, Globe, Check } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -47,7 +47,7 @@ const itemVariants = {
  * Xử lý lưu thông tin đăng nhập (remember me)
  * Hiển thị thông báo thành công và chuyển hướng
  */
-export default function LoginPage() {
+function LoginPageContent() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -373,5 +373,13 @@ export default function LoginPage() {
         </motion.div>
       </div>
     </AuthWrapper>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
