@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { Mail, Lock, LogIn, Globe, Check } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -41,6 +41,18 @@ const itemVariants = {
   },
 };
 
+function LoginFormParams({ setMessage }: { setMessage: (msg: string) => void }) {
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    if (searchParams.get("success") === "1") {
+      setMessage("✅ Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản.");
+    }
+  }, [searchParams, setMessage]);
+
+  return null;
+}
+
 /**
  * Trang Đăng nhập
  * Cho phép người dùng đăng nhập bằng email và mật khẩu
@@ -53,14 +65,7 @@ export default function LoginPage() {
   const [message, setMessage] = useState("");
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { login } = useAuthStore();
-
-  useEffect(() => {
-    if (searchParams.get("success") === "1") {
-      setMessage("✅ Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản.");
-    }
-  }, [searchParams]);
 
   const {
     rememberedData,
@@ -165,6 +170,9 @@ export default function LoginPage() {
 
   return (
     <AuthWrapper align="right">
+      <Suspense fallback={null}>
+        <LoginFormParams setMessage={setMessage} />
+      </Suspense>
       <div className="flex flex-col items-center justify-center p-4 w-full">
         <AnimatePresence>
           {showSuccessDialog && (
