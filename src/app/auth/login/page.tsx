@@ -41,12 +41,18 @@ const itemVariants = {
   },
 };
 
-function LoginFormParams({ setMessage }: { setMessage: (msg: string) => void }) {
+function LoginFormParams({
+  setMessage,
+}: {
+  setMessage: (msg: string) => void;
+}) {
   const searchParams = useSearchParams();
-  
+
   useEffect(() => {
     if (searchParams.get("success") === "1") {
-      setMessage("✅ Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản.");
+      setMessage(
+        "✅ Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản.",
+      );
     }
   }, [searchParams, setMessage]);
 
@@ -127,6 +133,7 @@ export default function LoginPage() {
     }
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const res = await apiClient<any>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
@@ -138,7 +145,7 @@ export default function LoginPage() {
 
       const { accessToken, user } = res;
       login(user, accessToken);
-      
+
       setMessage("✅ Đăng nhập thành công!");
       setShowSuccessDialog(true);
 
@@ -160,6 +167,7 @@ export default function LoginPage() {
         }
       }, 1500);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       setMessage(`❌ ${error.message || "Có lỗi xảy ra khi đăng nhập"}`);
       console.error("Login error:", error);

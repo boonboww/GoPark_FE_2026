@@ -1,0 +1,17 @@
+.next/dev/types/validator.ts(42,39): error TS2307: Cannot find module '../../../src/app/admin/account/approvals/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(51,39): error TS2307: Cannot find module '../../../src/app/admin/account/customers/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(60,39): error TS2307: Cannot find module '../../../src/app/admin/account/owners/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(69,39): error TS2307: Cannot find module '../../../src/app/admin/account/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(78,39): error TS2307: Cannot find module '../../../src/app/admin/booking/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(87,39): error TS2307: Cannot find module '../../../src/app/admin/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(96,39): error TS2307: Cannot find module '../../../src/app/admin/parking/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(105,39): error TS2307: Cannot find module '../../../src/app/admin/parking/parking-lots/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(114,39): error TS2307: Cannot find module '../../../src/app/admin/parking/parking-slots/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(123,39): error TS2307: Cannot find module '../../../src/app/admin/parking/pending-lots/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(132,39): error TS2307: Cannot find module '../../../src/app/admin/payment/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(141,39): error TS2307: Cannot find module '../../../src/app/admin/payment/refunds/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(150,39): error TS2307: Cannot find module '../../../src/app/admin/payment/transactions/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(159,39): error TS2307: Cannot find module '../../../src/app/admin/reports/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(168,39): error TS2307: Cannot find module '../../../src/app/admin/security/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(177,39): error TS2307: Cannot find module '../../../src/app/admin/settings/page.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(264,39): error TS2307: Cannot find module '../../../src/app/admin/layout.js' or its corresponding type declarations.
