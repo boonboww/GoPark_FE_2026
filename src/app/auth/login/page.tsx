@@ -139,11 +139,11 @@ function LoginPageContent() {
         body: JSON.stringify({ email, password }),
       });
 
-      if (!res || !res.accessToken) {
+      if (!res || !res.data || !res.data.accessToken) {
         throw new Error(res?.message || "Đăng nhập thất bại");
       }
 
-      const { accessToken, user } = res;
+      const { accessToken, user } = res.data;
       login(user, accessToken);
 
       setMessage("✅ Đăng nhập thành công!");
