@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ParkingLotType } from "./owner";
+import { ParkingLotType } from "@/types/owner";
 
 interface ParkingLotListProps {
   parkingLots: ParkingLotType[];

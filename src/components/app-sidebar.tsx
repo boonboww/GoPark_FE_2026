@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   IconCamera,
   IconChartBar,
+  IconCreditCard,
   IconDashboard,
   IconFileAi,
   IconFileDescription,
@@ -12,6 +13,7 @@ import {
   IconListDetails,
   IconReport,
   IconSettings,
+  IconUser,
   IconUsers,
 } from "@tabler/icons-react";
 
