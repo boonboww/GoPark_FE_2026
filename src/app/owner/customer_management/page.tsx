@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -14,13 +15,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -28,35 +22,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Search, Plus, Pencil, Trash2 } from "lucide-react";
+import { Search, Plus, Loader2, AlertCircle } from "lucide-react";
 import { FormAddCustomer } from "./form_add_customer";
-
-// Mock data
-const mockCustomers = [
-  {
-    id: "KH001",
-    name: "Nguyễn Văn A",
-    email: "nguyenvana@example.com",
-    phone: "0901234567",
-    vehicles: ["30A-123.45", "29B-678.90"],
-  },
-  {
-    id: "KH002",
-    name: "Trần Thị B",
-    email: "tranthib@example.com",
-    phone: "0912345678",
-    vehicles: ["51C-456.78"],
-  },
-  {
-    id: "KH003",
-    name: "Lê Văn C",
-    email: "levanc@example.com",
-    phone: "0987654321",
-    vehicles: ["43C-347.19", "22A-442.11"],
-  },
-];
+import { useCustomers } from "@/hooks/useCustomers";
+import { useCustomerStore } from "@/stores/customer.store";
 
 export default function CustomerManagementPage() {
+  const { customers, isLoading, isFetching, isError } = useCustomers();
+  const { searchText, setSearchText, lotId } = useCustomerStore();
+
   return (
     <SidebarProvider
       style={
@@ -73,12 +47,19 @@ export default function CustomerManagementPage() {
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <div className="flex flex-col gap-4 md:gap-8 px-4 lg:px-6">
+
+                {/* Toolbar */}
                 <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2 flex-1 max-w-sm">
-                    <Search className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-2 flex-1 max-w-sm relative">
+                    {isFetching && !isLoading
+                      ? <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+                      : <Search className="h-4 w-4 text-muted-foreground" />
+                    }
                     <Input
-                      placeholder="Tìm kiếm theo ID, tên..."
+                      placeholder="Tìm theo tên, SĐT, biển số..."
                       className="max-w-sm"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
                     />
                   </div>
                   <Sheet>
@@ -100,62 +81,79 @@ export default function CustomerManagementPage() {
                   </Sheet>
                 </div>
 
+                {/* Table */}
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[100px]">ID</TableHead>
+                        <TableHead className="w-[120px]">ID</TableHead>
                         <TableHead>Tên khách hàng</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>SĐT</TableHead>
-                        <TableHead>Xe</TableHead>
-                        <TableHead className="text-right">Hành động</TableHead>
+                        <TableHead>Biển số xe</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {mockCustomers.map((customer) => (
-                        <TableRow key={customer.id}>
-                          <TableCell className="font-medium">
-                            {customer.id}
-                          </TableCell>
-                          <TableCell>{customer.name}</TableCell>
-                          <TableCell>{customer.email}</TableCell>
-                          <TableCell>{customer.phone}</TableCell>
-                          <TableCell>
-                            <Select defaultValue={customer.vehicles[0]}>
-                              <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Chọn xe" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {customer.vehicles.map((vehicle) => (
-                                  <SelectItem key={vehicle} value={vehicle}>
-                                    {vehicle}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="icon">
-                                <Pencil className="h-4 w-4" />
-                                <span className="sr-only">Sửa</span>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Xóa</span>
-                              </Button>
+                      {/* Loading */}
+                      {isLoading && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-32 text-center">
+                            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Đang tải dữ liệu...</span>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      )}
+
+                      {/* Chưa chọn bãi */}
+                      {!isLoading && lotId === null && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                            Vui lòng chọn bãi đỗ xe ở thanh trên để xem danh sách khách hàng.
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                      {/* Error */}
+                      {isError && !isLoading && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-32 text-center">
+                            <div className="flex items-center justify-center gap-2 text-destructive">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>Không thể tải dữ liệu. Vui lòng thử lại sau.</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                      {/* Empty */}
+                      {!isLoading && !isError && lotId !== null && customers.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                            Không tìm thấy khách hàng nào.
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                      {/* Data rows */}
+                      {!isLoading &&
+                        !isError &&
+                        customers.map((customer) => (
+                          <TableRow key={customer.userId}>
+                            <TableCell className="font-medium font-mono text-sm">
+                              {customer.userId}
+                            </TableCell>
+                            <TableCell>{customer.name}</TableCell>
+                            <TableCell>{customer.email}</TableCell>
+                            <TableCell>{customer.phone}</TableCell>
+                            <TableCell className="font-mono">{customer.plateNumber}</TableCell>
+                          </TableRow>
+                        ))}
                     </TableBody>
                   </Table>
                 </div>
+
               </div>
             </div>
           </div>
