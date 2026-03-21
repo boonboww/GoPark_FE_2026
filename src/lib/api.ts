@@ -26,15 +26,42 @@ export async function apiClient<T>(
     });
   }
 
+  let token = null;
+  if (typeof window !== "undefined") {
+    const authStorage = localStorage.getItem("auth-storage");
+    if (authStorage) {
+      try {
+        const parsed = JSON.parse(authStorage);
+        token = parsed?.state?.accessToken;
+      } catch (e) {}
+    }
+  }
+
+  const defaultHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (token) {
+    defaultHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
   const response = await fetch(url.toString(), {
     headers: {
-      "Content-Type": "application/json",
+      ...defaultHeaders,
       ...restConfig.headers,
     },
     ...restConfig,
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      if (typeof window !== "undefined") {
+        // Clear auth storage and redirect to login
+        localStorage.removeItem("auth-storage");
+        window.location.href = "/auth/login";
+      }
+    }
+
     let errorMessage = `API Error: ${response.status} ${response.statusText}`;
     try {
       const errorData = await response.json();

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Suspense, useState, useEffect } from "react";
 import { Mail, Lock, LogIn, Globe, Check } from "lucide-react";
@@ -144,7 +144,7 @@ function LoginPageContent() {
       }
 
       const { accessToken, user } = res.data;
-      login(user, accessToken);
+      const frontendUser = { id: user.id || "", email: user.email || "", role: user.role || "user", name: user.profile?.name || user.name || "Người dùng", avatar: user.profile?.image || user.avatar || "" }; login(frontendUser, accessToken);
 
       setMessage("✅ Đăng nhập thành công!");
       setShowSuccessDialog(true);

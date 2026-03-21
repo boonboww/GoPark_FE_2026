@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/stores/auth.store";
 import { Car, Menu, Home, Search, History, User, Contact, Bell, Settings, LogOut, ChevronDown } from "lucide-react";
 
 const Header = () => {
-  // Giả lập trạng thái đăng nhập (để test)
-  const [isLoggedIn, setIsLoggedIn] = useState(true); 
+  const { isAuthenticated: isLoggedIn, user, logout } = useAuthStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -38,11 +38,11 @@ const Header = () => {
           <Home className="h-5 w-5 inline-block mr-1" />
             Trang chủ
           </Link>
-          <Link href="/find" className="transition-colors hover:text-primary hover:font-semibold">
+          <Link href="/users/findParking" className="transition-colors hover:text-primary hover:font-semibold">
             <Search className="h-5 w-5 inline-block mr-1" />
             Tìm bãi đỗ
           </Link>
-          <Link href="/booking-history" className="transition-colors hover:text-primary hover:font-semibold">
+          <Link href="/users/myBooking" className="transition-colors hover:text-primary hover:font-semibold">
             <History className="h-5 w-5 inline-block mr-1" />
             Lịch sử đặt chỗ
           </Link>
@@ -72,8 +72,8 @@ const Header = () => {
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center gap-2 p-1.5 sm:pr-3 rounded-full border border-gray-200 dark:border-stone-700 hover:shadow-md transition-all bg-white dark:bg-stone-800"
                 >
-                  <img src="https://i.pravatar.cc/150?img=11" alt="User Avatar" className="w-8 h-8 rounded-full object-cover" />
-                  <span className="text-sm font-semibold max-w-[100px] truncate hidden sm:block dark:text-white">Thương</span>
+                  <img src={user?.avatar || "https://i.pravatar.cc/150?img=11"} alt="User Avatar" className="w-8 h-8 rounded-full object-cover" />
+                  <span className="text-sm font-semibold max-w-[100px] truncate hidden sm:block dark:text-white">{user?.name || "Người dùng"}</span>
                   <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform hidden sm:block ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -81,15 +81,15 @@ const Header = () => {
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-stone-900 border border-gray-100 dark:border-stone-800 rounded-2xl shadow-xl py-2 animate-in fade-in slide-in-from-top-2">
                     <div className="px-4 py-3 border-b border-gray-50 dark:border-stone-800 mb-2">
-                      <p className="text-sm font-bold text-black dark:text-white">Thương</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">thuong.user@gmail.com</p>
+                      <p className="text-sm font-bold text-black dark:text-white">{user?.name || "Người dùng"}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{user?.email || ""}</p>
                     </div>
                     
-                    <Link href="/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <Link href="/users/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                       <User className="h-4 w-4" />
                       Thông tin cá nhân
                     </Link>
-                    <Link href="/settings" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <Link href="/users/setting" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                       <Settings className="h-4 w-4" />
                       Cài đặt
                     </Link>
@@ -98,7 +98,7 @@ const Header = () => {
                     
                     <button 
                       onClick={() => {
-                        setIsLoggedIn(false);
+                        logout();
                         router.push("/auth/login");
                       }} 
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
