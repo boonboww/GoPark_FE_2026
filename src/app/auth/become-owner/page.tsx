@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { Check, MapPin, X, UploadCloud, Star, User, Mail, Phone, FileText, Building2, Building, CarFront, LayoutList, Layers } from "lucide-react";
@@ -354,7 +354,7 @@ function Step1Profile({ user, data, onChange }: any) {
             id="phone"
             placeholder="Nhập số điện thoại của bạn"
             value={data.phone}
-            onChange={(e) => onChange("phone", e.target.value)}
+            onChange={(e) => onChange("phone", e.target.value.replace(/\D/g, "").slice(0, 10))} maxLength={10}
           />
         </div>
         <div className="space-y-2">
@@ -755,5 +755,6 @@ function Step3Review({ user, data, onChange }: any) {
     </div>
   );
 }
+
 
 
