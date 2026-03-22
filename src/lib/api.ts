@@ -54,9 +54,11 @@ export async function apiClient<T>(
   });
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 && !endpoint.includes("/auth/login")) {
       if (typeof window !== "undefined") {
         // Clear auth storage and redirect to login
+        console.error("401 Unauthorized encountered on API:", endpoint);
+        // Only trigger session expiration logout if the user isn't actively trying to log in
         localStorage.removeItem("auth-storage");
         window.location.href = "/auth/login";
       }

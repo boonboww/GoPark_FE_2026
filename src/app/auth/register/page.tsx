@@ -142,7 +142,7 @@ export default function RegisterPage() {
           animate="visible"
           className="w-full max-w-[550px]"
         >
-          <Card className="border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden">
+          <Card className="border border-white/60 dark:border-stone-700/50 bg-white/70 dark:bg-stone-900/80 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden">
             <CardHeader className="space-y-1 text-center pb-4 pt-6 px-10">
               <motion.div
                 variants={itemVariants}
@@ -151,10 +151,10 @@ export default function RegisterPage() {
                 <UserPlus className="w-5 h-5 text-blue-600" />
               </motion.div>
               <motion.div variants={itemVariants}>
-                <CardTitle className="text-xl font-bold text-slate-800">
+                <CardTitle className="text-xl font-bold text-slate-800 dark:text-stone-200">
                   Tạo tài khoản
                 </CardTitle>
-                <CardDescription className="text-slate-500 font-medium text-xs mt-1">
+                <CardDescription className="text-slate-500 dark:text-stone-400 font-medium text-xs mt-1">
                   Tham gia cùng chúng tôi ngay
                 </CardDescription>
               </motion.div>
@@ -164,12 +164,12 @@ export default function RegisterPage() {
                 <motion.div variants={itemVariants} className="space-y-1.5">
                   <Label
                     htmlFor="userName"
-                    className="text-slate-600 font-semibold text-xs"
+                    className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                   >
                     Họ và tên
                   </Label>
                   <div className="relative group">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors hidden sm:block">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors hidden sm:block">
                       <User className="w-4 h-4" />
                     </span>
                     <Input
@@ -179,7 +179,7 @@ export default function RegisterPage() {
                       value={formData.userName}
                       onChange={handleChange}
                       required
-                      className="sm:pl-9 h-10 bg-slate-50/50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
+                      className="sm:pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
                     />
                   </div>
                 </motion.div>
@@ -187,12 +187,12 @@ export default function RegisterPage() {
                 <motion.div variants={itemVariants} className="space-y-1.5">
                   <Label
                     htmlFor="email"
-                    className="text-slate-600 font-semibold text-xs"
+                    className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                   >
                     Email
                   </Label>
                   <div className="relative group">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors hidden sm:block">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors hidden sm:block">
                       <Mail className="w-4 h-4" />
                     </span>
                     <Input
@@ -202,7 +202,7 @@ export default function RegisterPage() {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="sm:pl-9 h-10 bg-slate-50/50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
+                      className="sm:pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
                     />
                   </div>
                 </motion.div>
@@ -210,12 +210,12 @@ export default function RegisterPage() {
                 <motion.div variants={itemVariants} className="space-y-1.5">
                   <Label
                     htmlFor="phoneNumber"
-                    className="text-slate-600 font-semibold text-xs"
+                    className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                   >
                     Số điện thoại
                   </Label>
                   <div className="relative group">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors hidden sm:block">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors hidden sm:block">
                       <Phone className="w-4 h-4" />
                     </span>
                     <Input
@@ -224,7 +224,7 @@ export default function RegisterPage() {
                       placeholder="0123456789"
                       value={formData.phoneNumber}
                       onChange={handleChange}
-                      className="sm:pl-9 h-10 bg-slate-50/50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
+                      className="sm:pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
                     />
                   </div>
                 </motion.div>
@@ -236,12 +236,12 @@ export default function RegisterPage() {
                   <div className="space-y-1.5">
                     <Label
                       htmlFor="password"
-                      className="text-slate-600 font-semibold text-xs"
+                      className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                     >
                       Mật khẩu
                     </Label>
                     <div className="relative group">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors hidden sm:block">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors hidden sm:block">
                         <Lock className="w-4 h-4" />
                       </span>
                       <Input
@@ -251,19 +251,19 @@ export default function RegisterPage() {
                         value={formData.password}
                         onChange={handleChange}
                         required
-                        className="sm:pl-9 h-10 bg-slate-50/50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
+                        className="sm:pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
                       />
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <Label
                       htmlFor="passwordConfirm"
-                      className="text-slate-600 font-semibold text-xs"
+                      className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                     >
                       Xác nhận
                     </Label>
                     <div className="relative group">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors hidden sm:block">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors hidden sm:block">
                         <Lock className="w-4 h-4" />
                       </span>
                       <Input
@@ -273,7 +273,7 @@ export default function RegisterPage() {
                         value={formData.passwordConfirm}
                         onChange={handleChange}
                         required
-                        className="sm:pl-9 h-10 bg-slate-50/50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
+                        className="sm:pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
                       />
                     </div>
                   </div>
@@ -311,7 +311,7 @@ export default function RegisterPage() {
                   variants={itemVariants}
                   className="text-center text-xs pt-2"
                 >
-                  <span className="text-slate-500">Đã có tài khoản? </span>
+                  <span className="text-slate-500 dark:text-stone-400">Đã có tài khoản? </span>
                   <button
                     type="button"
                     className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:underline font-semibold cursor-pointer"

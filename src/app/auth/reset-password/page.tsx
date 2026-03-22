@@ -73,15 +73,15 @@ function ResetPasswordContent() {
       transition={{ duration: 0.3 }}
       className="w-full max-w-md mx-auto"
     >
-      <Card className="border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden">
+      <Card className="border border-white/60 dark:border-stone-700/50 bg-white/70 dark:bg-stone-900/80 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden">
         <CardHeader className="space-y-1 text-center pb-4 pt-8 px-8">
           <motion.div className="mx-auto w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-2">
             <Lock className="w-6 h-6 text-blue-600" />
           </motion.div>
-          <CardTitle className="text-2xl font-bold text-slate-800">
+          <CardTitle className="text-2xl font-bold text-slate-800 dark:text-stone-200">
             Tạo mật khẩu mới
           </CardTitle>
-          <CardDescription className="text-slate-500 font-medium text-sm mt-1">
+          <CardDescription className="text-slate-500 dark:text-stone-400 font-medium text-sm mt-1">
             Vui lòng nhập mật khẩu mới cho tài khoản của bạn.
           </CardDescription>
         </CardHeader>
@@ -97,8 +97,8 @@ function ResetPasswordContent() {
                 <div className="flex justify-center text-green-500 mb-4">
                   <CheckCircle2 className="w-16 h-16" />
                 </div>
-                <p className="text-xl font-bold text-slate-800">Điểm trí hoàn tất!</p>
-                <p className="text-sm text-slate-600 font-medium">
+                <p className="text-xl font-bold text-slate-800 dark:text-stone-200">Điểm trí hoàn tất!</p>
+                <p className="text-sm text-slate-600 dark:text-stone-300 font-medium">
                   Mật khẩu của bạn đã được thay đổi thành công. Bạn có thể sử dụng mật khẩu mới để đăng nhập.
                 </p>
                 <Button 
@@ -122,11 +122,11 @@ function ResetPasswordContent() {
                   )}
                   <div className="space-y-3">
                     <div className="space-y-1.5">
-                      <Label htmlFor="password" className="text-slate-600 font-semibold text-xs">
+                      <Label htmlFor="password" className="text-slate-600 dark:text-stone-300 font-semibold text-xs">
                         Mật khẩu mới
                       </Label>
                       <div className="relative group">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors">
                           <Lock className="w-4 h-4" />
                         </span>
                         <Input
@@ -136,17 +136,17 @@ function ResetPasswordContent() {
                           required
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="pl-9 h-10 bg-slate-50/50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
+                          className="pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="confirmPassword" className="text-slate-600 font-semibold text-xs">
+                      <Label htmlFor="confirmPassword" className="text-slate-600 dark:text-stone-300 font-semibold text-xs">
                         Xác nhận mật khẩu
                       </Label>
                       <div className="relative group">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors">
                           <Lock className="w-4 h-4" />
                         </span>
                         <Input
@@ -156,7 +156,7 @@ function ResetPasswordContent() {
                           required
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="pl-9 h-10 bg-slate-50/50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
+                          className="pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
                         />
                       </div>
                     </div>
@@ -174,7 +174,7 @@ function ResetPasswordContent() {
                 <div className="mt-6 text-center">
                   <Link
                     href="/auth/login"
-                    className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 dark:text-stone-400 hover:text-slate-800 dark:text-stone-200 transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4" />
                     Quay lại đăng nhập

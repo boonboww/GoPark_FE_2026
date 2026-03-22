@@ -4,13 +4,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth.store";
-import { Car, Menu, Home, Search, History, User, Contact, Bell, Settings, LogOut, ChevronDown } from "lucide-react";
+import { Car, Menu, Home, Search, History, User, Contact, Bell, Settings, LogOut, ChevronDown, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 
 const Header = () => {
   const { isAuthenticated: isLoggedIn, user, logout } = useAuthStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
@@ -29,7 +34,7 @@ const Header = () => {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 text-primary font-bold text-2xl hover:opacity-90 transition-opacity">
           <img src="/logo.png" alt="GoPark Logo" className="h-8 w-8" />
-          <span className=" bg-clip-text text-black">Go <span className="text-green-600">Park</span></span>
+          <span className=" bg-clip-text text-black dark:text-white">Go <span className="text-green-600">Park</span></span>
         </Link>
 
         {/* Desktop Nav */}
@@ -58,6 +63,17 @@ const Header = () => {
 
         {/* Auth Actions */}
         <div className="hidden md:flex items-center gap-3">
+          {/* Theme Toggle Button */}
+          {mounted && (
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-stone-800 flex items-center justify-center mr-2"
+              aria-label="Toggle Dark Mode"
+            >
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+          )}
+
           {isLoggedIn ? (
             <div className="flex items-center gap-3 md:gap-5">
               {/* Nút thông báo */}
@@ -124,6 +140,17 @@ const Header = () => {
 
         {/* Mobile Menu Toggle */}
         <div className="md:hidden flex items-center gap-2">
+          {/* Mobile Theme Toggle Button */}
+          {mounted && (
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 text-gray-600 dark:text-gray-300 transition-colors rounded-full flex items-center justify-center mr-1"
+              aria-label="Toggle Dark Mode"
+            >
+              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+          )}
+
           <Button variant="ghost" size="icon" aria-label="Menu" className="text-foreground">
             <Menu className="h-6 w-6" />
           </Button>

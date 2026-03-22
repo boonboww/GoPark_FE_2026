@@ -144,7 +144,7 @@ function LoginPageContent() {
       }
 
       const { accessToken, user } = res.data;
-      const frontendUser = { id: user.id || "", email: user.email || "", role: user.role || "user", name: user.profile?.name || user.name || "Người dùng", avatar: user.profile?.image || user.avatar || "" }; login(frontendUser, accessToken);
+      const frontendUser = { id: user.id || "", email: user.email || "", role: user.role?.toLowerCase() || "user", name: user.profile?.name || user.name || "Người dùng", avatar: user.profile?.image || user.avatar || "" }; login(frontendUser, accessToken);
 
       setMessage("✅ Đăng nhập thành công!");
       setShowSuccessDialog(true);
@@ -157,7 +157,7 @@ function LoginPageContent() {
 
       setTimeout(() => {
         setShowSuccessDialog(false);
-        const role = user?.role;
+        const role = user?.role?.toLowerCase();
         if (role === "admin") {
           router.push("/admin");
         } else if (role === "owner") {
@@ -194,7 +194,7 @@ function LoginPageContent() {
                 initial={{ scale: 0.9, opacity: 0, y: 20 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="bg-white p-8 rounded-2xl shadow-xl max-w-sm w-full text-center relative overflow-hidden"
+                className="bg-white dark:bg-stone-900 p-8 rounded-2xl shadow-xl max-w-sm w-full text-center relative overflow-hidden"
               >
                 <div className="absolute top-0 left-0 w-full h-1 bg-slate-100">
                   <motion.div
@@ -208,10 +208,10 @@ function LoginPageContent() {
                 <div className="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
                   <Check className="w-8 h-8 text-blue-600" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">
+                <h3 className="text-xl font-bold text-slate-800 dark:text-stone-200 mb-2">
                   Đăng nhập thành công
                 </h3>
-                <p className="text-slate-500 mb-4 text-sm">
+                <p className="text-slate-500 dark:text-stone-400 mb-4 text-sm">
                   Chào mừng bạn quay trở lại với GoPark
                 </p>
               </motion.div>
@@ -225,7 +225,7 @@ function LoginPageContent() {
           animate="visible"
           className="w-full max-w-125"
         >
-          <Card className="border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden">
+          <Card className="border border-white/60 dark:border-stone-700/50 bg-white/70 dark:bg-stone-900/80 backdrop-blur-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden">
             <CardHeader className="space-y-1 text-center pb-4 pt-6 px-16">
               <motion.div
                 variants={itemVariants}
@@ -234,10 +234,10 @@ function LoginPageContent() {
                 <LogIn className="w-5 h-5 text-blue-600" />
               </motion.div>
               <motion.div variants={itemVariants}>
-                <CardTitle className="text-xl font-bold text-slate-800">
+                <CardTitle className="text-xl font-bold text-slate-800 dark:text-stone-200">
                   Đăng nhập
                 </CardTitle>
-                <CardDescription className="text-slate-500 font-medium text-xs mt-1">
+                <CardDescription className="text-slate-500 dark:text-stone-400 font-medium text-xs mt-1">
                   Chào mừng bạn quay trở lại
                 </CardDescription>
               </motion.div>
@@ -248,12 +248,12 @@ function LoginPageContent() {
                   <div className="space-y-1.5">
                     <Label
                       htmlFor="email"
-                      className="text-slate-600 font-semibold text-xs"
+                      className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                     >
                       Email
                     </Label>
                     <div className="relative group">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors">
                         <Mail className="w-4 h-4" />
                       </span>
                       <Input
@@ -263,7 +263,7 @@ function LoginPageContent() {
                         required
                         onChange={handleChange}
                         value={formData.email}
-                        className="pl-9 h-10 bg-slate-50/50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
+                        className="pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
                       />
                     </div>
                   </div>
@@ -272,7 +272,7 @@ function LoginPageContent() {
                     <div className="flex items-center justify-between">
                       <Label
                         htmlFor="password"
-                        className="text-slate-600 font-semibold text-xs"
+                        className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                       >
                         Mật khẩu
                       </Label>
@@ -285,7 +285,7 @@ function LoginPageContent() {
                       </Link>
                     </div>
                     <div className="relative group">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors">
                         <Lock className="w-4 h-4" />
                       </span>
                       <Input
@@ -295,7 +295,7 @@ function LoginPageContent() {
                         required
                         onChange={handleChange}
                         value={formData.password}
-                        className="pl-9 h-10 bg-slate-50/50 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
+                        className="pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
                       />
                     </div>
                   </div>
@@ -310,11 +310,11 @@ function LoginPageContent() {
                     id="remember"
                     checked={isRememberEnabled}
                     onChange={handleRememberChange}
-                    className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="w-3.5 h-3.5 rounded border-slate-300 dark:border-stone-600 text-blue-600 focus:ring-blue-500"
                   />
                   <Label
                     htmlFor="remember"
-                    className="cursor-pointer select-none text-xs font-medium text-slate-600"
+                    className="cursor-pointer select-none text-xs font-medium text-slate-600 dark:text-stone-300"
                   >
                     Ghi nhớ đăng nhập
                     {hasRemembered && (
@@ -349,7 +349,7 @@ function LoginPageContent() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full h-10 rounded-lg border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium text-sm"
+                      className="w-full h-10 rounded-lg border-slate-200 dark:border-stone-700 text-slate-600 dark:text-stone-300 hover:bg-slate-50 dark:bg-stone-800 hover:text-slate-900 dark:text-white font-medium text-sm"
                     >
                       <Globe className="w-3.5 h-3.5 mr-2 text-rose-500" />
                       Đăng nhập bằng Google
@@ -375,7 +375,7 @@ function LoginPageContent() {
                   variants={itemVariants}
                   className="mt-4 text-center text-xs"
                 >
-                  <span className="text-slate-500">Chưa có tài khoản? </span>
+                  <span className="text-slate-500 dark:text-stone-400">Chưa có tài khoản? </span>
                   <Link
                     href="/auth/register"
                     className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"

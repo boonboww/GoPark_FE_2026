@@ -1,28 +1,69 @@
 "use client";
-import React, { useState } from "react";
-import { MapPin, Clock, Ticket, BadgeCheck, Zap, Navigation, Plus, User, Search, Settings, Send, PhoneCall, Shield, Home, Car, ChevronDown, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { MapPin, Clock, Ticket, BadgeCheck, Zap, Navigation, Plus, User as UserIcon, Search, Settings, Send, PhoneCall, Shield, Home, Car, ChevronDown, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useAuthStore } from "@/stores/auth.store";
 
 // Mock Data
-const mockParkingData = {
-  name: "GoPark Complex Quận Cẩm Lệ ",
-  address: "18, Hòa Nam 6, Hòa Nam, Đà Nẵng",
-  status: "Mở cửa",
-  timeOpen: "24/7",
-  availableSpots: 89,
-  totalSpots: 150,
-  pricing: {
-    firstHour: "25,000 VND",
-    nextHour: "15,000 VND",
-    overnight: "120,000 VND",
+const mockAllParkings = [
+  {
+    name: "GoPark Complex Quận Cẩm Lệ",
+    address: "18, Hòa Nam 6, Hòa Nam, Đà Nẵng",
+    status: "Mở cửa",
+    timeOpen: "24/7",
+    availableSpots: 89,
+    totalSpots: 150,
+    pricing: {
+      firstHour: "25,000 VND",
+      nextHour: "15,000 VND",
+      overnight: "120,000 VND",
+    },
+    amenities: [
+      { label: "Mái che", icon: Home, color: "text-blue-500" },
+      { label: "Sạc xe EV", icon: Zap, color: "text-amber-500" },
+      { label: "Bảo vệ 24/7", icon: Shield, color: "text-emerald-500" },
+      { label: "Vé tháng", icon: Ticket, color: "text-purple-500" },
+    ],
+    bgImage: "book.png",
   },
-  amenities: [
-    { label: "Mái che", icon: Home, color: "text-blue-500" },
-    { label: "Sạc xe EV", icon: Zap, color: "text-amber-500" },
-    { label: "Bảo vệ 24/7", icon: Shield, color: "text-emerald-500" },
-    { label: "Vé tháng", icon: Ticket, color: "text-purple-500" },
-  ],
-  bgImage: "bg.jpg", // Car image for aesthetic
-};
+  {
+    name: "Bãi đỗ xe Trung tâm Vincom",
+    address: "910A Ngô Quyền, Sơn Trà, Đà Nẵng",
+    status: "Đang đông",
+    timeOpen: "08:00 - 23:00",
+    availableSpots: 12,
+    totalSpots: 200,
+    pricing: {
+      firstHour: "30,000 VND",
+      nextHour: "20,000 VND",
+      overnight: "Không nhận",
+    },
+    amenities: [
+      { label: "Trong nhà", icon: Home, color: "text-blue-500" },
+      { label: "Bảo vệ 24/7", icon: Shield, color: "text-emerald-500" },
+      { label: "Rửa xe", icon: Zap, color: "text-amber-500" },
+    ],
+    bgImage: "book.png", 
+  },
+  {
+    name: "Bãi đỗ xe Sân bay Quốc tế",
+    address: "Sân bay Đà Nẵng, Hải Châu, Đà Nẵng",
+    status: "Mở cửa",
+    timeOpen: "24/7",
+    availableSpots: 150,
+    totalSpots: 500,
+    pricing: {
+      firstHour: "15,000 VND",
+      nextHour: "10,000 VND",
+      overnight: "150,000 VND",
+    },
+    amenities: [
+      { label: "Mái che", icon: Home, color: "text-blue-500" },
+      { label: "Camera 24/7", icon: Shield, color: "text-emerald-500" },
+      { label: "Đưa đón", icon: Navigation, color: "text-purple-500" },
+    ],
+    bgImage: "bg.jpg",
+  }
+];
 
 // Mock Data - Nearby
 const mockNearbyParkings = [
@@ -35,6 +76,36 @@ const mockNearbyParkings = [
 const HeroSection = () => {
   const [isNameExpanded, setIsNameExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [slideDirection, setSlideDirection] = useState("left");
+
+  const user = useAuthStore((state) => state.user);
+
+  useEffect(() => {
+    if (activeTab !== "all") return;
+    
+    const interval = setInterval(() => {
+      setSlideDirection("left");
+      setCurrentIndex((prev) => (prev + 1) % mockAllParkings.length);
+      setIsNameExpanded(false); // reset details when sliding
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
+  const handleNext = () => {
+    setSlideDirection("left");
+    setCurrentIndex((prev) => (prev + 1) % mockAllParkings.length);
+    setIsNameExpanded(false);
+  };
+
+  const handlePrev = () => {
+    setSlideDirection("right");
+    setCurrentIndex((prev) => (prev - 1 + mockAllParkings.length) % mockAllParkings.length);
+    setIsNameExpanded(false);
+  };
+
+  const currentParkingData = mockAllParkings[currentIndex];
 
   return (
     <section className="relative w-full min-h-screen bg-[#F0F2F5] dark:bg-stone-900 overflow-hidden font-sans p-4 sm:p-6 md:p-10 flex flex-col">
@@ -45,25 +116,25 @@ const HeroSection = () => {
       {/* HEADER NAV */}
       <header className="flex flex-col xl:flex-row justify-between items-center gap-4 z-10 w-full mb-6 md:mb-8">
         <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-center xl:text-left w-full xl:w-auto">
-          Xin chào, <span className="font-semibold text-black dark:text-white">Thương</span>
+          Xin chào, <span className="font-semibold text-black dark:text-white capitalize">{user?.name || "bạn"}</span>
         </h1>
 
         <div className="flex bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-full shadow-sm p-1 overflow-x-auto w-full max-w-md sm:max-w-max justify-start sm:justify-center hide-scrollbar">
           <button 
             onClick={() => setActiveTab("all")}
-            className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition whitespace-nowrap ${activeTab === "all" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white font-medium"}`}
+            className={`px-4 sm:px-6 py-2 cursor-pointer rounded-full text-xs sm:text-sm font-semibold transition whitespace-nowrap ${activeTab === "all" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white font-medium"}`}
           >
             Tất cả bãi đỗ
           </button>
           <button 
             onClick={() => setActiveTab("nearby")}
-            className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition whitespace-nowrap ${activeTab === "nearby" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white font-medium"}`}
+            className={`px-4 sm:px-6 py-2 cursor-pointer rounded-full text-xs sm:text-sm font-semibold transition whitespace-nowrap ${activeTab === "nearby" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white font-medium"}`}
           >
             Gần tôi
           </button>
           <button 
             onClick={() => setActiveTab("map")}
-            className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-semibold transition whitespace-nowrap ${activeTab === "map" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white font-medium"}`}
+            className={`px-4 sm:px-6 py-2 cursor-pointer rounded-full text-xs sm:text-sm font-semibold transition whitespace-nowrap ${activeTab === "map" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white font-medium"}`}
           >
             Bản đồ
           </button>
@@ -287,39 +358,95 @@ const HeroSection = () => {
           <div className="relative flex-1 w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10 z-10 mt-2 md:mt-12 animate-in fade-in slide-in-from-bottom-8">
         
         {/* LEFT COLUMN: GREETING & FLOATING CONTROLS */}
-        <div className="lg:col-span-4 xl:col-span-3 flex flex-col justify-center z-20 text-center md:text-left">
-          <div className="mb-4 md:mb-8">
-            <h2 
-              className={`text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-white leading-tight break-all sm:break-words transition-all duration-300 ${!isNameExpanded ? 'line-clamp-2 md:line-clamp-3' : ''}`}
-              title={mockParkingData.name}
-            >
-              {mockParkingData.name}
-            </h2>
-            
-            {mockParkingData.name.length > 25 && (
-              <button 
-                onClick={() => setIsNameExpanded(!isNameExpanded)}
-                className="flex items-center justify-center md:justify-start gap-1 text-sm font-semibold mt-3 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors w-full md:w-auto"
+        <div className="lg:col-span-4 xl:col-span-3 flex flex-col justify-center z-20 text-center md:text-left relative overflow-hidden">
+          <div className="relative w-full h-[200px] md:h-[250px]">
+            {mockAllParkings.map((parking, index) => (
+              <div
+                key={`info-${index}`}
+                className={`absolute inset-0 flex flex-col transition-all duration-700 ease-in-out ${
+                  index === currentIndex
+                    ? "opacity-100 translate-x-0"
+                    : slideDirection === "left"
+                    ? index < currentIndex || (currentIndex === 0 && index === mockAllParkings.length - 1)
+                      ? "opacity-0 -translate-x-full"
+                      : "opacity-0 translate-x-full"
+                    : index > currentIndex || (currentIndex === mockAllParkings.length - 1 && index === 0)
+                    ? "opacity-0 translate-x-full"
+                    : "opacity-0 -translate-x-full"
+                }`}
               >
-                {isNameExpanded ? "Thu gọn" : "Xem thêm"}
-                <ChevronDown className={`w-4 h-4 transition-transform ${isNameExpanded ? 'rotate-180' : ''}`} />
-              </button>
-            )}
+                <h2 
+                  className={`text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-white leading-tight break-words transition-all duration-300 ${!isNameExpanded ? 'line-clamp-2 md:line-clamp-3' : ''}`}
+                  title={parking.name}
+                >
+                  {parking.name}
+                </h2>
+                
+                {parking.name.length > 25 && (
+                  <button 
+                    onClick={() => setIsNameExpanded(!isNameExpanded)}
+                    className="flex justify-center md:justify-start gap-1 text-sm font-semibold mt-3 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors w-full md:w-auto items-center"
+                  >
+                    {isNameExpanded ? "Thu gọn" : "Xem thêm"}
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isNameExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
 
-            <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm md:text-lg bg-white/40 dark:bg-black/40 backdrop-blur-md inline-block px-4 py-2 rounded-full shadow-sm">{mockParkingData.status} • Trống {mockParkingData.availableSpots}/{mockParkingData.totalSpots} chỗ</p>
+                <div className="mt-4">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm md:text-lg bg-white/40 dark:bg-black/40 backdrop-blur-md inline-block px-4 py-2 rounded-full shadow-sm">{parking.status} • Trống {parking.availableSpots}/{parking.totalSpots} chỗ</p>
+                </div>
+              </div>
+            ))}
           </div>
-          {/* Note: Removed 3 nested circular buttons as per instructions */}
+          
+          {/* SLIDER CONTROLS */}
+          <div className="flex gap-3 justify-center md:justify-start mt-4">
+             <button 
+                onClick={handlePrev}
+                className="w-10 h-10 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur shadow-sm hover:shadow-md flex items-center justify-center hover:bg-white dark:hover:bg-stone-800 transition text-gray-700 dark:text-gray-300"
+             >
+                <ChevronLeft className="w-5 h-5" />
+             </button>
+             <button 
+                onClick={handleNext}
+                className="w-10 h-10 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur shadow-sm hover:shadow-md flex items-center justify-center hover:bg-white dark:hover:bg-stone-800 transition text-gray-700 dark:text-gray-300"
+             >
+                <ChevronRight className="w-5 h-5" />
+             </button>
+             <div className="flex items-center gap-1.5 ml-2">
+                {mockAllParkings.map((_, i) => (
+                  <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === currentIndex ? 'w-5 bg-black dark:bg-white' : 'w-1.5 bg-gray-300 dark:bg-stone-600'}`}></div>
+                ))}
+             </div>
+          </div>
         </div>
 
         {/* CENTER COLUMN: CAR IMAGE */}
-        <div className="lg:col-span-4 xl:col-span-5 relative flex items-center justify-center min-h-[250px] md:min-h-[300px] z-0 animate-in zoom-in-95 duration-1000 delay-300 fill-mode-both -mx-4 md:mx-0">
-          {/* Replace this img with your 3D car render or high quality image */}
-          <img 
-            src={mockParkingData.bgImage} 
-            alt="Car/Parking" 
-            className="w-full max-w-[110%] md:max-w-[130%] object-contain drop-shadow-2xl hover:scale-[1.02] transition-transform duration-700 -rotate-2"
-            style={{ filter: "drop-shadow(0px 30px 40px rgba(0,0,0,0.3))" }} 
-          />
+        <div className="lg:col-span-4 xl:col-span-5 relative flex items-center justify-center min-h-[250px] md:min-h-[300px] z-0 -mx-4 md:mx-0 overflow-hidden">
+          {mockAllParkings.map((parking, index) => (
+            <div
+              key={`img-${index}`}
+              className={`absolute inset-0 flex items-center justify-center transition-transform duration-700 ease-in-out ${
+                index === currentIndex
+                  ? "translate-x-0"
+                  : slideDirection === "left"
+                  ? index < currentIndex || (currentIndex === 0 && index === mockAllParkings.length - 1)
+                    ? "-translate-x-[120%]"
+                    : "translate-x-[120%]"
+                  : index > currentIndex || (currentIndex === mockAllParkings.length - 1 && index === 0)
+                  ? "translate-x-[120%]"
+                  : "-translate-x-[120%]"
+              }`}
+            >
+              <img 
+                src={parking.bgImage} 
+                alt="Car/Parking" 
+                className={`w-full max-w-[650px] aspect-[4/3] object-cover shadow-2xl hover:scale-[1.02] transition-transform duration-700 ${
+                  index % 2 === 0 ? "-rotate-3" : "rotate-3"
+                }`}
+              />
+            </div>
+          ))}
         </div>
 
         {/* RIGHT COLUMN: AI ASSISTANT & CARDS */}
@@ -336,8 +463,8 @@ const HeroSection = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {mockParkingData.amenities.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 bg-gray-50 dark:bg-black/20 p-3 rounded-2xl">
+              {currentParkingData.amenities.map((item, idx) => (
+                <div key={`${currentIndex}-${idx}`} className="flex items-center gap-3 bg-gray-50 dark:bg-black/20 p-3 rounded-2xl animate-in fade-in duration-500">
                   <item.icon className={`w-5 h-5 ${item.color}`} />
                   <div>
                     <p className="text-xs font-bold">{item.label}</p>
@@ -365,14 +492,15 @@ const HeroSection = () => {
             <div className="relative z-10 flex justify-between items-start mb-3">
               <div>
                 <h3 className="font-bold flex items-center gap-2"><MapPin className="w-4 h-4 text-blue-500"/> Vị trí Bãi đỗ</h3>
-                <p className="text-xs text-gray-500 mt-1">Cập nhật lúc: 10:30 AM</p>
+                <p className="text-xs text-gray-500 mt-1 truncate max-w-[200px]">{currentParkingData.address}</p>
               </div>
             </div>
             <div className="flex-1 bg-gray-100 dark:bg-black/20 w-full rounded-xl flex items-center p-0 relative shadow-inner overflow-hidden border border-black/5 dark:border-white/10 group cursor-pointer pointer-events-none sm:pointer-events-auto">
                {/* Real Map Google Maps iframe */}
                <iframe 
-                 src={`https://maps.google.com/maps?q=${encodeURIComponent("Ngõ 27 Duy Tân, Cầu Giấy, Hà Nội")}&t=&z=16&ie=UTF8&iwloc=&output=embed`} 
-                 className="absolute inset-0 w-full h-full border-0 group-hover:scale-105 transition-transform duration-700" 
+                 key={currentIndex}
+                 src={`https://maps.google.com/maps?q=${encodeURIComponent(currentParkingData.address)}&t=&z=16&ie=UTF8&iwloc=&output=embed`} 
+                 className="absolute inset-0 w-full h-full border-0 group-hover:scale-105 transition-transform duration-700 animate-in fade-in" 
                  allow="fullscreen"
                  allowFullScreen 
                  loading="lazy" 
@@ -402,7 +530,7 @@ const HeroSection = () => {
             <p className="text-xs text-gray-500 max-w-[200px] mt-1">Liên hệ với chúng tôi để nhận khuyến mãi vé tháng ngay hôm nay</p>
             <div className="flex items-center gap-2 mt-4">
               <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                <User className="w-4 h-4 text-blue-600" />
+                <UserIcon className="w-4 h-4 text-blue-600" />
               </div>
               <div>
                 <p className="text-sm font-bold">Thành Nam</p>
@@ -416,28 +544,28 @@ const HeroSection = () => {
         </div>
 
         {/* Khung giờ trống */}
-        <div className="bg-white/70 dark:bg-stone-800/70 backdrop-blur-2xl p-5 rounded-[2rem] shadow-xl border border-white/40 dark:border-white/10 flex flex-col py-6">
+        <div className="bg-white/70 dark:bg-stone-800/70 backdrop-blur-2xl p-5 rounded-[2rem] shadow-xl border border-white/40 dark:border-white/10 flex flex-col py-6 transition-all duration-300">
           <h3 className="font-bold flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500"/> Thời gian bãi trống</h3>
           <p className="text-xs text-gray-500 mt-1">Hôm nay, 21 Tháng 3, 2026</p>
           <div className="flex items-center justify-between mt-auto px-4 bg-white/50 dark:bg-black/20 py-4 rounded-xl shadow-inner">
             <button className="text-gray-400">&lt;</button>
-            <div className="text-center">
+            <div className="text-center animate-in fade-in duration-500">
               <p className="text-sm font-semibold text-gray-500">Giờ hoạt động</p>
-              <h2 className="text-3xl font-light">24/7</h2>
+              <h2 className="text-2xl font-light mt-1">{currentParkingData.timeOpen}</h2>
             </div>
             <button className="text-gray-400">&gt;</button>
           </div>
         </div>
 
         {/* Bảng giá nhanh */}
-        <div className="bg-white/70 dark:bg-stone-800/70 backdrop-blur-2xl p-5 rounded-[2rem] shadow-xl border border-white/40 dark:border-white/10 flex flex-col justify-center">
+        <div className="bg-white/70 dark:bg-stone-800/70 backdrop-blur-2xl p-5 rounded-[2rem] shadow-xl border border-white/40 dark:border-white/10 flex flex-col justify-center transition-all duration-300">
           <h3 className="font-bold flex items-center gap-2"><Car className="w-4 h-4 text-purple-500"/> Đặt chỗ ngay</h3>
           <div className="space-y-3 mt-4">
-             <div className="flex justify-between items-center bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-white/20">
+             <div className="flex justify-between items-center bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-white/20 animate-in fade-in duration-500">
                <span className="text-sm font-medium">Giờ đầu</span>
-               <span className="font-bold text-primary">{mockParkingData.pricing.firstHour}</span>
+               <span className="font-bold text-primary">{currentParkingData.pricing.firstHour}</span>
              </div>
-             <button className="w-full bg-black dark:bg-white text-white dark:text-black py-3 rounded-xl font-bold hover:shadow-lg transition">
+             <button className="w-full bg-green-900 cursor-pointer dark:bg-white text-white dark:text-black py-3 rounded-xl font-bold hover:shadow-lg transition">
                Đặt vé xe
              </button>
           </div>

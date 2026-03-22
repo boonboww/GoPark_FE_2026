@@ -26,8 +26,14 @@ export function GuardProvider({ children }: { children: React.ReactNode }) {
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMounted(true);
+    // Đợi Zustand rehydrate từ localStorage
+    useAuthStore.persist.onFinishHydration(() => {
+      setIsMounted(true);
+    });
+    // Fallback if already hydrated
+    if (useAuthStore.persist.hasHydrated()) {
+      setIsMounted(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -38,7 +44,7 @@ export function GuardProvider({ children }: { children: React.ReactNode }) {
 
     // 1. Chưa đăng nhập & truy cập trang PRIVATE -> đá về Login
     if (!isPublicRoute && !isAuthenticated) {
-      toast.error("Bạn phải đăng nhập trước khi truy cập trang này!");
+      toast.error("Bạn phải đăng nhập trước khi truy cập trang này! (Debug: Not Authenticated)");
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsAuthorized(false);
       router.replace("/auth/login");
@@ -47,7 +53,7 @@ export function GuardProvider({ children }: { children: React.ReactNode }) {
 
     // 2. Đã đăng nhập
     if (isAuthenticated) {
-      const role = user?.role || "user";
+      const role = user?.role?.toLowerCase() || "user";
 
       // 2a. Nếu truy cập lại trang Login/Register -> tự chuyển hướng theo Role
       if (pathname === "/auth/login" || pathname === "/auth/register") {
@@ -65,7 +71,7 @@ export function GuardProvider({ children }: { children: React.ReactNode }) {
       
       // -- Trang dành riêng cho ADMIN
       if (pathname.startsWith("/admin") && role !== "admin") {
-        toast.error("Bạn không có quyền truy cập trang Quản trị!");
+        toast.error(`Bạn không có quyền truy cập trang Quản trị! (Role: ${role})`);
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsAuthorized(false);
         router.replace(role === "owner" ? "/owner" : "/");
@@ -74,7 +80,7 @@ export function GuardProvider({ children }: { children: React.ReactNode }) {
       
       // -- Trang dành riêng cho OWNER
       if (pathname.startsWith("/owner") && role !== "owner" && role !== "admin") {
-        toast.error("Xin lỗi, trang này chỉ dành cho Chủ Bãi (Owner)!");
+        toast.error(`Xin lỗi, trang này chỉ dành cho Chủ Bãi (Owner)! (Role: ${role})`);
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsAuthorized(false);
         router.replace(role === "admin" ? "/admin" : "/");
