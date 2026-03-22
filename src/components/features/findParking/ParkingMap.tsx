@@ -130,11 +130,11 @@ function MapController({
             <select
               value={mapStyle}
               onChange={(e) => onStyleChange(e.target.value as StyleKey)}
-              className="bg-transparent border-none text-sm focus:ring-0 cursor-pointer p-1 py-1.5 min-w-[120px] max-w-full outline-none"
+              className="bg-transparent border-none text-sm focus:ring-0 cursor-pointer p-1 py-1.5 min-w-[120px] max-w-full outline-none text-foreground dark:bg-zinc-900"
             >
-              <option value="default">GoPark (Mặc định)</option>
-              <option value="openstreetmap">GoPark Map</option>
-              <option value="openstreetmap3d">GoPark Map 3D</option>
+              <option value="default" className="bg-background text-foreground">GoPark (Mặc định)</option>
+              <option value="openstreetmap" className="bg-background text-foreground">GoPark Map</option>
+              <option value="openstreetmap3d" className="bg-background text-foreground">GoPark Map 3D</option>
             </select>
           </div>
         </div>
