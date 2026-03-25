@@ -1,16 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { getOwnerParkingLots } from "@/services/ownerService";
-import { TEMP_OWNER_ID } from "@/stores/customer.store";
+import { useAuthStore } from "@/stores/auth.store";
 import { ParkingLotType } from "@/types/owner";
 
 /**
  * Lấy danh sách bãi đỗ xe của owner.
- * BE trả về dạng { statusCode, message, data: [...] } hoặc trực tiếp [...]
+ * ownerId lấy từ useAuthStore (user.id sau khi login thật).
+ * BE trả về dạng { statusCode, message, data: [...] } hoặc trực tiếp [...].
  */
 export function useOwnerParkingLots() {
+  const ownerId = useAuthStore((s) => s.user?.id);
+
   return useQuery({
-    queryKey: ["parkingLots", TEMP_OWNER_ID],
-    queryFn: () => getOwnerParkingLots(TEMP_OWNER_ID),
+    queryKey: ["parkingLots", ownerId],
+    queryFn: () => getOwnerParkingLots(ownerId!),
+    enabled: !!ownerId,
     staleTime: 1000 * 60 * 10,
     select: (res) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,4 +24,3 @@ export function useOwnerParkingLots() {
     },
   });
 }
-

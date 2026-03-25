@@ -47,14 +47,14 @@ export default function CustomerManagementPage() {
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <div className="flex flex-col gap-4 md:gap-8 px-4 lg:px-6">
-
                 {/* Toolbar */}
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2 flex-1 max-w-sm relative">
-                    {isFetching && !isLoading
-                      ? <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
-                      : <Search className="h-4 w-4 text-muted-foreground" />
-                    }
+                    {isFetching && !isLoading ? (
+                      <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4 text-muted-foreground" />
+                    )}
                     <Input
                       placeholder="Tìm theo tên, SĐT, biển số..."
                       className="max-w-sm"
@@ -70,12 +70,6 @@ export default function CustomerManagementPage() {
                       </Button>
                     </SheetTrigger>
                     <SheetContent className="w-[400px] sm:w-[600px] sm:max-w-[calc(100vw-2rem)]">
-                      <SheetHeader>
-                        <SheetTitle>Đăng ký khách hàng mới</SheetTitle>
-                        <SheetDescription>
-                          Nhập thông tin khách hàng và xe để thêm vào hệ thống.
-                        </SheetDescription>
-                      </SheetHeader>
                       <FormAddCustomer />
                     </SheetContent>
                   </Sheet>
@@ -109,8 +103,12 @@ export default function CustomerManagementPage() {
                       {/* Chưa chọn bãi */}
                       {!isLoading && lotId === null && (
                         <TableRow>
-                          <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
-                            Vui lòng chọn bãi đỗ xe ở thanh trên để xem danh sách khách hàng.
+                          <TableCell
+                            colSpan={5}
+                            className="h-32 text-center text-muted-foreground"
+                          >
+                            Vui lòng chọn bãi đỗ xe ở thanh trên để xem danh
+                            sách khách hàng.
                           </TableCell>
                         </TableRow>
                       )}
@@ -121,20 +119,28 @@ export default function CustomerManagementPage() {
                           <TableCell colSpan={5} className="h-32 text-center">
                             <div className="flex items-center justify-center gap-2 text-destructive">
                               <AlertCircle className="h-4 w-4" />
-                              <span>Không thể tải dữ liệu. Vui lòng thử lại sau.</span>
+                              <span>
+                                Không thể tải dữ liệu. Vui lòng thử lại sau.
+                              </span>
                             </div>
                           </TableCell>
                         </TableRow>
                       )}
 
                       {/* Empty */}
-                      {!isLoading && !isError && lotId !== null && customers.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
-                            Không tìm thấy khách hàng nào.
-                          </TableCell>
-                        </TableRow>
-                      )}
+                      {!isLoading &&
+                        !isError &&
+                        lotId !== null &&
+                        customers.length === 0 && (
+                          <TableRow>
+                            <TableCell
+                              colSpan={5}
+                              className="h-32 text-center text-muted-foreground"
+                            >
+                              Không tìm thấy khách hàng nào.
+                            </TableCell>
+                          </TableRow>
+                        )}
 
                       {/* Data rows */}
                       {!isLoading &&
@@ -147,13 +153,14 @@ export default function CustomerManagementPage() {
                             <TableCell>{customer.name}</TableCell>
                             <TableCell>{customer.email}</TableCell>
                             <TableCell>{customer.phone}</TableCell>
-                            <TableCell className="font-mono">{customer.plateNumber}</TableCell>
+                            <TableCell className="font-mono">
+                              {customer.plateNumber}
+                            </TableCell>
                           </TableRow>
                         ))}
                     </TableBody>
                   </Table>
                 </div>
-
               </div>
             </div>
           </div>

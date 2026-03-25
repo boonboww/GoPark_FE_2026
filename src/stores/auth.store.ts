@@ -2,22 +2,36 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 /**
- * User interface
+ * Profile sub-object trả về từ BE sau khi login
  */
-interface User {
+export interface UserProfile {
+  id: number;
+  name: string;
+  phone: string | null;
+  gender: string | null;
+  image: string | null;
+}
+
+/**
+ * User interface - khớp với response login thật từ BE
+ */
+export interface AuthUser {
   id: string;
   email: string;
-  name: string;
-  avatar?: string;
+  status: string;
+  roles: string[];
   role: string;
+  profile: UserProfile | null;
+  vehicles?: unknown[];
 }
 
 /**
  * Auth Store State
  */
 interface AuthState {
-  user: User | null;
+  user: AuthUser | null;
   accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -26,10 +40,10 @@ interface AuthState {
  * Auth Store Actions
  */
 interface AuthActions {
-  login: (user: User, token: string) => void;
+  login: (user: AuthUser, accessToken: string, refreshToken: string) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
-  updateUser: (user: Partial<User>) => void;
+  updateUser: (user: Partial<AuthUser>) => void;
 }
 
 /**
@@ -42,14 +56,16 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       // Initial state
       user: null,
       accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
 
       // Actions
-      login: (user, token) =>
+      login: (user, accessToken, refreshToken) =>
         set({
           user,
-          accessToken: token,
+          accessToken,
+          refreshToken,
           isAuthenticated: true,
           isLoading: false,
         }),
@@ -58,6 +74,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         set({
           user: null,
           accessToken: null,
+          refreshToken: null,
           isAuthenticated: false,
         }),
 
@@ -73,6 +90,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
     },

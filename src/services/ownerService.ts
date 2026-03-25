@@ -1,12 +1,23 @@
-import { OwnerProfileType, ParkingLotType, OwnerTotalsType } from "@/types/owner";
-import { get } from "@/lib/api";
+import {
+  OwnerProfileType,
+  ParkingLotType,
+  OwnerTotalsType,
+  UpdateProfileRequest,
+  ChangePasswordRequest,
+} from "@/types/owner";
+import { get, put, post } from "@/lib/api";
 
-interface UserResDto {
-  fullName?: string;
-  name?: string;
-  phoneNumber?: string;
-  phone?: string;
-  avatar?: string;
+// ─── Profile ────────────────────────────────────────────────────────────────
+
+interface UserApiResponse {
+  id: string;
+  email: string;
+  status: string;
+  profile?: {
+    name?: string;
+    phone?: string | null;
+    image?: string | null;
+  };
   totalLots?: number;
 }
 
@@ -17,17 +28,49 @@ export const getOwnerProfile = async (id: string): Promise<OwnerProfileType> => 
   }
 
   console.log(`OwnerService: Fetching data for /users/${id}`);
-  // Thực hiện gọi API thật tới BE
-  const response = await get<UserResDto>(`/users/${id}`);
-  
-  // Map dữ liệu từ BE (UserResDto) sang OwnerProfileType của FE
+  const res = await get<{ data: UserApiResponse } | UserApiResponse>(`/users/${id}`);
+
+  // Unwrap BE envelope nếu có
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = (res as any)?.data ?? (res as UserApiResponse);
+
   return {
-    name: response.fullName || response.name || "N/A",
-    phone: response.phoneNumber || response.phone || "N/A",
-    avatar: response.avatar || `https://i.pravatar.cc/150?u=${id}`,
-    totalLots: response.totalLots || 0,
+    name: user?.profile?.name || "N/A",
+    phone: user?.profile?.phone ?? null,
+    email: user?.email || "",
+    image: user?.profile?.image ?? null,
+    totalLots: user?.totalLots || 0,
   };
 };
+
+export const updateOwnerProfile = async (
+  id: string,
+  data: UpdateProfileRequest,
+): Promise<OwnerProfileType> => {
+  const res = await put<{ data: UserApiResponse } | UserApiResponse>(
+    `/users/${id}`,
+    { name: data.name, phone: data.phone },
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = (res as any)?.data ?? (res as UserApiResponse);
+
+  return {
+    name: user?.profile?.name || data.name || "N/A",
+    phone: user?.profile?.phone ?? data.phone ?? null,
+    email: user?.email || "",
+    image: user?.profile?.image ?? null,
+    totalLots: user?.totalLots || 0,
+  };
+};
+
+// ─── Password ────────────────────────────────────────────────────────────────
+
+export const changePassword = async (payload: ChangePasswordRequest): Promise<void> => {
+  await post<unknown>("/auth/change-password", payload);
+};
+
+// ─── Parking Lots ─────────────────────────────────────────────────────────────
 
 export const getOwnerParkingLots = async (ownerId: string): Promise<ParkingLotType[]> => {
   return get<ParkingLotType[]>(`/parking-lots/owner/${ownerId}`);
@@ -35,28 +78,4 @@ export const getOwnerParkingLots = async (ownerId: string): Promise<ParkingLotTy
 
 export const getOwnerTotals = async (ownerId: string): Promise<OwnerTotalsType> => {
   return get<OwnerTotalsType>(`/parking-lots/owner/${ownerId}/totals`);
-};
-
-export const updateOwnerProfile = async (
-  id: string,
-  data: Partial<OwnerProfileType>,
-): Promise<OwnerProfileType> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        name: data.name || "Nguyen Van A",
-        phone: data.phone || "0901234567",
-        avatar: data.avatar || "https://i.pravatar.cc/150?u=a",
-        totalLots: data.totalLots || 3,
-      });
-    }, 800);
-  });
-};
-
-export const changePassword = async (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(true);
-    }, 800);
-  });
 };

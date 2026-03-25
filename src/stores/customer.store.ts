@@ -1,11 +1,9 @@
 import { create } from "zustand";
 
-// TODO: thay bằng id thật từ auth khi có login
-export const TEMP_OWNER_ID = "019cd647-122f-7035-b07c-6f8b13b982d1";
-
 /**
  * Customer UI State (Zustand)
  * Chỉ chứa client/UI state — không fetch API trực tiếp (việc đó là của React Query).
+ * ownerId được lấy động từ useAuthStore thay vì hardcode TEMP_OWNER_ID.
  */
 interface CustomerUIState {
   /** ID bãi đỗ xe đang xem. null = chưa chọn (chờ load danh sách bãi) */
@@ -25,4 +23,3 @@ export const useCustomerStore = create<CustomerUIState>((set) => ({
   setLotId: (id) => set({ lotId: id }),
   setSearchText: (text) => set({ searchText: text }),
 }));
-

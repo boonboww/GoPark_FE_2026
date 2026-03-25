@@ -1,30 +1,44 @@
-import { useState, useEffect } from "react";
-import { useOwnerStore } from "@/stores/owner.store";
 import { useAuthStore } from "@/stores/auth.store";
+import { useOwnerStore } from "@/stores/owner.store";
+import { useOwnerParkingLots } from "@/hooks/useOwnerParkingLots";
+import { OwnerProfileType } from "@/types/owner";
 
+/**
+ * Hook cho trang Account Owner.
+ *
+ * - Profile: lấy trực tiếp từ useAuthStore (đã có sẵn sau khi login)
+ *   → không cần gọi API riêng vì login response đã bao gồm profile.name, profile.phone
+ * - Parking Lots: dùng useOwnerParkingLots (React Query)
+ * - UI toggles: dùng useOwnerStore (Zustand UI state)
+ */
 export function useAccountPage() {
-  // 1. Kéo data và actions từ Zustand Store
-  const { profile, parkingLots, isLoadingLots, fetchProfile, fetchParkingLots } = useOwnerStore();
-  const { user } = useAuthStore();
-  
-  // 2. Local State cho UI
-  const [showParkingLots, setShowParkingLots] = useState(false);
+  // 1. Auth state — lấy user từ login response
+  const user = useAuthStore((s) => s.user);
 
-  // 3. Logic Side Effects
-  useEffect(() => {
-    // Chỉ fetch khi có userId hợp lệ và không phải chuỗi "undefined"
-    if (!profile && user?.id && user.id !== "undefined") {
-      console.log("Fetching profile for userId:", user.id);
-      fetchProfile(user.id);
-    }
-  }, [profile, fetchProfile, user?.id]);
+  // 2. UI state từ owner store
+  const { showParkingLots, toggleParkingLots } = useOwnerStore();
 
-  // 4. Logic UI Handler
-  const handleViewParkingLots = async () => {
-    if (!showParkingLots && parkingLots.length === 0) {
-      await fetchParkingLots();
-    }
-    setShowParkingLots(!showParkingLots);
+  // 3. Parking lots — React Query (chỉ fetch khi showParkingLots = true)
+  const {
+    data: parkingLots = [],
+    isLoading: isLoadingLots,
+    isFetching: isFetchingLots,
+  } = useOwnerParkingLots();
+
+  // 4. Map user sang OwnerProfileType để truyền vào component
+  const profile: OwnerProfileType | null = user
+    ? {
+        name: user.profile?.name || user.email || "N/A",
+        phone: user.profile?.phone ?? null,
+        email: user.email,
+        image: user.profile?.image ?? null,
+        totalLots: parkingLots.length,
+      }
+    : null;
+
+  // 5. Handler toggle parking lots
+  const handleViewParkingLots = () => {
+    toggleParkingLots();
   };
 
   return {
@@ -32,6 +46,8 @@ export function useAccountPage() {
     parkingLots,
     showParkingLots,
     isLoadingLots,
-    handleViewParkingLots
+    isFetchingLots,
+    handleViewParkingLots,
+    user,
   };
 }

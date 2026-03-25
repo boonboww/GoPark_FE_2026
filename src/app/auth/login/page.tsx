@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Suspense, useState, useEffect } from "react";
 import { Mail, Lock, LogIn, Globe, Check } from "lucide-react";
@@ -143,8 +143,23 @@ function LoginPageContent() {
         throw new Error(res?.message || "Đăng nhập thất bại");
       }
 
-      const { accessToken, user } = res.data;
-      const frontendUser = { id: user.id || "", email: user.email || "", role: user.role?.toLowerCase() || "user", name: user.profile?.name || user.name || "Người dùng", avatar: user.profile?.image || user.avatar || "" }; login(frontendUser, accessToken);
+      const { accessToken, refreshToken, user } = res.data;
+      const frontendUser = {
+        id: user.id || "",
+        email: user.email || "",
+        status: user.status || "ACTIVE",
+        roles: user.roles || [user.role || "USER"],
+        role: (user.role || user.roles?.[0] || "USER").toUpperCase(),
+        profile: user.profile ? {
+          id: user.profile.id,
+          name: user.profile.name || "N/A",
+          phone: user.profile.phone || null,
+          gender: user.profile.gender || null,
+          image: user.profile.image || null
+        } : null
+      };
+
+      login(frontendUser, accessToken, refreshToken);
 
       setMessage("✅ Đăng nhập thành công!");
       setShowSuccessDialog(true);
@@ -157,7 +172,7 @@ function LoginPageContent() {
 
       setTimeout(() => {
         setShowSuccessDialog(false);
-        const role = user?.role?.toLowerCase();
+        const role = frontendUser.role.toLowerCase();
         if (role === "admin") {
           router.push("/admin");
         } else if (role === "owner") {

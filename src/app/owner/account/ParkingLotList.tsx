@@ -92,7 +92,7 @@ export default function ParkingLotList({
                 Total Slots
               </span>
               <span className="inline-flex items-center justify-center px-3 py-1 text-sm font-bold bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
-                {lot.total_slots}
+                {lot.totalSlots}
               </span>
             </div>
           </div>

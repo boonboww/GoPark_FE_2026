@@ -1,7 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { OwnerProfileType } from "@/types/owner";
+import { updateOwnerProfile, changePassword } from "@/services/ownerService";
+import { useAuthStore } from "@/stores/auth.store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +17,8 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Phone, MapPin, Camera, Lock, Edit3, Save, Eye } from "lucide-react";
+import { Phone, Mail, MapPin, Camera, Lock, Edit3, Save, Eye, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface OwnerProfileProps {
   profile: OwnerProfileType | null;
@@ -32,6 +36,51 @@ export default function OwnerProfile({
     name: profile?.name || "",
     phone: profile?.phone || "",
   });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const user = useAuthStore((s) => s.user);
+  const updateUser = useAuthStore((s) => s.updateUser);
+  const queryClient = useQueryClient();
+
+  // ─── Mutation: Update Profile ───────────────────────────────────────────────
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: { name: string; phone: string }) =>
+      updateOwnerProfile(user!.id, { name: data.name, phone: data.phone }),
+    onSuccess: (updated) => {
+      // Cập nhật lại auth store để UI phản ánh ngay
+      updateUser({
+        profile: {
+          ...(user?.profile ?? { id: 0, gender: null, image: null }),
+          name: updated.name,
+          phone: updated.phone,
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: ["ownerProfile", user?.id] });
+      toast.success("Cập nhật thông tin thành công!");
+      setEditMode("none");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Cập nhật thất bại. Vui lòng thử lại.");
+    },
+  });
+
+  // ─── Mutation: Change Password ───────────────────────────────────────────────
+  const changePasswordMutation = useMutation({
+    mutationFn: (data: { currentPassword: string; newPassword: string }) =>
+      changePassword({ currentPassword: data.currentPassword, newPassword: data.newPassword }),
+    onSuccess: () => {
+      toast.success("Đổi mật khẩu thành công!");
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setEditMode("none");
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Đổi mật khẩu thất bại. Vui lòng thử lại.");
+    },
+  });
 
   if (!profile) {
     return (
@@ -46,39 +95,72 @@ export default function OwnerProfile({
     );
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    // API logic is not modified as per rules
-    setEditMode("none");
+    if (!formData.name.trim()) {
+      toast.error("Tên không được để trống.");
+      return;
+    }
+    updateProfileMutation.mutate({ name: formData.name, phone: formData.phone });
   };
+
+  const handleSavePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordData.currentPassword || !passwordData.newPassword) {
+      toast.error("Vui lòng nhập đầy đủ thông tin mật khẩu.");
+      return;
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("Mật khẩu mới và xác nhận mật khẩu không khớp.");
+      return;
+    }
+    if (passwordData.newPassword.length < 6) {
+      toast.error("Mật khẩu mới phải có ít nhất 6 ký tự.");
+      return;
+    }
+    changePasswordMutation.mutate({
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword,
+    });
+  };
+
+  const avatarSrc = profile.image || undefined;
+  const avatarFallback = profile.name?.charAt(0)?.toUpperCase() || "O";
 
   const renderContent = () => {
     switch (editMode) {
       case "profile":
         return (
-          <form onSubmit={handleSave} className="space-y-6">
+          <form onSubmit={handleSaveProfile} className="space-y-6">
             <div className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">Họ và tên</Label>
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  placeholder="Enter your name"
+                  placeholder="Nhập tên của bạn"
+                  disabled={updateProfileMutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Số điện thoại</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
                   onChange={(e) =>
                     setFormData({ ...formData, phone: e.target.value })
                   }
-                  placeholder="Enter your phone number"
+                  placeholder="Nhập số điện thoại"
+                  disabled={updateProfileMutation.isPending}
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label>Email</Label>
+                <Input value={profile.email} disabled className="bg-muted/50 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Email không thể thay đổi.</p>
               </div>
             </div>
             <div className="flex gap-3 justify-end pt-2">
@@ -86,12 +168,17 @@ export default function OwnerProfile({
                 type="button"
                 variant="outline"
                 onClick={() => setEditMode("none")}
+                disabled={updateProfileMutation.isPending}
               >
-                Cancel
+                Hủy
               </Button>
-              <Button type="submit">
-                <Save className="w-4 h-4 mr-2" />
-                Save Changes
+              <Button type="submit" disabled={updateProfileMutation.isPending}>
+                {updateProfileMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                Lưu thay đổi
               </Button>
             </div>
           </form>
@@ -99,30 +186,45 @@ export default function OwnerProfile({
 
       case "password":
         return (
-          <form onSubmit={handleSave} className="space-y-6">
+          <form onSubmit={handleSavePassword} className="space-y-6">
             <div className="space-y-4">
               <div className="grid gap-2">
-                <Label htmlFor="current-password">Current Password</Label>
+                <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
                 <Input
                   id="current-password"
                   type="password"
                   placeholder="••••••••"
+                  value={passwordData.currentPassword}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                  }
+                  disabled={changePasswordMutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="new-password">New Password</Label>
+                <Label htmlFor="new-password">Mật khẩu mới</Label>
                 <Input
                   id="new-password"
                   type="password"
                   placeholder="••••••••"
+                  value={passwordData.newPassword}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, newPassword: e.target.value })
+                  }
+                  disabled={changePasswordMutation.isPending}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Label htmlFor="confirm-password">Xác nhận mật khẩu mới</Label>
                 <Input
                   id="confirm-password"
                   type="password"
                   placeholder="••••••••"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                  }
+                  disabled={changePasswordMutation.isPending}
                 />
               </div>
             </div>
@@ -131,12 +233,17 @@ export default function OwnerProfile({
                 type="button"
                 variant="outline"
                 onClick={() => setEditMode("none")}
+                disabled={changePasswordMutation.isPending}
               >
-                Cancel
+                Hủy
               </Button>
-              <Button type="submit">
-                <Save className="w-4 h-4 mr-2" />
-                Save Password
+              <Button type="submit" disabled={changePasswordMutation.isPending}>
+                {changePasswordMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                Đổi mật khẩu
               </Button>
             </div>
           </form>
@@ -147,19 +254,20 @@ export default function OwnerProfile({
           <div className="space-y-6">
             <div className="flex flex-col items-center gap-6 py-4">
               <Avatar className="w-32 h-32 border-4 border-indigo-50 shadow-sm">
-                <AvatarImage src={profile.avatar} alt={profile.name} />
-                <AvatarFallback>{profile.name.charAt(0)}</AvatarFallback>
+                <AvatarImage src={avatarSrc} alt={profile.name} />
+                <AvatarFallback>{avatarFallback}</AvatarFallback>
               </Avatar>
               <div className="w-full max-w-sm">
                 <Label
                   htmlFor="avatar-upload"
                   className="mb-2 block text-center"
                 >
-                  Upload new avatar
+                  Tải ảnh đại diện mới
                 </Label>
                 <Input
                   id="avatar-upload"
                   type="file"
+                  accept="image/*"
                   className="cursor-pointer"
                 />
               </div>
@@ -170,11 +278,11 @@ export default function OwnerProfile({
                 variant="outline"
                 onClick={() => setEditMode("none")}
               >
-                Cancel
+                Hủy
               </Button>
               <Button onClick={() => setEditMode("none")}>
                 <Save className="w-4 h-4 mr-2" />
-                Save Avatar
+                Lưu ảnh
               </Button>
             </div>
           </div>
@@ -185,8 +293,8 @@ export default function OwnerProfile({
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
             <div className="flex-shrink-0">
               <Avatar className="w-32 h-32 border-4 border-indigo-50 shadow-sm">
-                <AvatarImage src={profile.avatar} alt={profile.name} />
-                <AvatarFallback>{profile.name.charAt(0)}</AvatarFallback>
+                <AvatarImage src={avatarSrc} alt={profile.name} />
+                <AvatarFallback>{avatarFallback}</AvatarFallback>
               </Avatar>
             </div>
 
@@ -198,9 +306,15 @@ export default function OwnerProfile({
                   </h2>
                   <div className="flex flex-col gap-1.5 mt-2">
                     <p className="flex items-center justify-center md:justify-start gap-2 text-muted-foreground text-sm">
-                      <Phone className="w-4 h-4" />
-                      {profile.phone}
+                      <Mail className="w-4 h-4" />
+                      {profile.email}
                     </p>
+                    {profile.phone && (
+                      <p className="flex items-center justify-center md:justify-start gap-2 text-muted-foreground text-sm">
+                        <Phone className="w-4 h-4" />
+                        {profile.phone}
+                      </p>
+                    )}
                     <p className="flex items-center justify-center md:justify-start gap-2 text-muted-foreground text-sm">
                       <MapPin className="w-4 h-4" />
                       Total Parking Lots:{" "}
@@ -214,12 +328,15 @@ export default function OwnerProfile({
 
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-4">
                 <Button
-                  onClick={() => setEditMode("profile")}
+                  onClick={() => {
+                    setFormData({ name: profile.name, phone: profile.phone || "" });
+                    setEditMode("profile");
+                  }}
                   variant="default"
                   size="sm"
                 >
                   <Edit3 className="w-4 h-4 mr-2" />
-                  Edit Profile
+                  Chỉnh sửa
                 </Button>
                 <Button
                   onClick={() => setEditMode("password")}
@@ -227,7 +344,7 @@ export default function OwnerProfile({
                   size="sm"
                 >
                   <Lock className="w-4 h-4 mr-2" />
-                  Change Password
+                  Đổi mật khẩu
                 </Button>
                 <Button
                   onClick={() => setEditMode("avatar")}
@@ -235,7 +352,7 @@ export default function OwnerProfile({
                   size="sm"
                 >
                   <Camera className="w-4 h-4 mr-2" />
-                  Change Avatar
+                  Đổi ảnh đại diện
                 </Button>
                 <Separator
                   orientation="vertical"
@@ -247,7 +364,7 @@ export default function OwnerProfile({
                   size="sm"
                 >
                   <Eye className="w-4 h-4 mr-2" />
-                  View Parking Lots
+                  Xem bãi đỗ xe
                 </Button>
               </div>
             </div>
@@ -258,23 +375,19 @@ export default function OwnerProfile({
 
   const getTitle = () => {
     switch (editMode) {
-      case "profile":
-        return "Edit Profile";
-      case "password":
-        return "Change Password";
-      case "avatar":
-        return "Change Avatar";
+      case "profile": return "Chỉnh sửa thông tin";
+      case "password": return "Đổi mật khẩu";
+      case "avatar": return "Đổi ảnh đại diện";
+      default: return "Thông tin tài khoản";
     }
   };
 
   const getDescription = () => {
     switch (editMode) {
-      case "profile":
-        return "Update your name and contact information.";
-      case "password":
-        return "Choose a strong password to protect your account.";
-      case "avatar":
-        return "Upload a professional photo for your profile.";
+      case "profile": return "Cập nhật tên và số điện thoại của bạn.";
+      case "password": return "Chọn mật khẩu mạnh để bảo vệ tài khoản.";
+      case "avatar": return "Tải ảnh đại diện chuyên nghiệp cho hồ sơ.";
+      default: return "Quản lý thông tin cá nhân của bạn.";
     }
   };
 

@@ -4,3 +4,5 @@
 export * from './ocr.service';
 export * from './analytics.service';
 export * from './ownerService';
+export * from './customerService';
+export * from './report.service';

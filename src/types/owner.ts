@@ -1,7 +1,8 @@
 export interface OwnerProfileType {
   name: string;
-  phone: string;
-  avatar: string;
+  phone: string | null;
+  email: string;
+  image: string | null;
   totalLots: number;
 }
 
@@ -26,3 +27,14 @@ export interface OwnerTotalsType {
   statusBreakdown: Record<string, number>;
 }
 
+/** Request body cho update profile */
+export interface UpdateProfileRequest {
+  name?: string;
+  phone?: string;
+}
+
+/** Request body cho change password */
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}

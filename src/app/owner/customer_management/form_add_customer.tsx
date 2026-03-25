@@ -7,11 +7,65 @@ import { Label } from "@/components/ui/label";
 import { Upload, Camera, Loader2 } from "lucide-react";
 import { ocrService } from "@/services/ocr.service";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { parkingService } from "@/services/parking.service";
+import { useCustomerStore } from "@/stores/customer.store";
 
 export function FormAddCustomer() {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [licensePlate, setLicensePlate] = useState("");
+  const [vehicleType, setVehicleType] = useState("4-5_seats");
   const [isOcrLoading, setIsOcrLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [vehicleImages, setVehicleImages] = useState<File[]>([]);
+  const [plateImage, setPlateImage] = useState<File | null>(null);
+  
+  const lotId = useCustomerStore((state) => state.lotId);
+
+  const handleSubmit = async () => {
+    if (!name.trim()) return toast.error("Vui lòng nhập tên khách hàng");
+    if (!phone.trim()) return toast.error("Vui lòng nhập số điện thoại");
+    if (!licensePlate.trim()) return toast.error("Vui lòng nhập biển số xe");
+    if (!lotId) return toast.error("Vui lòng chọn bãi đỗ xe trước khi đăng ký");
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        name,
+        phoneNumber: phone,
+        licensePlate,
+        vehicleType
+      };
+
+      const res = await parkingService.walkInCheckIn(lotId, payload);
+      
+      const bookingId = res.data?.bookingId || "N/A";
+      toast.success(`Đăng ký thành công! Mã Booking: ${bookingId}`);
+      
+      // Reset form
+      setName("");
+      setPhone("");
+      setLicensePlate("");
+      setVehicleImages([]);
+      setPlateImage(null);
+    } catch (error: unknown) {
+      console.error(error);
+      const errorMessage =
+        (error as any)?.response?.data?.message ||
+        (error as Error)?.message ||
+        "Có lỗi xảy ra khi lưu dữ liệu";
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleMultipleImages = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
@@ -22,6 +76,7 @@ export function FormAddCustomer() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setPlateImage(file);
     setIsOcrLoading(true);
     try {
       const result = await ocrService.recognizeLicensePlate(file);
@@ -29,7 +84,8 @@ export function FormAddCustomer() {
       toast.success("Nhận diện biển số thành công!");
     } catch (error: unknown) {
       console.error(error);
-      const errorMessage = error instanceof Error ? error.message : "Nhận diện biển số thất bại";
+      const errorMessage =
+        error instanceof Error ? error.message : "Nhận diện biển số thất bại";
       toast.error(errorMessage);
     } finally {
       setIsOcrLoading(false);
@@ -41,28 +97,50 @@ export function FormAddCustomer() {
       {/* Tên */}
       <div className="grid gap-2">
         <Label className="text-sm font-medium">Tên khách hàng</Label>
-        <Input placeholder="Nhập tên khách hàng" className="h-10" />
+        <Input 
+          placeholder="Nhập tên khách hàng" 
+          className="h-10" 
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
       </div>
 
       {/* SĐT */}
       <div className="grid gap-2">
         <Label className="text-sm font-medium">Số điện thoại</Label>
-        <Input placeholder="Nhập số điện thoại" className="h-10" />
+        <Input 
+          placeholder="Nhập số điện thoại" 
+          className="h-10" 
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
       </div>
 
-      {/* Biển số (READ ONLY display, but could be an Input if user wants to edit) */}
+      {/* Loại xe */}
+      <div className="grid gap-2">
+        <Label className="text-sm font-medium">Loại xe</Label>
+        <Select value={vehicleType} onValueChange={setVehicleType}>
+          <SelectTrigger className="h-10">
+            <SelectValue placeholder="Chọn loại xe" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="4-5_seats">Xe 4-5 chỗ</SelectItem>
+            <SelectItem value="7_seats">Xe 7 chỗ</SelectItem>
+            <SelectItem value="9-16_seats">Xe 9-16 chỗ</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Biển số (Editable Input) */}
       <div className="grid gap-2">
         <Label className="text-sm font-medium">Biển số xe</Label>
-        <div className="h-10 flex items-center px-3 rounded-md border bg-muted text-sm relative">
-          {isOcrLoading ? (
-            <div className="flex items-center gap-2 text-muted-foreground italic">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Đang nhận diện...
-            </div>
-          ) : (
-            <span>{licensePlate || "Chưa nhận diện"}</span>
-          )}
-        </div>
+        <Input 
+          value={licensePlate} 
+          onChange={(e) => setLicensePlate(e.target.value)}
+          placeholder={isOcrLoading ? "Đang nhận diện..." : "Nhập hoặc quét biển số"}
+          className="h-10 uppercase font-bold" 
+          disabled={isOcrLoading}
+        />
       </div>
 
       {/* Upload section */}
@@ -78,34 +156,46 @@ export function FormAddCustomer() {
                 <p className="text-xs mt-2 font-medium">Đang xử lý...</p>
               </div>
             ) : null}
-            
+
             <Upload className="w-6 h-6 mb-2 text-muted-foreground" />
             <p className="text-xs text-muted-foreground text-center px-2">
               Upload hoặc chụp ảnh biển số để tự động nhập
             </p>
 
-            <Input 
-              type="file" 
+            <Input
+              type="file"
               accept="image/*"
-              className="hidden" 
+              className="hidden"
               onChange={handleOcrUpload}
               disabled={isOcrLoading}
             />
 
             {/* Nút chụp (Dành cho mobile) */}
             <div className="mt-2 flex items-center gap-1 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 px-3 rounded-md text-xs font-medium transition-colors">
-              <Camera className="w-4 h-4" /> 
+              <Camera className="w-4 h-4" />
               <span>Chụp ảnh</span>
-              <input 
-                type="file" 
-                accept="image/*" 
-                capture="environment" 
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 onChange={handleOcrUpload}
                 disabled={isOcrLoading}
               />
             </div>
           </label>
+
+          {/* Preview Ảnh Biển Số */}
+          {plateImage && (
+            <div className="mt-2">
+              <img
+                src={URL.createObjectURL(plateImage)}
+                alt="License Plate Preview"
+                className="w-full h-32 object-cover rounded-md border"
+                onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+              />
+            </div>
+          )}
         </div>
 
         {/* Upload ảnh xe */}
@@ -127,13 +217,13 @@ export function FormAddCustomer() {
             />
 
             <div className="mt-2 flex items-center gap-1 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 px-3 rounded-md text-xs font-medium transition-colors">
-              <Camera className="w-4 h-4" /> 
+              <Camera className="w-4 h-4" />
               <span>Chụp ảnh</span>
-              <input 
-                type="file" 
-                accept="image/*" 
+              <input
+                type="file"
+                accept="image/*"
                 multiple
-                capture="environment" 
+                capture="environment"
                 className="absolute inset-0 opacity-0 cursor-pointer"
                 onChange={handleMultipleImages}
               />
@@ -161,8 +251,19 @@ export function FormAddCustomer() {
       </div>
 
       {/* Submit */}
-      <Button className="w-full h-10 mt-2 text-base font-semibold" disabled={isOcrLoading}>
-        Thêm khách hàng
+      <Button 
+        className="w-full h-10 mt-2 text-base font-semibold" 
+        disabled={isOcrLoading || isSubmitting}
+        onClick={handleSubmit}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Đang xử lý...
+          </>
+        ) : (
+          "Thêm khách hàng"
+        )}
       </Button>
     </div>
   );

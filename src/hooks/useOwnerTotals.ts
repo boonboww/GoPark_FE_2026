@@ -1,16 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { getOwnerTotals } from "@/services/ownerService";
-import { TEMP_OWNER_ID } from "@/stores/customer.store";
+import { useAuthStore } from "@/stores/auth.store";
 import { OwnerTotalsType } from "@/types/owner";
 
 /**
  * Lấy thống kê tổng hợp các bãi của owner.
- * BE trả về dạng { statusCode, message, data: { totalParkingLots, ... } }
+ * ownerId lấy từ useAuthStore (user.id sau khi login thật).
+ * BE trả về dạng { statusCode, message, data: { totalParkingLots, ... } }.
  */
 export function useOwnerTotals() {
+  const ownerId = useAuthStore((s) => s.user?.id);
+
   return useQuery({
-    queryKey: ["ownerTotals", TEMP_OWNER_ID],
-    queryFn: () => getOwnerTotals(TEMP_OWNER_ID),
+    queryKey: ["ownerTotals", ownerId],
+    queryFn: () => getOwnerTotals(ownerId!),
+    enabled: !!ownerId,
     staleTime: 1000 * 60 * 5,
     select: (res) => {
       // Unwrap nếu BE trả về { data: {...} }
