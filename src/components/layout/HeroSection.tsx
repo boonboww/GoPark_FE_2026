@@ -565,7 +565,15 @@ const HeroSection = () => {
                <span className="text-sm font-medium">Giờ đầu</span>
                <span className="font-bold text-primary">{currentParkingData.pricing.firstHour}</span>
              </div>
-             <button className="w-full bg-green-900 cursor-pointer dark:bg-white text-white dark:text-black py-3 rounded-xl font-bold hover:shadow-lg transition">
+             <div className="flex justify-between items-center bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-white/20 animate-in fade-in duration-500">
+               <span className="text-sm font-medium">Giờ tiếp theo</span>
+               <span className="font-bold text-primary">{currentParkingData.pricing.nextHour}</span>
+             </div>
+             <div className="flex justify-between items-center bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-white/20 animate-in fade-in duration-500">
+               <span className="text-sm font-medium">Qua đêm</span>
+               <span className="font-bold text-primary">{currentParkingData.pricing.overnight}</span>
+             </div>
+             <button onClick={() => window.location.href = `/users/detailParking/`} className="w-full bg-green-900 cursor-pointer dark:bg-white text-white dark:text-black py-3 rounded-xl font-bold hover:shadow-lg transition">
                Đặt vé xe
              </button>
           </div>
