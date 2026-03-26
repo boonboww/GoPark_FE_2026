@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, Camera, Car, Info, QrCode, Mail, ArrowLeft } from "lucide-react";
+import { Plus, Edit2, Trash2, Camera, Car, Info, QrCode, Mail, ArrowLeft, Wallet, User, Phone, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -114,6 +114,11 @@ export default function ProfilePage() {
   };
 
   const handleProfileSave = async () => {
+    if (pForm.phone && pForm.phone.length !== 10) {
+      toast.error("Số điện thoại phải có đúng 10 số.");
+      return;
+    }
+
     setIsSavingProfile(true);
     try {
       await apiClient("/users/me/profile", {
@@ -232,42 +237,71 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* CỘT TRÁI: THÔNG TIN CÁ NHÂN (VIEW MODE) */}
         <div className="col-span-1 lg:col-span-5">
-          <Card className="shadow-sm border-blue-50/50">
+            <Card className="shadow-sm border-blue-50/50 dark:border-stone-800">
+              <CardHeader className="flex flex-row justify-between items-center">
+                <div>
+                  <CardTitle className="text-xl text-slate-800 dark:text-white">Hồ sơ cá nhân</CardTitle>
+                  <CardDescription className="dark:text-slate-400">Thông tin định danh của bạn</CardDescription>
+                </div>
+                <Button variant="outline" size="icon" onClick={openEditProfile} className="dark:border-stone-700 dark:hover:bg-stone-800">
+                  <Edit2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center mb-6">
+                  <Avatar className="w-24 h-24 border-2 border-primary/10">
+                    <AvatarImage src={profile.image} alt={profile.name} className="object-cover" />
+                    <AvatarFallback className="text-2xl bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                      {(profile.name || authUser?.name || "U").charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h2 className="mt-3 font-semibold text-lg text-slate-800 dark:text-white">{profile.name || "Chưa cập nhật tên"}</h2>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-stone-800">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Mail className="w-4 h-4"/> Email:</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{email}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">Số điện thoại:</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">{profile.phone || "Chưa cập nhật"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400">Giới tính:</span>
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* VÍ CỦA TÔI */}
+          <Card className="shadow-sm border-blue-50/50 dark:border-stone-800 mt-8">
             <CardHeader className="flex flex-row justify-between items-center">
               <div>
-                <CardTitle className="text-xl">Hồ sơ cá nhân</CardTitle>
-                <CardDescription>Thông tin định danh của bạn</CardDescription>
+                <CardTitle className="text-xl text-slate-800 dark:text-white">Ví của tôi</CardTitle>
+                <CardDescription className="dark:text-slate-400">Số dư hiện tại trên hệ thống</CardDescription>
               </div>
-              <Button variant="outline" size="icon" onClick={openEditProfile}>
-                <Edit2 className="w-4 h-4 text-slate-500" />
+              <Button variant="outline" size="icon" className="bg-emerald-50 border-emerald-100 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:border-emerald-800 dark:hover:bg-emerald-800/60">
+                <Wallet className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center mb-6">
-                <Avatar className="w-24 h-24 border-2 border-primary/10">
-                  <AvatarImage src={profile.image} alt={profile.name} className="object-cover" />
-                  <AvatarFallback className="text-2xl bg-blue-100 text-blue-700">
-                    {(profile.name || authUser?.name || "U").charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <h2 className="mt-3 font-semibold text-lg text-slate-800">{profile.name || "Chưa cập nhật tên"}</h2>
+              <div className="flex flex-col items-center justify-center py-6 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/40 rounded-xl border border-emerald-100/50 dark:border-emerald-800/50">
+                <p className="text-sm font-medium text-emerald-700/80 dark:text-emerald-300 mb-1 uppercase tracking-wider">Số dư khả dụng</p>
+                <div className="flex items-baseline gap-1">
+                  <h3 className="text-3xl font-bold text-emerald-800 dark:text-emerald-100">0</h3>
+                  <span className="text-lg font-semibold text-emerald-700 dark:text-emerald-300">đ</span>
+                </div>
               </div>
-
-              <div className="space-y-4 pt-4 border-t border-slate-100">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500 flex items-center gap-2"><Mail className="w-4 h-4"/> Email:</span>
-                  <span className="font-medium text-slate-800">{email}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Số điện thoại:</span>
-                  <span className="font-medium text-slate-800">{profile.phone || "Chưa cập nhật"}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Giới tính:</span>
-                  <span className="font-medium text-slate-800">
-                    {profile.gender === "male" ? "Nam" : profile.gender === "female" ? "Nữ" : profile.gender === "other" ? "Khác" : "Chưa cập nhật"}
-                  </span>
-                </div>
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white shadow-sm">
+                  Nạp tiền
+                </Button>
+                <Button variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-100 dark:hover:bg-emerald-800/60 dark:hover:text-white">
+                  Lịch sử GD
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -383,24 +417,39 @@ export default function ProfilePage() {
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
               <Label>Họ và tên</Label>
-              <Input value={pForm.name} onChange={(e) => setPForm({...pForm, name: e.target.value})} placeholder="VD: Nguyễn Văn A" />
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <Input value={pForm.name} onChange={(e) => setPForm({...pForm, name: e.target.value})} placeholder="VD: Nguyễn Văn A" className="pl-9" />
+              </div>
             </div>
             <div className="grid gap-2">
               <Label>Số điện thoại</Label>
-              <Input value={pForm.phone} onChange={(e) => setPForm({...pForm, phone: e.target.value})} placeholder="VD: 0901234567" />
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <Input 
+                  value={pForm.phone} 
+                  onChange={(e) => setPForm({...pForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10)})} 
+                  placeholder="VD: 0901234567" 
+                  maxLength={10}
+                  className="pl-9" 
+                />
+              </div>
             </div>
             <div className="grid gap-2">
               <Label>Giới tính</Label>
-              <Select value={pForm.gender} onValueChange={(val: any) => setPForm({...pForm, gender: val})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn giới tính" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Nam</SelectItem>
-                  <SelectItem value="female">Nữ</SelectItem>
-                  <SelectItem value="other">Khác</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 z-10" />
+                <Select value={pForm.gender} onValueChange={(val: any) => setPForm({...pForm, gender: val})}>
+                  <SelectTrigger className="pl-9">
+                    <SelectValue placeholder="Chọn giới tính" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Nam</SelectItem>
+                    <SelectItem value="female">Nữ</SelectItem>
+                    <SelectItem value="other">Khác</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -472,3 +521,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth.store";
-import { Car, Menu, Home, Search, History, User, Contact, Bell, Settings, LogOut, ChevronDown, Sun, Moon } from "lucide-react";
+import { Car, Menu, Home, Search, History, User, Contact, Bell, Settings, LogOut, ChevronDown, Sun, Moon, Wallet } from "lucide-react";
 import { useTheme } from "next-themes";
 
 const Header = () => {
@@ -100,6 +100,18 @@ const Header = () => {
                       <p className="text-sm font-bold text-black dark:text-white">{user?.name || "Người dùng"}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{user?.email || ""}</p>
                     </div>
+
+                    <div className="px-4 pb-2 border-b border-gray-50 dark:border-stone-800 mb-2">
+                      <div className="flex items-center gap-3 py-1.5 px-3 bg-gray-50 dark:bg-stone-800/80 rounded-lg border border-gray-100 dark:border-stone-700">
+                        <div className="bg-emerald-100 dark:bg-emerald-900/40 p-1.5 rounded-md text-emerald-600 dark:text-emerald-300">
+                          <Wallet className="h-4 w-4" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Số dư ví</span>
+                          <span className="text-xs sm:text-sm font-bold text-black dark:text-white mt-0.5">0 đ</span>
+                        </div>
+                      </div>
+                    </div>
                     
                     <Link href="/users/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                       <User className="h-4 w-4" />
@@ -161,3 +173,4 @@ const Header = () => {
 };
 
 export default Header;
+
