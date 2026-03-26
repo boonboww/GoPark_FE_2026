@@ -10,6 +10,9 @@ export default function Home() {
     <>
       <Header />
       <HeroSection />
+      <div className="w-full">
+        <img src="/baner.png" className="w-full h-auto object-cover" alt="Banner" />
+      </div>
       <AboutSection />
       <Footer />
     </>
