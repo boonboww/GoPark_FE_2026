@@ -26,7 +26,7 @@ export function FormAddCustomer() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vehicleImages, setVehicleImages] = useState<File[]>([]);
   const [plateImage, setPlateImage] = useState<File | null>(null);
-  
+
   const lotId = useCustomerStore((state) => state.lotId);
 
   const handleSubmit = async () => {
@@ -41,14 +41,14 @@ export function FormAddCustomer() {
         name,
         phoneNumber: phone,
         licensePlate,
-        vehicleType
+        vehicleType,
       };
 
       const res = await parkingService.walkInCheckIn(lotId, payload);
-      
+
       const bookingId = res.data?.bookingId || "N/A";
       toast.success(`Đăng ký thành công! Mã Booking: ${bookingId}`);
-      
+
       // Reset form
       setName("");
       setPhone("");
@@ -72,34 +72,38 @@ export function FormAddCustomer() {
     setVehicleImages([...vehicleImages, ...Array.from(e.target.files)]);
   };
 
-  const handleOcrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOcrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setPlateImage(file);
     setIsOcrLoading(true);
-    try {
-      const result = await ocrService.recognizeLicensePlate(file);
+
+    const promise = ocrService.recognizeLicensePlate(file).then((result) => {
       setLicensePlate(result);
-      toast.success("Nhận diện biển số thành công!");
-    } catch (error: unknown) {
-      console.error(error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Nhận diện biển số thất bại";
-      toast.error(errorMessage);
-    } finally {
+      return result;
+    }).finally(() => {
       setIsOcrLoading(false);
-    }
+      // Giữ cho input file có thể upload lại cùng 1 file
+      e.target.value = "";
+    });
+
+    toast.promise(promise, {
+      loading: "Đang nhận diện biển số...",
+      success: "Nhận diện biển số thành công!",
+      error: (err) =>
+        err instanceof Error ? err.message : "Nhận diện biển số thất bại",
+    });
   };
 
   return (
-    <div className="grid gap-6 py-6 px-4 md:px-6">
+    <div className="grid gap-6 py-6 px-4 md:px-6 h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground scrollbar-track-secondary">
       {/* Tên */}
       <div className="grid gap-2">
         <Label className="text-sm font-medium">Tên khách hàng</Label>
-        <Input 
-          placeholder="Nhập tên khách hàng" 
-          className="h-10" 
+        <Input
+          placeholder="Nhập tên khách hàng"
+          className="h-10"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -108,9 +112,9 @@ export function FormAddCustomer() {
       {/* SĐT */}
       <div className="grid gap-2">
         <Label className="text-sm font-medium">Số điện thoại</Label>
-        <Input 
-          placeholder="Nhập số điện thoại" 
-          className="h-10" 
+        <Input
+          placeholder="Nhập số điện thoại"
+          className="h-10"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
@@ -134,11 +138,13 @@ export function FormAddCustomer() {
       {/* Biển số (Editable Input) */}
       <div className="grid gap-2">
         <Label className="text-sm font-medium">Biển số xe</Label>
-        <Input 
-          value={licensePlate} 
+        <Input
+          value={licensePlate}
           onChange={(e) => setLicensePlate(e.target.value)}
-          placeholder={isOcrLoading ? "Đang nhận diện..." : "Nhập hoặc quét biển số"}
-          className="h-10 uppercase font-bold" 
+          placeholder={
+            isOcrLoading ? "Đang nhận diện..." : "Nhập hoặc quét biển số"
+          }
+          className="h-10 uppercase font-bold"
           disabled={isOcrLoading}
         />
       </div>
@@ -192,7 +198,9 @@ export function FormAddCustomer() {
                 src={URL.createObjectURL(plateImage)}
                 alt="License Plate Preview"
                 className="w-full h-32 object-cover rounded-md border"
-                onLoad={(e) => URL.revokeObjectURL((e.target as HTMLImageElement).src)}
+                onLoad={(e) =>
+                  URL.revokeObjectURL((e.target as HTMLImageElement).src)
+                }
               />
             </div>
           )}
@@ -232,7 +240,7 @@ export function FormAddCustomer() {
 
           {/* Preview ảnh */}
           {vehicleImages.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
+            <div className="flex overflow-x-auto snap-x snap-mandatory gap-2 mt-2 pb-2 scrollbar-thin scrollbar-thumb-muted-foreground scrollbar-track-secondary">
               {vehicleImages.map((file, index) => {
                 const url = URL.createObjectURL(file);
                 return (
@@ -240,7 +248,7 @@ export function FormAddCustomer() {
                     key={index}
                     src={url}
                     alt="vehicle"
-                    className="w-16 h-16 object-cover rounded-md border"
+                    className="w-20 h-20 object-cover rounded-md border shrink-0 snap-start"
                     onLoad={() => URL.revokeObjectURL(url)}
                   />
                 );
@@ -251,8 +259,8 @@ export function FormAddCustomer() {
       </div>
 
       {/* Submit */}
-      <Button 
-        className="w-full h-10 mt-2 text-base font-semibold" 
+      <Button
+        className="w-full h-10 mt-2 text-base font-semibold"
         disabled={isOcrLoading || isSubmitting}
         onClick={handleSubmit}
       >
