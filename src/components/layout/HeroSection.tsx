@@ -116,7 +116,7 @@ const HeroSection = () => {
       {/* HEADER NAV */}
       <header className="flex flex-col xl:flex-row justify-between items-center gap-4 z-10 w-full mb-6 md:mb-8">
         <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-center xl:text-left w-full xl:w-auto">
-          Xin chào, <span className="font-semibold text-black dark:text-white capitalize">{user?.name || "bạn"}</span>
+          Xin chào, <span className="font-semibold text-black dark:text-white capitalize">{user?.profile?.name || "bạn"}</span>
         </h1>
 
         <div className="flex bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-full shadow-sm p-1 overflow-x-auto w-full max-w-md sm:max-w-max justify-start sm:justify-center hide-scrollbar">
