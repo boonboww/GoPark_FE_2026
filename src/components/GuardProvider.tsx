@@ -87,8 +87,16 @@ export function GuardProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // -- Trang CHỦ (hoặc route user): Có thể chúng ta nên redirect ADMIN/OWNER về dashboard riêng của họ nếu họ vào "/" ?
-      // Thông thường admin có thể xem trang chủ, nhưng nếu hệ thống tách biệt thì tùy. Tạm cho phép.
+      // -- Trang CHỦ (hoặc route user): Chuyển hướng ADMIN/OWNER về dashboard riêng nếu họ vào "/"
+      if (pathname === "/") {
+        if (role === "admin") {
+          router.replace("/admin");
+          return;
+        } else if (role === "owner") {
+          router.replace("/owner");
+          return;
+        }
+      }
     }
 
     // Nếu pass qua được thì cho phép render giao diện

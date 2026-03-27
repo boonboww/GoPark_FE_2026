@@ -79,6 +79,12 @@ export default function RegisterPage() {
         }));
       };
       reader.readAsDataURL(files[0]);
+    } else if (id === "phoneNumber") {
+      const numericValue = value.replace(/\D/g, "").slice(0, 10);
+      setFormData((prev) => ({
+        ...prev,
+        [id]: numericValue,
+      }));
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -96,6 +102,12 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (formData.phoneNumber.length !== 10) {
+      setError("Số điện thoại phải bao gồm đúng 10 chữ số");
+      setLoading(false);
+      return;
+    }
 
     // Kiểm tra mật khẩu xác nhận khớp nhau
     if (formData.password !== formData.passwordConfirm) {
@@ -166,7 +178,7 @@ export default function RegisterPage() {
                     htmlFor="userName"
                     className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                   >
-                    Họ và tên
+                    Họ và tên <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative group">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors hidden sm:block">
@@ -189,7 +201,7 @@ export default function RegisterPage() {
                     htmlFor="email"
                     className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                   >
-                    Email
+                    Email <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative group">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors hidden sm:block">
@@ -212,7 +224,7 @@ export default function RegisterPage() {
                     htmlFor="phoneNumber"
                     className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                   >
-                    Số điện thoại
+                    Số điện thoại <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative group">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors hidden sm:block">
@@ -224,6 +236,8 @@ export default function RegisterPage() {
                       placeholder="0123456789"
                       value={formData.phoneNumber}
                       onChange={handleChange}
+                      required
+                      maxLength={10}
                       className="sm:pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
                     />
                   </div>
@@ -238,7 +252,7 @@ export default function RegisterPage() {
                       htmlFor="password"
                       className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                     >
-                      Mật khẩu
+                      Mật khẩu <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative group">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors hidden sm:block">
@@ -260,7 +274,7 @@ export default function RegisterPage() {
                       htmlFor="passwordConfirm"
                       className="text-slate-600 dark:text-stone-300 font-semibold text-xs"
                     >
-                      Xác nhận
+                      Xác nhận <span className="text-red-500">*</span>
                     </Label>
                     <div className="relative group">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-stone-500 group-focus-within:text-blue-500 transition-colors hidden sm:block">
