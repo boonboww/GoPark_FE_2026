@@ -4,7 +4,6 @@ import {
   IconCreditCard,
   IconDotsVertical,
   IconLogout,
-  IconNotification,
   IconUserCircle,
 } from "@tabler/icons-react";
 
@@ -25,9 +24,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { useOwnerStore } from "@/stores/owner.store";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
-import { useEffect } from "react";
 
 export function NavUser({
   user,
@@ -39,21 +37,15 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
-  const profile = useOwnerStore((state) => state.profile);
-  const fetchProfile = useOwnerStore((state) => state.fetchProfile);
   const authUser = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const router = useRouter();
 
-  useEffect(() => {
-    if (!profile && authUser?.id) {
-      fetchProfile(authUser.id);
-    }
-  }, [profile, fetchProfile, authUser?.id]);
-
-  const displayUser = profile ? {
-    name: profile.name || user.name,
-    email: user.email,
-    avatar: profile.avatar || user.avatar,
-  } : user;
+  const displayUser = {
+    name: authUser?.profile?.name || authUser?.email || user.name,
+    email: authUser?.email || user.email,
+    avatar: authUser?.profile?.image || user.avatar,
+  };
 
   return (
     <SidebarMenu>
@@ -113,7 +105,10 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" onClick={() => {
+              logout();
+              router.push("/auth/login");
+            }}>
               <IconLogout />
               Log out
             </DropdownMenuItem>

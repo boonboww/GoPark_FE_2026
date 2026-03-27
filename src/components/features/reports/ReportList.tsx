@@ -1,63 +1,28 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { ReportDataTable } from "./ReportDataTable";
 import { columns } from "./columns";
-import { Report } from "@/types/report";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-// Mock data for initial testing
-export const MOCK_REPORTS: Report[] = [
-  {
-    id: "REP-001",
-    user_id: "USR-789",
-    parking_lot_id: "LOT-01",
-    booking_id: "BKG-102",
-    title: "Broken parking sensor in spot B4",
-    description: "The sensor at parking spot B4 is staying consistently red even though the spot is empty. Vehicles are avoiding it.",
-    priority: "MEDIUM",
-    status: "OPEN",
-    created_at: "2026-03-12T08:30:00Z",
-    updated_at: "2026-03-12T08:30:00Z",
-  },
-  {
-    id: "REP-002",
-    user_id: "USR-452",
-    parking_lot_id: "LOT-03",
-    booking_id: null,
-    title: "Payment gateway error at exit",
-    description: "One of the terminal machines at the south exit is giving an error Code 500 continuously when people tap their cards.",
-    priority: "HIGH",
-    status: "IN_PROGRESS",
-    created_at: "2026-03-14T09:15:00Z",
-    updated_at: "2026-03-14T10:00:00Z",
-  },
-  {
-    id: "REP-003",
-    user_id: "USR-112",
-    parking_lot_id: "LOT-01",
-    booking_id: "BKG-304",
-    title: "Request for refund",
-    description: "I was double charged for my booking on Tuesday. Please refund the extra amount.",
-    priority: "LOW",
-    status: "RESOLVED",
-    created_at: "2026-03-10T14:20:00Z",
-    updated_at: "2026-03-11T16:45:00Z",
-  },
-  {
-    id: "REP-004",
-    user_id: "USR-999",
-    parking_lot_id: "LOT-05",
-    booking_id: null,
-    title: "Vandalism reported",
-    description: "Someone sprayed graffiti over the main directory signboard near elevator 2.",
-    priority: "HIGH",
-    status: "OPEN",
-    created_at: "2026-03-13T22:15:00Z",
-    updated_at: "2026-03-13T22:15:00Z",
-  },
-];
+import { getOwnerReports } from "@/services/report.service";
+import { useAuthStore } from "@/stores/auth.store";
+import { Loader2, AlertCircle } from "lucide-react";
 
 export function ReportList() {
+  const user = useAuthStore((s) => s.user);
+  const ownerId = user?.id;
+
+  const {
+    data: reports = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["ownerReports", ownerId],
+    queryFn: () => getOwnerReports(ownerId!),
+    enabled: !!ownerId,
+    staleTime: 1000 * 60 * 5, // 5 mins
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -67,7 +32,19 @@ export function ReportList() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ReportDataTable columns={columns} data={MOCK_REPORTS} />
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center p-12 gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+            <p className="text-muted-foreground font-medium">Loading reports...</p>
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center p-12 gap-4 text-destructive bg-destructive/5 rounded-lg border border-destructive/20">
+            <AlertCircle className="w-8 h-8" />
+            <p className="font-medium">Failed to load reports. Please try again later.</p>
+          </div>
+        ) : (
+          <ReportDataTable columns={columns} data={reports} />
+        )}
       </CardContent>
     </Card>
   );

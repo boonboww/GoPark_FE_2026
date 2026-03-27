@@ -1,6 +1,6 @@
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
-import axios from "axios";
+import { get } from "@/lib/api";
 
 // Interfaces mapping to the requested schema
 export interface AnalyticsTransaction {
@@ -42,8 +42,8 @@ class AnalyticsService {
     lotId: string,
   ): Promise<AnalyticsData> {
     try {
-      const params: Record<string, string | undefined> = {
-        lotId: lotId !== 'all' ? lotId : undefined,
+      const params: Record<string, string> = {
+        lotId: lotId !== 'all' ? lotId : '',
       };
 
       if (dateRange?.from) {
@@ -53,17 +53,13 @@ class AnalyticsService {
         params.endDate = format(dateRange.to, 'yyyy-MM-dd');
       }
 
-      // Replace with your actual backend endpoint
-      const response = await axios.get<AnalyticsData>('/api/analytics', { params });
-      return response.data;
+      // Dùng helper get từ lib/api để tự động đính kèm token và dùng đúng base URL
+      return await get<AnalyticsData>('/analytics', params);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       throw error;
     }
   }
-
-  // Helper for Exporting Data -> In a real app we would call a backend endpoint that returns a Blob
-  // For frontend, we will use the `xlsx` library to generate it within the page component context.
 }
 
 export const analyticsService = new AnalyticsService();

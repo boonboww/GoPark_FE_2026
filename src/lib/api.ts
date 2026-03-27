@@ -37,9 +37,12 @@ export async function apiClient<T>(
     }
   }
 
-  const defaultHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const defaultHeaders: Record<string, string> = {};
+
+  // Nếu body KHÔNG phải là FormData thì mới set Content-Type là JSON
+  if (!(restConfig.body instanceof FormData)) {
+    defaultHeaders["Content-Type"] = "application/json";
+  }
 
   if (token) {
     defaultHeaders["Authorization"] = `Bearer ${token}`;

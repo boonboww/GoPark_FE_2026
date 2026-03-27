@@ -4,16 +4,18 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, Camera, Car, Info, QrCode, Mail, ArrowLeft, Wallet, User, Phone, Users } from "lucide-react";
+import { Plus, Edit2, Trash2, Camera, Car, Info, QrCode, Mail, ArrowLeft, Wallet, User, Phone, Users, Loader2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";   
 import { Loader } from "@/components/ui/loader";
 import { apiClient } from "@/lib/api";
+import { useWallet } from "@/hooks/useWallet";
 
 interface UserProfile {
   name: string;
@@ -34,6 +36,7 @@ const MAX_VEHICLES = 3;
 export default function ProfilePage() {
   const router = useRouter();
   const { user: authUser, updateUser } = useAuthStore();
+  const { data: balance, isLoading: isWalletLoading } = useWallet();
   const [isMounted, setIsMounted] = useState(false);
 
   // States
@@ -127,7 +130,7 @@ export default function ProfilePage() {
       });
       toast.success("Đã cập nhật thông tin cá nhân!");
       setProfile(pForm);
-      updateUser({ name: pForm.name, avatar: pForm.image });
+      updateUser({ profile: { ...authUser?.profile, name: pForm.name, image: pForm.image } as any });
       setIsProfileDialogOpen(false);
     } catch (e) {
       toast.error("Không thể cập nhật hồ sơ");
@@ -252,7 +255,8 @@ export default function ProfilePage() {
                   <Avatar className="w-24 h-24 border-2 border-primary/10">
                     <AvatarImage src={profile.image} alt={profile.name} className="object-cover" />
                     <AvatarFallback className="text-2xl bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                      {(profile.name || authUser?.name || "U").charAt(0).toUpperCase()}
+                      {(profile.name || authUser?.profile?.name || "U").charAt(0).toUpperCase()}
+
                     </AvatarFallback>
                   </Avatar>
                   <h2 className="mt-3 font-semibold text-lg text-slate-800 dark:text-white">{profile.name || "Chưa cập nhật tên"}</h2>
@@ -291,15 +295,22 @@ export default function ProfilePage() {
               <div className="flex flex-col items-center justify-center py-6 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/40 dark:to-teal-900/40 rounded-xl border border-emerald-100/50 dark:border-emerald-800/50">
                 <p className="text-sm font-medium text-emerald-700/80 dark:text-emerald-300 mb-1 uppercase tracking-wider">Số dư khả dụng</p>
                 <div className="flex items-baseline gap-1">
-                  <h3 className="text-3xl font-bold text-emerald-800 dark:text-emerald-100">0</h3>
-                  <span className="text-lg font-semibold text-emerald-700 dark:text-emerald-300">đ</span>
+                  {isWalletLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+                  ) : (
+                    <>
+                      <h3 className="text-3xl font-bold text-emerald-800 dark:text-emerald-100">{(balance || 0).toLocaleString('vi-VN')}</h3>
+                      <span className="text-lg font-semibold text-emerald-700 dark:text-emerald-300">đ</span>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 mt-4">
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white shadow-sm">
+                <Button onClick={() => router.push('/users/wallet')} className="w-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white shadow-sm">
                   Nạp tiền
                 </Button>
-                <Button variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-100 dark:hover:bg-emerald-800/60 dark:hover:text-white">
+                <Button onClick={() => router.push('/users/wallet')} variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-100 dark:hover:bg-emerald-800/60 dark:hover:text-white">
+
                   Lịch sử GD
                 </Button>
               </div>

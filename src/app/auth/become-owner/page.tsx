@@ -62,7 +62,7 @@ export default function BecomeOwnerPage() {
   // Data for Step 1
   const currentUser = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    fullName: user?.name || (user as any)?.profile?.name || "Tài khoản",
+    fullName: (user as any)?.profile?.name || "Tài khoản",
     email: user?.email || "",
   };
 

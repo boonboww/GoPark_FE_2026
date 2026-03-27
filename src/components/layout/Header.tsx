@@ -4,11 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth.store";
-import { Car, Menu, Home, Search, History, User, Contact, Bell, Settings, LogOut, ChevronDown, Sun, Moon, Wallet } from "lucide-react";
+import { Bell, Settings, LogOut, ChevronDown, Sun, Moon, Wallet, Loader2, Home, Search, History, User, Contact, Menu } from "lucide-react";
+
 import { useTheme } from "next-themes";
+import { useWallet } from "@/hooks/useWallet";
 
 const Header = () => {
   const { isAuthenticated: isLoggedIn, user, logout } = useAuthStore();
+  const { data: balance, isLoading: isWalletLoading } = useWallet();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -88,8 +91,8 @@ const Header = () => {
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center gap-2 p-1.5 sm:pr-3 rounded-full border border-gray-200 dark:border-stone-700 hover:shadow-md transition-all bg-white dark:bg-stone-800"
                 >
-                  <img src={user?.avatar || "https://i.pravatar.cc/150?img=11"} alt="User Avatar" className="w-8 h-8 rounded-full object-cover" />
-                  <span className="text-sm font-semibold max-w-[100px] truncate hidden sm:block dark:text-white">{user?.name || "Người dùng"}</span>
+                  <img src={user?.profile?.image || "https://i.pravatar.cc/150?img=11"} alt="User Avatar" className="w-8 h-8 rounded-full object-cover" />
+                  <span className="text-sm font-semibold max-w-[100px] truncate hidden sm:block dark:text-white">{user?.profile?.name || "Người dùng"}</span>
                   <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform hidden sm:block ${isDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
@@ -97,7 +100,7 @@ const Header = () => {
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-stone-900 border border-gray-100 dark:border-stone-800 rounded-2xl shadow-xl py-2 animate-in fade-in slide-in-from-top-2">
                     <div className="px-4 py-3 border-b border-gray-50 dark:border-stone-800 mb-2">
-                      <p className="text-sm font-bold text-black dark:text-white">{user?.name || "Người dùng"}</p>
+                      <p className="text-sm font-bold text-black dark:text-white">{user?.profile?.name || "Người dùng"}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{user?.email || ""}</p>
                     </div>
 
@@ -108,11 +111,18 @@ const Header = () => {
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Số dư ví</span>
-                          <span className="text-xs sm:text-sm font-bold text-black dark:text-white mt-0.5">0 đ</span>
+                          <span className="text-xs sm:text-sm font-bold text-black dark:text-white mt-0.5">
+                            {isWalletLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : `${(balance || 0).toLocaleString('vi-VN')} đ`}
+                          </span>
                         </div>
                       </div>
                     </div>
-                    
+
+                    <Link href="/users/wallet" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      <Wallet className="h-4 w-4" />
+                      Quản lý Ví
+                    </Link>
+
                     <Link href="/users/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                       <User className="h-4 w-4" />
                       Thông tin cá nhân
