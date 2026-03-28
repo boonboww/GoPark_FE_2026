@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth.store";
-import { Bell, Settings, LogOut, ChevronDown, Sun, Moon, Wallet, Loader2, Home, Search, History, User, Contact, Menu } from "lucide-react";
+import { Bell, Settings, LogOut, ChevronDown, Sun, Moon, Wallet, Loader2, Home, Search, History, User, Contact, Menu, Building2 } from "lucide-react";
 
 import { useTheme } from "next-themes";
 import { useWallet } from "@/hooks/useWallet";
@@ -43,7 +43,7 @@ const Header = () => {
         {/* Desktop Nav */}
         <nav className="hidden md:flex flex-1 items-center justify-center gap-8 text-sm font-medium text-muted-foreground relative">
           <Link href="/" className="transition-colors hover:text-primary hover:font-semibold">
-          <Home className="h-5 w-5 inline-block mr-1" />
+            <Home className="h-5 w-5 inline-block mr-1" />
             Trang chủ
           </Link>
           <Link href="/users/findParking" className="transition-colors hover:text-primary hover:font-semibold">
@@ -87,7 +87,7 @@ const Header = () => {
 
               {/* Avatar & Dropdown */}
               <div className="relative" ref={dropdownRef}>
-                <button 
+                <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center gap-2 p-1.5 sm:pr-3 rounded-full border border-gray-200 dark:border-stone-700 hover:shadow-md transition-all bg-white dark:bg-stone-800"
                 >
@@ -118,27 +118,39 @@ const Header = () => {
                       </div>
                     </div>
 
+                    <Link href="/users/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      <User className="h-4 w-4" />
+                      Thông tin cá nhân
+                    </Link>
+
+
                     <Link href="/users/wallet" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                       <Wallet className="h-4 w-4" />
                       Quản lý Ví
                     </Link>
 
-                    <Link href="/users/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                      <User className="h-4 w-4" />
-                      Thông tin cá nhân
+                    <Link href="/users/requests" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      <History className="h-4 w-4" />
+                      Yêu cầu của tôi
                     </Link>
+
+                    {user?.role && user.role !== "OWNER" && (
+                      <Link href="/auth/become-owner" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        <Building2 className="h-4 w-4" />
+                        Trở thành chủ bãi đỗ
+                      </Link>
+                    )}
                     <Link href="/users/setting" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                       <Settings className="h-4 w-4" />
                       Cài đặt
                     </Link>
-                    
                     <div className="h-[1px] bg-gray-100 dark:bg-stone-800 my-1"></div>
-                    
-                    <button 
+
+                    <button
                       onClick={() => {
                         logout();
                         router.push("/auth/login");
-                      }} 
+                      }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                     >
                       <LogOut className="h-4 w-4" />
