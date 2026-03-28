@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader } from "@/components/ui/loader";
 import { apiClient } from "@/lib/api";
 import { useWallet } from "@/hooks/useWallet";
+import { QRCodeSVG } from "qrcode.react";
 
 interface UserProfile {
   name: string;
@@ -58,11 +59,13 @@ export default function ProfilePage() {
   const [vForm, setVForm] = useState<{ plate_number: string; image: string; type: string }>({
     plate_number: "",
     image: "",
-    type: "dưới 4 chỗ",
+    type: "Từ 4 đến 10 chỗ",
   });
   
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingVehicle, setIsSavingVehicle] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
 
   const fetchProfile = async () => {
     try {
@@ -144,7 +147,7 @@ export default function ProfilePage() {
       toast.error(`Bạn chỉ được đăng ký tối đa ${MAX_VEHICLES} phương tiện!`);
       return;
     }
-    setVForm({ plate_number: "", image: "", type: "dưới 4 chỗ" });
+    setVForm({ plate_number: "", image: "", type: "Từ 4 đến 10 chỗ" });
     setEditingVehicleId(null);
     setIsVehicleDialogOpen(true);
   };
@@ -207,6 +210,17 @@ export default function ProfilePage() {
         });
         toast.success("Thêm phương tiện mới thành công.");
         setVehicles((prev) => [...(prev || []), res.data]);
+        
+        // Sinh data QR Code ảo chứa mã nhận diện của xe và user
+        const qrPayload = JSON.stringify({
+          action: "PARKING_CHECKIN",
+          vehicleId: res.data.id,
+          plateNumber: res.data.plate_number,
+          userId: authUser?.id,
+          timestamp: new Date().toISOString()
+        });
+        setQrCodeData(qrPayload);
+        setIsQrDialogOpen(true);
       }
       setIsVehicleDialogOpen(false);
     } catch (error: any) {
@@ -214,6 +228,18 @@ export default function ProfilePage() {
     } finally {
       setIsSavingVehicle(false);
     }
+  };
+
+  const handleShowQR = (vehicle: Vehicle) => {
+    const qrPayload = JSON.stringify({
+      action: "PARKING_CHECKIN",
+      vehicleId: vehicle.id,
+      plateNumber: vehicle.plate_number,
+      userId: authUser?.id,
+      timestamp: new Date().toISOString()
+    });
+    setQrCodeData(qrPayload);
+    setIsQrDialogOpen(true);
   };
 
 
@@ -358,9 +384,12 @@ export default function ProfilePage() {
                           )}
                         </div>
                         {/* QR Code */}
-                        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-slate-100 flex flex-col items-center justify-center bg-slate-50 flex-shrink-0">
+                        <div 
+                          className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-slate-100 flex flex-col items-center justify-center bg-slate-50 flex-shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
+                          onClick={() => handleShowQR(v)}
+                        >
                           <QrCode className="w-12 h-12 text-slate-800" />
-                          <span className="text-[10px] text-slate-500 mt-1 font-medium text-center px-1 break-all flex-wrap">QRPark</span>
+                          <span className="text-[10px] text-slate-500 mt-1 font-medium text-center px-1 break-all flex-wrap">Xem QR</span>
                         </div>
                       </div>
 
@@ -510,9 +539,8 @@ export default function ProfilePage() {
                   <SelectValue placeholder="Chọn loại xe" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="dưới 4 chỗ">Dưới 4 chỗ</SelectItem>
-                  <SelectItem value="từ 4 đến 10 chỗ">Từ 4 đến 10 chỗ</SelectItem>
-                  <SelectItem value="lớn hơn 10 chỗ">Lớn hơn 10 chỗ</SelectItem>
+                  <SelectItem value="Từ 4 đến 10 chỗ">Từ 4 đến 10 chỗ</SelectItem>
+                  <SelectItem value="Lớn hơn 10 chỗ">Lớn hơn 10 chỗ</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -520,6 +548,46 @@ export default function ProfilePage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsVehicleDialogOpen(false)}>Hủy</Button>
             <Button onClick={handleSaveVehicle}>Lưu thông tin</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG HIỂN THỊ QR CODE */}
+      <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-center font-bold text-xl">Mã QR Check-in Xe</DialogTitle>
+            <DialogDescription className="text-center">
+              Dùng mã này để quét tại cổng kiểm soát. 
+              <br/>Mã được sinh tự động ngay sau khi tạo xe mới.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-6 bg-white border border-gray-100 rounded-xl shadow-inner mt-2">
+            {qrCodeData && (
+              <div className="bg-white p-4 border border-gray-200 rounded-2xl shadow-sm mb-4">
+                <QRCodeSVG
+                  value={qrCodeData}
+                  size={220}
+                  bgColor={"#ffffff"}
+                  fgColor={"#0f172a"}
+                  level={"Q"}
+                  imageSettings={{
+                    src: "/logo.png",
+                    x: undefined,
+                    y: undefined,
+                    height: 48,
+                    width: 48,
+                    excavate: true,
+                  }}
+                />
+              </div>
+            )}
+            <div className="text-sm font-semibold bg-gray-100 text-gray-700 px-4 py-2 rounded-full font-mono mt-1">
+              Biển số: {vForm.plate_number.toUpperCase()}
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-center mt-2">
+            <Button className="w-full" onClick={() => setIsQrDialogOpen(false)}>Đã lưu mã QR</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
