@@ -26,7 +26,7 @@ interface FormData {
   phone: string;
   taxCode: string;
   description: string;
-  businessLicense: File | null;
+  businessLicenses: File[];
   parkingLotName: string;
   address: string;
   location: { lat: number; lng: number } | null;
@@ -44,11 +44,12 @@ export default function BecomeOwnerPage() {
   const { user, accessToken, login } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     phone: "",
     taxCode: "",
     description: "",
-    businessLicense: null,
+    businessLicenses: [],
     parkingLotName: "",
     address: "",
     location: null,
@@ -76,7 +77,7 @@ export default function BecomeOwnerPage() {
         toast.error("Vui lòng nhập mã số thuế");
         return;
       }
-      if (!formData.businessLicense) {
+      if (!formData.businessLicenses || formData.businessLicenses.length === 0) {
         toast.error("Vui lòng tải lên giấy phép kinh doanh");
         return;
       }
@@ -147,45 +148,31 @@ export default function BecomeOwnerPage() {
         capacity: Number(s),
       }));
 
-      // NOTE: In a real implementation with images, you'd use FormData here
-      // since application/json doesn't support file uploads well.
-      // We will pretend the endpoint can handle a FormData object, or you can adjust it later.
-      const payload = new FormData();
-      payload.append("parkingLotName", formData.parkingLotName);
-      payload.append("address", formData.address);
-      payload.append("lat", String(formData.location?.lat));
-      payload.append("lng", String(formData.location?.lng));
-      payload.append("floors", String(formData.floors));
-      payload.append("floorSlots", JSON.stringify(slots));
-      payload.append("phone", formData.phone);
-      payload.append("taxCode", formData.taxCode);
-      payload.append("description", formData.description);
-      payload.append("avatarIndex", String(formData.avatarIndex));
-      
-      if (formData.businessLicense) {
-        payload.append("businessLicense", formData.businessLicense);
-      }
+      // In real implementation, upload images first -> URLs
+      const payload = {
+        parkingLotName: formData.parkingLotName,
+        address: formData.address,
+        location: formData.location || { lat: 0, lng: 0 },
+        floors: Number(formData.floors),
+        floorSlots: slots,
+        phone: formData.phone,
+        taxCode: formData.taxCode,
+        description: formData.description,
+        avatarIndex: formData.avatarIndex,
+        businessLicenses: formData.businessLicenses.map(f => f.name),
+        images: formData.images.map(f => f.name)
+      };
 
-      formData.images.forEach((file) => {
-        payload.append(`images`, file);
-      });
-
-      await apiClient("/parking/become-owner", {
+      await apiClient("/request/become-owner", {
         method: "POST",
-        body: payload, // changed from JSON.stringify to FormData
-        headers: {
-          Authorization: `Bearer ${accessToken}`, // Do NOT set Content-Type to application/json so boundary is generated automatically
-        },
+        body: JSON.stringify(payload)
       });
 
       toast.success(
-        "Đăng ký thành công! Tài khoản của bạn đã được nâng cấp thành Chủ bãi xe.",
+        "Đăng ký thành công! Yêu cầu của bạn đang được xét duyệt. Admin sẽ liên hệ sau.",
       );
-
-      // Redirect user to sign in to refresh their JWT or owner dashboard if it fetches user directly
-      setTimeout(() => {
-        router.push("/auth/sign-in"); // or wherever appropriate
-      }, 2000);
+      
+      setIsSuccess(true);
     } catch (error: any) { // eslint-disable-next-line @typescript-eslint/no-explicit-any
       toast.error(
         error.message || "Đã xảy ra lỗi khi đăng ký.",
@@ -203,13 +190,65 @@ export default function BecomeOwnerPage() {
     }));
   };
 
+  const handleGoHome = () => {
+    router.push("/"); // Điều hướng về trang chủ
+  };
+
+  if (isSuccess) {
+    return (
+      <div className="fixed inset-0 min-h-screen z-50 bg-background flex items-center justify-center p-4 py-10 pointer-events-auto">
+        <Card className="max-w-md w-full border-muted shadow-2xl">
+          <CardContent className="pt-10 pb-8 px-8 text-center flex flex-col items-center">
+            <div className="h-20 w-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6">
+              <Check className="h-10 w-10" />
+            </div>
+            
+            <h2 className="text-2xl font-bold mb-3">Gửi yêu cầu thành công!</h2>
+            
+            <p className="text-muted-foreground mb-8 px-2 max-w-sm">
+              Hồ sơ đăng ký trở thành Chủ bãi đỗ của bạn đã được gửi tới Ban quản trị định duyệt. 
+              Bạn có thể theo dõi tiến độ phê duyệt trên trang quản lý yêu cầu.
+            </p>
+
+            <div className="flex flex-col w-full gap-3">
+              <Button 
+                onClick={() => router.push("/users/requests")} 
+                className="w-full h-12 text-md font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Xem lịch sử yêu cầu
+              </Button>
+              <Button 
+                onClick={() => router.push("/users")} 
+                variant="outline" 
+                className="w-full h-12 text-md font-medium"
+              >
+                Quay lại Trang chủ
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     // We add a solid bg-background to cover the 3D map from the parent AuthLayout
     // and pointer-events-auto to re-enable clicks that AuthLayout disabled.
     <div className="fixed inset-0 min-h-screen bg-background p-4 sm:p-6 lg:p-8 flex items-center justify-center pointer-events-auto overflow-y-auto">
       <Card className="w-full max-w-[95vw] lg:max-w-[1500px] shadow-2xl my-auto max-h-[96vh] overflow-y-auto flex flex-col border-muted">
-        <CardHeader className="pb-6">
-          <CardTitle className="text-3xl text-center font-bold">
+        <CardHeader className="pb-6 relative">
+          {/* Nút Hủy / Về Trang chủ */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleGoHome}
+            className="absolute left-6 top-6 text-muted-foreground hover:bg-muted text-lg font-bold w-10 h-10 rounded-full"
+            title="Quay lại Trang chủ"
+          >
+            <X className="w-6 h-6" />
+          </Button>
+
+          <CardTitle className="text-3xl text-center font-bold mt-2 sm:mt-0">
             Trở thành Chủ Bãi Đỗ Xe
           </CardTitle>
           <CardDescription className="text-center text-base mt-2">
@@ -321,10 +360,33 @@ function Stepper({ currentStep }: { currentStep: number }) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function Step1Profile({ user, data, onChange }: any) {
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+
+  // Cleanup prev URLs
+  React.useEffect(() => {
+    return () => {
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
+
+  // Update object URLs when files change
+  React.useEffect(() => {
+    const urls = (data.businessLicenses || []).map((file: File) => URL.createObjectURL(file));
+    setPreviewUrls(urls);
+  }, [data.businessLicenses]);
+
   const handleLicenseChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      onChange("businessLicense", e.target.files[0]);
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      const allFiles = [...(data.businessLicenses || []), ...newFiles];
+      onChange("businessLicenses", allFiles);
     }
+  };
+
+  const removeLicense = (idx: number) => {
+    const newFiles = [...(data.businessLicenses || [])];
+    newFiles.splice(idx, 1);
+    onChange("businessLicenses", newFiles);
   };
 
   return (
@@ -376,30 +438,57 @@ function Step1Profile({ user, data, onChange }: any) {
           Tải lên bản scan hoặc hình ảnh Giấy phép kinh doanh của bạn để xác thực.
         </p>
 
-        <div className="flex items-center gap-4">
-          <label className="border-2 border-dashed border-muted-foreground hover:border-primary transition-colors hover:bg-muted/30 cursor-pointer w-32 h-32 flex flex-col items-center justify-center rounded-lg text-muted-foreground hover:text-primary space-y-2">
+        <div className="flex flex-col gap-4">
+          <label className="border-2 border-dashed border-muted-foreground hover:border-primary transition-colors hover:bg-muted/30 cursor-pointer w-full h-32 flex flex-col items-center justify-center rounded-lg text-muted-foreground hover:text-primary space-y-2">
             <UploadCloud className="w-8 h-8" />
-            <span className="text-xs font-medium text-center px-2">Tải file lên</span>
+            <span className="text-sm font-medium text-center px-4">Nhấn để tải lên một hoặc nhiều file</span>
             <input
               type="file"
               accept="image/*,.pdf"
               className="hidden"
+              multiple
               onChange={handleLicenseChange}
             />
           </label>
           
-          {data.businessLicense && (
-            <div className="flex-1 border rounded-lg p-3 bg-background flex items-center justify-between shadow-sm">
-              <span className="text-sm font-medium truncate mr-4">
-                {data.businessLicense.name}
-              </span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => onChange("businessLicense", null)}
-              >
-                Xóa
-              </Button>
+          {(data.businessLicenses || []).length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+              {data.businessLicenses.map((file: File, index: number) => {
+                const isImage = file.type.startsWith('image/');
+                return (
+                  <div key={index} className="relative group border rounded-lg overflow-hidden flex flex-col aspect-square bg-background shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex-1 w-full bg-muted/30 flex items-center justify-center overflow-hidden">
+                      {isImage && previewUrls[index] ? (
+                        <Image
+                          src={previewUrls[index]}
+                          alt={`license-${index}`}
+                          width={400}
+                          height={400}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <FileText className="w-10 h-10 text-muted-foreground" />
+                      )}
+                    </div>
+                    
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Button 
+                        variant="destructive" 
+                        size="icon" 
+                        className="w-8 h-8 rounded-full shadow-lg"
+                        onClick={(e) => { e.preventDefault(); removeLicense(index); }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="h-8 bg-background border-t px-2 flex items-center">
+                      <span className="text-xs truncate w-full text-center" title={file.name}>
+                        {file.name}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -646,111 +735,191 @@ function Step2Parking({ data, onChange }: any) {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function Step3Review({ user, data, onChange }: any) {
+  const [licenseUrls, setLicenseUrls] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    const lUrls = (data.businessLicenses || []).map((f: File) => URL.createObjectURL(f));
+    const iUrls = (data.images || []).map((f: File) => URL.createObjectURL(f));
+    
+    setLicenseUrls(lUrls);
+    setImageUrls(iUrls);
+
+    return () => {
+      lUrls.forEach((u: string) => URL.revokeObjectURL(u));
+      iUrls.forEach((u: string) => URL.revokeObjectURL(u));
+    };
+  }, [data.businessLicenses, data.images]);
+
   const totalSlots = data.floorSlots.reduce(
     (acc: number, curr: number | string) => acc + (Number(curr) || 0),
     0,
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-muted/30 rounded-lg p-6 border shadow-sm">
-        <h3 className="text-lg font-semibold mb-4 border-b pb-2">
-          Thông tin tóm tắt
-        </h3>
-
-        <div className="space-y-4">
-          <div>
-            <h4 className="font-medium text-sm text-muted-foreground mb-2">
-              Thông tin Hồ sơ cá nhân
-            </h4>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="text-muted-foreground">Họ và Tên:</span>
-              <span className="font-medium">{user.fullName}</span>
-              <span className="text-muted-foreground">Email:</span>
-              <span className="font-medium">{user.email}</span>
-              <span className="text-muted-foreground">Số điện thoại:</span>
-              <span className="font-medium">
-                {data.phone || "Chưa cung cấp"}
-              </span>
-              <span className="text-muted-foreground">Mã Số Thuế:</span>
-              <span className="font-medium">
-                {data.taxCode || "Chưa cung cấp"}
-              </span>
-              <span className="text-muted-foreground">Giấy Phép KD:</span>
-              <span className="font-medium">
-                {data.businessLicense ? data.businessLicense.name : "Chưa tải lên"}
-              </span>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* Phần Hồ Sơ Cá Nhân */}
+        <div className="bg-background rounded-xl p-6 border shadow-sm space-y-6">
+          <div className="flex items-center gap-3 border-b pb-4">
+            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+              <User className="w-5 h-5" />
             </div>
+            <h3 className="text-xl font-bold">1. Thông tin cá nhân</h3>
           </div>
 
-          <div>
-            <h4 className="font-medium text-sm text-muted-foreground mb-2">
-              Chi tiết Bãi đỗ xe
-            </h4>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <span className="text-muted-foreground">Tên bãi đỗ:</span>
-              <span className="font-medium">
-                {data.parkingLotName || "Chưa cung cấp"}
-              </span>
-              <span className="text-muted-foreground">Mô tả:</span>
-              <span className="font-medium truncate" title={data.description}>
-                {data.description || "Chưa cung cấp"}
-              </span>
-              <span className="text-muted-foreground">Địa chỉ:</span>
-              <span className="font-medium">
-                {data.address || "Chưa cung cấp"}
-              </span>
-              <span className="text-muted-foreground">Số lượng ảnh (Avatar):</span>
-              <span className="font-medium">
-                {data.images.length} (Ảnh số {data.avatarIndex + 1})
-              </span>
-              <span className="text-muted-foreground">Số tầng:</span>
-              <span className="font-medium">{data.floors || "0"}</span>
-              <span className="text-muted-foreground">Tổng số chỗ đỗ:</span>
-              <span className="font-medium">{totalSlots}</span>
+          <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-[1fr_2fr] gap-2 items-center">
+              <span className="text-muted-foreground font-medium">Họ và Tên:</span>
+              <span className="font-semibold text-foreground bg-muted/50 p-2 rounded-md">{user.fullName}</span>
+            </div>
+            <div className="grid grid-cols-[1fr_2fr] gap-2 items-center">
+              <span className="text-muted-foreground font-medium">Email:</span>
+              <span className="font-semibold text-foreground bg-muted/50 p-2 rounded-md">{user.email}</span>
+            </div>
+            <div className="grid grid-cols-[1fr_2fr] gap-2 items-center">
+              <span className="text-muted-foreground font-medium">Số điện thoại:</span>
+              <span className="font-semibold text-foreground bg-muted/50 p-2 rounded-md">{data.phone || "Chưa cung cấp"}</span>
+            </div>
+            <div className="grid grid-cols-[1fr_2fr] gap-2 items-center">
+              <span className="text-muted-foreground font-medium">Mã Số Thuế:</span>
+              <span className="font-semibold text-foreground bg-muted/50 p-2 rounded-md">{data.taxCode || "Chưa cung cấp"}</span>
             </div>
 
-            {Number(data.floors) > 0 && (
-              <div className="mt-4">
-                <span className="text-muted-foreground text-xs block mb-2">
-                  Số chỗ đỗ theo từng tầng:
-                </span>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  {data.floorSlots.map((slots: number | string, idx: number) => (
-                    <span
-                      key={idx}
-                      className="bg-muted px-2 py-1 rounded-md border"
-                    >
-                      Tầng {idx + 1}:{" "}
-                      <span className="font-medium text-foreground">
-                        {slots || 0}
-                      </span>
-                    </span>
+            <div className="pt-2">
+              <span className="text-muted-foreground font-medium block mb-3">Giấy Phép Kinh Doanh / Căn cước:</span>
+              {(data.businessLicenses || []).length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {data.businessLicenses.map((file: File, idx: number) => (
+                    <div key={idx} className="border rounded-md aspect-video overflow-hidden bg-muted/20 relative group">
+                      {file.type.startsWith('image/') && licenseUrls[idx] ? (
+                        <Image src={licenseUrls[idx]} alt="license" fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-xs text-muted-foreground">
+                          <FileText className="w-8 h-8 mb-2" />
+                          <span className="truncate w-full">{file.name}</span>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
+              ) : (
+                <span className="text-amber-600 bg-amber-50 p-2 rounded-md block text-center">Chưa tải lên giấy tờ</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Phần Bãi Đỗ Xe */}
+        <div className="bg-background rounded-xl p-6 border shadow-sm space-y-6">
+          <div className="flex items-center gap-3 border-b pb-4">
+            <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <h3 className="text-xl font-bold">2. Bãi đỗ xe</h3>
+          </div>
+
+          <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-[1fr_2fr] gap-2 items-center">
+              <span className="text-muted-foreground font-medium">Tên bãi:</span>
+              <span className="font-semibold text-foreground bg-muted/50 p-2 rounded-md">{data.parkingLotName || "Chưa cung cấp"}</span>
+            </div>
+            
+            <div className="grid grid-cols-[1fr_2fr] gap-2 items-start">
+              <span className="text-muted-foreground font-medium mt-2">Mô tả:</span>
+              <div className="font-medium text-foreground bg-muted/50 p-3 rounded-md line-clamp-3 min-h-[60px]">
+                {data.description || "Chưa có mô tả"}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-[1fr_2fr] gap-2 items-start">
+              <span className="text-muted-foreground font-medium mt-2">Địa chỉ:</span>
+              <span className="font-semibold text-foreground bg-muted/50 p-2 rounded-md flex items-start gap-1">
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" />
+                {data.address || "Chưa cung cấp"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="bg-muted/30 p-4 rounded-lg border text-center">
+                <div className="text-3xl font-bold text-primary mb-1">{data.floors || 0}</div>
+                <div className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Tầng/Khu vực</div>
+              </div>
+              <div className="bg-muted/30 p-4 rounded-lg border text-center">
+                <div className="text-3xl font-bold text-primary mb-1">{totalSlots}</div>
+                <div className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Tổng sức chứa</div>
+              </div>
+            </div>
+            
+            {Number(data.floors) > 0 && (
+              <div className="bg-muted/20 p-3 rounded-md border flex flex-wrap gap-2">
+                <span className="w-full text-muted-foreground mb-1 block">Chi tiết theo tầng:</span>
+                {data.floorSlots.map((slot: any, idx: number) => (
+                  <div key={idx} className="bg-background border rounded px-3 py-1 text-center">
+                    <span className="text-muted-foreground text-xs block">Tầng {idx + 1}</span>
+                    <span className="font-bold">{slot || 0}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
+
       </div>
 
-      <div className="flex items-start space-x-3 bg-secondary/20 p-4 rounded-lg border border-secondary/30">
-        <Checkbox
-          id="terms"
-          className="mt-1"
-          checked={data.agreedToTerms}
-          onCheckedChange={(checked) =>
-            onChange("agreedToTerms", checked === true)
-          }
-        />
-        <div className="space-y-1 leading-none">
-          <Label htmlFor="terms" className="font-medium cursor-pointer">
-            Đồng ý với các điều khoản
-          </Label>
-          <p className="text-sm text-muted-foreground mt-2">
-            Tôi xác nhận các thông tin trên là chính xác và tôi đồng ý với Thỏa thuận đối tác quản lý bãi đỗ GoPark.
-          </p>
-        </div>
+      {/* Phần Hình ảnh bãi đỗ xe */}
+      <div className="bg-background rounded-xl p-6 border shadow-sm space-y-4">
+         <div className="flex items-center gap-3 border-b pb-4 mb-2">
+            <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+              <FileText className="w-5 h-5" />
+            </div>
+            <h3 className="text-xl font-bold">3. Hình ảnh bãi đỗ</h3>
+          </div>
+
+          {data.images.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+              {data.images.map((file: File, idx: number) => (
+                <div key={idx} className={`relative border rounded-lg overflow-hidden aspect-video shadow-sm ${data.avatarIndex === idx ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
+                  {imageUrls[idx] ? (
+                    <Image fill src={imageUrls[idx]} alt={`parking-${idx}`} className="object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                      <FileText className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  {data.avatarIndex === idx && (
+                    <div className="absolute top-1 left-1 bg-primary text-white text-[10px] px-2 py-0.5 rounded-sm font-bold shadow-sm">
+                      Ảnh đại diện
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+             <div className="text-center p-8 bg-muted/20 rounded-lg border border-dashed">
+                <span className="text-muted-foreground">Bạn chưa đăng tải hình ảnh nào cho bãi đỗ xe</span>
+             </div>
+          )}
+      </div>
+
+      <div className="bg-primary/5 border border-primary/20 rounded-lg p-5 mt-8">
+        <label className="flex items-start space-x-3 cursor-pointer">
+          <Checkbox
+            id="terms"
+            checked={data.agreedToTerms}
+            onCheckedChange={(checked) => onChange("agreedToTerms", checked)}
+            className="mt-1"
+          />
+          <div className="grid gap-1.5 leading-none">
+            <span className="font-semibold text-foreground">
+              Đồng ý với các điều khoản
+            </span>
+            <span className="text-sm text-muted-foreground mt-1">
+              Tôi xác nhận các thông tin trên là chính xác và tôi đồng ý với Thỏa thuận đối tác quản lý bãi đỗ GoPark.
+            </span>
+          </div>
+        </label>
       </div>
     </div>
   );

@@ -4,7 +4,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth.store";
-import { Bell, Settings, LogOut, ChevronDown, Sun, Moon, Wallet, Loader2, Home, Search, History, User, Contact, Menu } from "lucide-react";
+import {
+  Bell,
+  Settings,
+  LogOut,
+  ChevronDown,
+  Sun,
+  Moon,
+  Wallet,
+  Loader2,
+  Home,
+  Search,
+  History,
+  User,
+  Contact,
+  Menu,
+  Building2,
+} from "lucide-react";
 import { useTheme } from "next-themes";
 import { useWallet } from "@/hooks/useWallet";
 
@@ -22,7 +38,10 @@ const Header = () => {
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsDropdownOpen(false);
       }
     };
@@ -34,30 +53,50 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 text-primary font-bold text-2xl hover:opacity-90 transition-opacity">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-primary font-bold text-2xl hover:opacity-90 transition-opacity"
+        >
           <img src="/logo.png" alt="GoPark Logo" className="h-8 w-8" />
-          <span className=" bg-clip-text text-black dark:text-white">Go <span className="text-green-600">Park</span></span>
+          <span className=" bg-clip-text text-black dark:text-white">
+            Go <span className="text-green-600">Park</span>
+          </span>
         </Link>
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex flex-1 items-center justify-center gap-8 text-sm font-medium text-muted-foreground relative">
-          <Link href="/" className="transition-colors hover:text-primary hover:font-semibold">
-          <Home className="h-5 w-5 inline-block mr-1" />
+          <Link
+            href="/"
+            className="transition-colors hover:text-primary hover:font-semibold"
+          >
+            <Home className="h-5 w-5 inline-block mr-1" />
             Trang chủ
           </Link>
-          <Link href="/users/findParking" className="transition-colors hover:text-primary hover:font-semibold">
+          <Link
+            href="/users/findParking"
+            className="transition-colors hover:text-primary hover:font-semibold"
+          >
             <Search className="h-5 w-5 inline-block mr-1" />
             Tìm bãi đỗ
           </Link>
-          <Link href="/users/myBooking" className="transition-colors hover:text-primary hover:font-semibold">
+          <Link
+            href="/users/myBooking"
+            className="transition-colors hover:text-primary hover:font-semibold"
+          >
             <History className="h-5 w-5 inline-block mr-1" />
             Lịch sử đặt chỗ
           </Link>
-          <Link href="/about" className="transition-colors hover:text-primary hover:font-semibold">
+          <Link
+            href="/about"
+            className="transition-colors hover:text-primary hover:font-semibold"
+          >
             <User className="h-5 w-5 inline-block mr-1" />
             Về chúng tôi
           </Link>
-          <Link href="/contact" className="transition-colors hover:text-primary hover:font-semibold">
+          <Link
+            href="/contact"
+            className="transition-colors hover:text-primary hover:font-semibold"
+          >
             <Contact className="h-5 w-5 inline-block mr-1" />
             Liên hệ
           </Link>
@@ -72,7 +111,11 @@ const Header = () => {
               className="p-2 text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-stone-800 flex items-center justify-center mr-2"
               aria-label="Toggle Dark Mode"
             >
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {theme === "dark" ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
             </button>
           )}
 
@@ -86,21 +129,35 @@ const Header = () => {
 
               {/* Avatar & Dropdown */}
               <div className="relative" ref={dropdownRef}>
-                <button 
+                <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className="flex items-center gap-2 p-1.5 sm:pr-3 rounded-full border border-gray-200 dark:border-stone-700 hover:shadow-md transition-all bg-white dark:bg-stone-800"
                 >
-                  <img src={user?.profile?.image || "https://i.pravatar.cc/150?img=11"} alt="User Avatar" className="w-8 h-8 rounded-full object-cover" />
-                  <span className="text-sm font-semibold max-w-[100px] truncate hidden sm:block dark:text-white">{user?.profile?.name || "Người dùng"}</span>
-                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform hidden sm:block ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                  <img
+                    src={
+                      user?.profile?.image || "https://i.pravatar.cc/150?img=11"
+                    }
+                    alt="User Avatar"
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                  <span className="text-sm font-semibold max-w-[100px] truncate hidden sm:block dark:text-white">
+                    {user?.profile?.name || "Người dùng"}
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-gray-400 transition-transform hidden sm:block ${isDropdownOpen ? "rotate-180" : ""}`}
+                  />
                 </button>
 
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-stone-900 border border-gray-100 dark:border-stone-800 rounded-2xl shadow-xl py-2 animate-in fade-in slide-in-from-top-2">
                     <div className="px-4 py-3 border-b border-gray-50 dark:border-stone-800 mb-2">
-                      <p className="text-sm font-bold text-black dark:text-white">{user?.profile?.name || "Người dùng"}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{user?.email || ""}</p>
+                      <p className="text-sm font-bold text-black dark:text-white">
+                        {user?.profile?.name || "Người dùng"}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                        {user?.email || ""}
+                      </p>
                     </div>
 
                     <div className="px-4 pb-2 border-b border-gray-50 dark:border-stone-800 mb-2">
@@ -109,34 +166,67 @@ const Header = () => {
                           <Wallet className="h-4 w-4" />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Số dư ví</span>
+                          <span className="text-[10px] sm:text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Số dư ví
+                          </span>
                           <span className="text-xs sm:text-sm font-bold text-black dark:text-white mt-0.5">
-                            {isWalletLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : `${(balance || 0).toLocaleString('vi-VN')} đ`}
+                            {isWalletLoading ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              `${(balance || 0).toLocaleString("vi-VN")} đ`
+                            )}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <Link href="/users/wallet" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                      <Wallet className="h-4 w-4" />
-                      Quản lý Ví
-                    </Link>
-                    <Link href="/users/profile" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <Link
+                      href="/users/profile"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
                       <User className="h-4 w-4" />
                       Thông tin cá nhân
                     </Link>
-                    <Link href="/users/setting" className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+
+                    <Link
+                      href="/users/wallet"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
+                      <Wallet className="h-4 w-4" />
+                      Quản lý Ví
+                    </Link>
+
+                    <Link
+                      href="/users/requests"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
+                      <History className="h-4 w-4" />
+                      Yêu cầu của tôi
+                    </Link>
+
+                    {user?.role && user.role !== "OWNER" && (
+                      <Link
+                        href="/auth/become-owner"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      >
+                        <Building2 className="h-4 w-4" />
+                        Trở thành chủ bãi đỗ
+                      </Link>
+                    )}
+                    <Link
+                      href="/users/setting"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
                       <Settings className="h-4 w-4" />
                       Cài đặt
                     </Link>
-                    
                     <div className="h-[1px] bg-gray-100 dark:bg-stone-800 my-1"></div>
-                    
-                    <button 
+
+                    <button
                       onClick={() => {
                         logout();
                         router.push("/auth/login");
-                      }} 
+                      }}
                       className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                     >
                       <LogOut className="h-4 w-4" />
@@ -151,7 +241,10 @@ const Header = () => {
               <Button variant="ghost" className="font-semibold" asChild>
                 <Link href="/auth/login">Đăng nhập</Link>
               </Button>
-              <Button className="bg-green-600 hover:bg-green-700 shadow-md font-semibold" asChild>
+              <Button
+                className="bg-green-600 hover:bg-green-700 shadow-md font-semibold"
+                asChild
+              >
                 <Link href="/auth/register">Đăng ký</Link>
               </Button>
             </>
@@ -167,11 +260,20 @@ const Header = () => {
               className="p-2 text-gray-600 dark:text-gray-300 transition-colors rounded-full flex items-center justify-center mr-1"
               aria-label="Toggle Dark Mode"
             >
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {theme === "dark" ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
             </button>
           )}
 
-          <Button variant="ghost" size="icon" aria-label="Menu" className="text-foreground">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Menu"
+            className="text-foreground"
+          >
             <Menu className="h-6 w-6" />
           </Button>
         </div>
@@ -181,4 +283,3 @@ const Header = () => {
 };
 
 export default Header;
-
