@@ -25,7 +25,7 @@ export const columns: ColumnDef<Report>[] = [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Title
+          Tiêu đề
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
@@ -33,15 +33,15 @@ export const columns: ColumnDef<Report>[] = [
   },
   {
     accessorKey: "user_id",
-    header: "User ID",
+    header: "ID Người dùng",
   },
   {
     accessorKey: "parking_lot_id",
-    header: "Parking Lot",
+    header: "Bãi đỗ xe",
   },
   {
     accessorKey: "priority",
-    header: "Priority",
+    header: "Mức độ ưu tiên",
     cell: ({ row }) => {
       const priority = row.getValue("priority") as string;
       return <ReportPriorityBadge priority={priority} />;
@@ -52,7 +52,7 @@ export const columns: ColumnDef<Report>[] = [
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: "Trạng thái",
     cell: ({ row }) => {
       const status = row.getValue("status") as string;
       return <ReportStatusBadge status={status} />;
@@ -63,7 +63,7 @@ export const columns: ColumnDef<Report>[] = [
   },
   {
     accessorKey: "created_at",
-    header: "Created At",
+    header: "Ngày tạo",
     cell: ({ row }) => {
       const date = row.getValue("created_at") as string;
       return <div>{format(new Date(date), "MMM d, yyyy")}</div>;
@@ -77,18 +77,18 @@ export const columns: ColumnDef<Report>[] = [
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">Mở menu</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>Hành động</DropdownMenuLabel>
             <DropdownMenuItem asChild>
-              <Link href={`/owner/reports/${report.id}`}>View Details</Link>
+              <Link href={`/owner/reports/${report.id}`}>Xem chi tiết</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href={`/owner/reports/${report.id}?edit=true`}>Edit Report</Link>
+              <Link href={`/owner/reports/${report.id}?edit=true`}>Chỉnh sửa</Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

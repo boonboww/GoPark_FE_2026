@@ -39,28 +39,27 @@ const data = {
   },
   navMain: [
     {
-      title: "Dashboard",
+      title: "Bảng điều khiển",
       url: "/owner",
       icon: IconDashboard,
     },
     {
-      title: "Parking Lot Management ",
+      title: "Quản lý bãi đỗ xe",
       url: "/owner/parkinglot_management",
       icon: IconListDetails,
     },
     {
-      title: "Analytics",
+      title: "Phân tích",
       url: "/owner/analytics",
       icon: IconChartBar,
     },
-
     {
-      title: "Customer Management",
+      title: "Quản lý khách hàng",
       url: "/owner/customer_management",
       icon: IconUsers,
     },
     {
-      title: "Reports",
+      title: "Báo cáo",
       url: "/owner/reports",
       icon: IconReport,
     },
@@ -68,18 +67,17 @@ const data = {
 
   navSecondary: [
     {
-      title: "Settings",
+      title: "Cài đặt",
       url: "#",
       icon: IconSettings,
     },
     {
-      title: "Get Help",
+      title: "Trợ giúp",
       url: "#",
       icon: IconHelp,
     },
   ],
 };
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>

@@ -41,9 +41,9 @@ export default function ParkingLotList({
             d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
           ></path>
         </svg>
-        <p className="text-gray-500 font-medium">No parking lots found.</p>
+        <p className="text-gray-500 font-medium">Không tìm thấy bãi đỗ xe nào.</p>
         <p className="text-gray-400 text-sm mt-1">
-          You have not added any parking locations yet.
+          Bạn chưa thêm bãi đỗ xe nào.
         </p>
       </div>
     );
@@ -89,7 +89,7 @@ export default function ParkingLotList({
 
             <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-500">
-                Total Slots
+                Tổng số chỗ
               </span>
               <span className="inline-flex items-center justify-center px-3 py-1 text-sm font-bold bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
                 {lot.totalSlots}
