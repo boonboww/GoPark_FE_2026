@@ -92,9 +92,9 @@ export function AnalyticsCharts({
       {/* Revenue Line Chart */}
       <Card className="col-span-full lg:col-span-4">
         <CardHeader>
-          <CardTitle>Revenue Overview</CardTitle>
+          <CardTitle>Tổng quan Doanh thu</CardTitle>
           <CardDescription>
-            Daily revenue across selected parking lots.
+            Doanh thu hằng ngày trên tất cả các bãi đỗ.
           </CardDescription>
         </CardHeader>
         <CardContent className="pl-0 pb-4">
@@ -137,7 +137,7 @@ export function AnalyticsCharts({
                 <Area
                   type="monotone"
                   dataKey="amount"
-                  name="Revenue"
+                  name="Doanh thu"
                   stroke="#8b5cf6"
                   strokeWidth={3}
                   fillOpacity={1}
@@ -152,9 +152,9 @@ export function AnalyticsCharts({
       {/* Payment Methods Donut Chart */}
       <Card className="col-span-full lg:col-span-3">
         <CardHeader>
-          <CardTitle>Payment Methods</CardTitle>
+          <CardTitle>Phương thức Thanh toán</CardTitle>
           <CardDescription>
-            Distribution of successful payment providers.
+            Phân bổ các cổng thanh toán thành công.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -198,9 +198,9 @@ export function AnalyticsCharts({
       {/* Traffic Bar Chart */}
       <Card className="col-span-full">
         <CardHeader>
-          <CardTitle>Traffic Flow by Hour</CardTitle>
+          <CardTitle>Lưu lượng xe theo giờ</CardTitle>
           <CardDescription>
-            Identify peak hours for check-ins and check-outs.
+            Xác định giờ cao điểm xe vào và ra.
           </CardDescription>
         </CardHeader>
         <CardContent className="pl-0 pb-4">
@@ -237,14 +237,14 @@ export function AnalyticsCharts({
                 <Legend verticalAlign="top" height={36} iconType="circle" />
                 <Bar
                   dataKey="in"
-                  name="Check Ins"
+                  name="Lượt vào"
                   fill="#10b981"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={40}
                 />
                 <Bar
                   dataKey="out"
-                  name="Check Outs"
+                  name="Lượt ra"
                   fill="#f43f5e"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={40}

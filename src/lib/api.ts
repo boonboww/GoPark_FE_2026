@@ -117,6 +117,16 @@ export function put<T>(endpoint: string, data?: unknown): Promise<T> {
 }
 
 /**
+ * PATCH request helper
+ */
+export function patch<T>(endpoint: string, data?: unknown): Promise<T> {
+  return apiClient<T>(endpoint, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+/**
  * DELETE request helper
  */
 export function del<T>(endpoint: string): Promise<T> {

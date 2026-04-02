@@ -32,9 +32,9 @@ export function DashboardHeader({
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between pb-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Thống kê</h1>
         <p className="text-muted-foreground mt-1">
-          Monitor your parking lot performance and revenue.
+          Theo dõi hiệu suất và doanh thu bãi đỗ xe của bạn.
         </p>
       </div>
 
@@ -48,10 +48,10 @@ export function DashboardHeader({
 
         <Select value={selectedLot} onValueChange={setSelectedLot}>
           <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Select Parking Lot" />
+            <SelectValue placeholder="Chọn bãi đỗ xe" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Parking Lots</SelectItem>
+            <SelectItem value="all">Tất cả bãi đỗ</SelectItem>
             {parkingLots.map((lot) => (
               <SelectItem key={lot.id} value={lot.id}>
                 {lot.name}
@@ -66,7 +66,7 @@ export function DashboardHeader({
           className="w-full sm:w-auto"
         >
           <Download className="mr-2 h-4 w-4" />
-          Export
+          Xuất dữ liệu
         </Button>
       </div>
     </div>

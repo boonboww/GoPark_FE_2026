@@ -38,7 +38,7 @@ export default function OwnerAccountPage() {
               {showParkingLots && (
                 <div className="mt-8 pt-6 border-t border-gray-200 transition-all duration-300 ease-in-out">
                   <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    My Parking Lots
+                    Bãi đỗ xe của tôi
                   </h2>
                   <ParkingLotList
                     parkingLots={parkingLots}

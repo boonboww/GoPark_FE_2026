@@ -80,7 +80,6 @@ export default function CustomerManagementPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[120px]">ID</TableHead>
                         <TableHead>Tên khách hàng</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>SĐT</TableHead>
@@ -91,7 +90,7 @@ export default function CustomerManagementPage() {
                       {/* Loading */}
                       {isLoading && (
                         <TableRow>
-                          <TableCell colSpan={5} className="h-32 text-center">
+                          <TableCell colSpan={4} className="h-32 text-center">
                             <div className="flex items-center justify-center gap-2 text-muted-foreground">
                               <Loader2 className="h-4 w-4 animate-spin" />
                               <span>Đang tải dữ liệu...</span>
@@ -104,7 +103,7 @@ export default function CustomerManagementPage() {
                       {!isLoading && lotId === null && (
                         <TableRow>
                           <TableCell
-                            colSpan={5}
+                            colSpan={4}
                             className="h-32 text-center text-muted-foreground"
                           >
                             Vui lòng chọn bãi đỗ xe ở thanh trên để xem danh
@@ -116,7 +115,7 @@ export default function CustomerManagementPage() {
                       {/* Error */}
                       {isError && !isLoading && (
                         <TableRow>
-                          <TableCell colSpan={5} className="h-32 text-center">
+                          <TableCell colSpan={4} className="h-32 text-center">
                             <div className="flex items-center justify-center gap-2 text-destructive">
                               <AlertCircle className="h-4 w-4" />
                               <span>
@@ -134,7 +133,7 @@ export default function CustomerManagementPage() {
                         customers.length === 0 && (
                           <TableRow>
                             <TableCell
-                              colSpan={5}
+                              colSpan={4}
                               className="h-32 text-center text-muted-foreground"
                             >
                               Không tìm thấy khách hàng nào.
@@ -147,9 +146,6 @@ export default function CustomerManagementPage() {
                         !isError &&
                         customers.map((customer) => (
                           <TableRow key={customer.userId}>
-                            <TableCell className="font-medium font-mono text-sm">
-                              {customer.userId}
-                            </TableCell>
                             <TableCell>{customer.name}</TableCell>
                             <TableCell>{customer.email}</TableCell>
                             <TableCell>{customer.phone}</TableCell>
