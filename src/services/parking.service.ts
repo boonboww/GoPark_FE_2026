@@ -45,7 +45,7 @@ class ParkingService {
    * Thêm Khu vực (Zone) vào tầng
    * POST /parking-lots/floors/:floorId/zones
    */
-  async createZone(floorId: number, payload: { zone_name: string; total_slots: number; description?: string }) {
+  async createZone(floorId: number, payload: { zone_name: string; prefix: string; total_slots: number; description?: string }) {
     return post<any>(`/parking-lots/floors/${floorId}/zones`, payload);
   }
 
@@ -70,7 +70,7 @@ class ParkingService {
    * Cập nhật Khu vực (Zone) mới
    * PATCH /parking-lots/:lotId/floors/:floorId/zones/:zoneId
    */
-  async updateZone(lotId: number, floorId: number, zoneId: number, payload: { zone_name?: string; description?: string; total_slots?: number }) {
+  async updateZone(lotId: number, floorId: number, zoneId: number, payload: { zone_name?: string; prefix?: string; description?: string; total_slots?: number }) {
     return patch<any>(`/parking-lots/${lotId}/floors/${floorId}/zones/${zoneId}`, payload);
   }
 
@@ -118,6 +118,40 @@ class ParkingService {
    */
   async getZones(lotId: number, floorId: number) {
     return get<any>(`/parking-lots/${lotId}/floors/${floorId}/zones`);
+  }
+
+  /**
+   * Lấy danh sách slots của 1 zone (thực tế từ DB)
+   * GET /parking-lots/:lotId/floors/:floorId/zones/:zoneId/slots
+   * GET /parking-lots/:lotId/floors/:floorId/zones/:zoneId/slots?includeDisabled=true
+   */
+  async getZoneSlots(lotId: number, floorId: number, zoneId: number, includeDisabled = false) {
+    const query = includeDisabled ? "?includeDisabled=true" : "";
+    return get<any>(`/parking-lots/${lotId}/floors/${floorId}/zones/${zoneId}/slots${query}`);
+  }
+
+  /**
+   * Generate/Sync slots cho toàn bộ Lot
+   * POST /parking-lots/:lotId/generate-slots
+   */
+  async generateSlotsForLot(lotId: number) {
+    return post<any>(`/parking-lots/${lotId}/generate-slots`, {});
+  }
+
+  /**
+   * Generate/Sync slots cho 1 Floor
+   * POST /parking-lots/:lotId/floors/:floorId/generate-slots
+   */
+  async generateSlotsForFloor(lotId: number, floorId: number) {
+    return post<any>(`/parking-lots/${lotId}/floors/${floorId}/generate-slots`, {});
+  }
+
+  /**
+   * Generate/Sync slots cho 1 Zone
+   * POST /parking-lots/:lotId/floors/:floorId/zones/:zoneId/generate-slots
+   */
+  async generateSlotsForZone(lotId: number, floorId: number, zoneId: number) {
+    return post<any>(`/parking-lots/${lotId}/floors/${floorId}/zones/${zoneId}/generate-slots`, {});
   }
 }
 

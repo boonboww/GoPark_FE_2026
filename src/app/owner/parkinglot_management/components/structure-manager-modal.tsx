@@ -9,10 +9,11 @@ import { parkingService } from "@/services/parking.service";
 import { useCustomerStore } from "@/stores/customer.store";
 import { toast } from "sonner";
 import {
-  Edit2, Save, X, Loader2, Plus, ChevronDown, ChevronUp,
-  Layers, MapPin, DollarSign
+  Edit2, Save, Loader2, Plus, ChevronDown, ChevronUp,
+  Layers, MapPin, DollarSign, RefreshCw, Zap, Eye, EyeOff
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 // ──────────────────────────────────────────────────────────
 //  Types
@@ -25,6 +26,7 @@ interface FloorPayload {
 
 interface ZonePayload {
   zone_name: string;
+  prefix: string;
   total_slots: number;
   description?: string;
 }
@@ -58,8 +60,14 @@ export function StructureManagerTab() {
     floor_name: "", floor_number: 1, description: ""
   });
   const [newZoneForm, setNewZoneForm] = React.useState<ZonePayload & {
-    prefix: string; priceHour: number; priceDay: number
-  }>({ zone_name: "", total_slots: 10, description: "", prefix: "A", priceHour: 20000, priceDay: 150000 });
+    priceHour: number; priceDay: number
+  }>({ zone_name: "", prefix: "A", total_slots: 10, description: "", priceHour: 20000, priceDay: 150000 });
+
+
+  // Toggle xem slots DISABLED trong modal
+  const [showDisabled, setShowDisabled] = useState<Record<number, boolean>>({});
+  const toggleDisabled = (zoneId: number) =>
+    setShowDisabled(prev => ({ ...prev, [zoneId]: !prev[zoneId] }));
 
   // ─── Mutations ─────────────────────────────────────────
   const invalidate = () => {
@@ -82,6 +90,7 @@ export function StructureManagerTab() {
     mutationFn: async (payload: any) => {
       await parkingService.updateZone(lotId as number, payload.floorId, payload.id, {
         zone_name: payload.zone_name,
+        prefix: payload.prefix,
         description: payload.description,
         total_slots: Number(payload.total_slots),
       });
@@ -113,16 +122,18 @@ export function StructureManagerTab() {
     onError: (err: any) => toast.error(err.message || "Lỗi thêm tầng"),
   });
 
-  // Create new zone + pricing
+  // Create new zone + pricing + auto generate slots
   const createZoneMut = useMutation({
     mutationFn: async (floorId: number) => {
       const res: any = await parkingService.createZone(floorId, {
         zone_name: newZoneForm.zone_name,
+        prefix: newZoneForm.prefix,
         total_slots: Number(newZoneForm.total_slots),
-        description: `Khu vực ${newZoneForm.zone_name} - Tiền tố ${newZoneForm.prefix}`,
+        description: newZoneForm.description, 
       });
       const newZoneId = res?.data?.id;
       if (newZoneId && lotId) {
+        // Tạo pricing rule
         await parkingService.createPricingRule({
           price_per_hour: Number(newZoneForm.priceHour),
           price_per_day: Number(newZoneForm.priceDay),
@@ -130,15 +141,63 @@ export function StructureManagerTab() {
           parking_floor_id: floorId,
           parking_zone_id: newZoneId,
         });
+        // Auto-generate slots ngay sau khi tạo zone
+        try {
+          await parkingService.generateSlotsForZone(
+            lotId as number, floorId, newZoneId
+          );
+        } catch {
+          // Non-blocking: toast riêng nếu cần
+        }
       }
     },
     onSuccess: () => {
-      toast.success("Thêm khu vực mới & thiết lập giá thành công!");
+      toast.success("✅ Thêm khu vực, thiết lập giá & khởi tạo slots thành công!");
       invalidate();
+      // Invalidate zone slots cache trên trang chính
+      queryClient.invalidateQueries({ queryKey: ["zoneSlots"] });
       setAddingZone(null);
       setNewZoneForm({ zone_name: "", total_slots: 10, description: "", prefix: "A", priceHour: 20000, priceDay: 150000 });
     },
     onError: (err: any) => toast.error(err.message || "Lỗi thêm khu vực"),
+  });
+
+  // ── Generate slots mutations ──────────────────────────
+  const makeGenerateToast = (res: any) => {
+    const added    = res?.data?.totalAdded ?? res?.data?.added ?? res?.totalAdded ?? res?.added ?? 0;
+    const disabled = res?.data?.totalDisabled ?? res?.data?.disabled ?? res?.totalDisabled ?? res?.disabled ?? 0;
+    if (added > 0)    toast.success(`✅ Đã tạo thêm ${added} slot mới`);
+    if (disabled > 0) toast.warning(`⚠️ Đã vô hiệu hoá ${disabled} slot thừa`);
+    if (added === 0 && disabled === 0) toast.info("ℹ️ Slots đã đồng bộ, không có thay đổi.");
+  };
+
+  const genLotMut = useMutation({
+    mutationFn: () => parkingService.generateSlotsForLot(lotId as number),
+    onSuccess: (res) => {
+      makeGenerateToast(res);
+      queryClient.invalidateQueries({ queryKey: ["zoneSlots"] });
+      invalidate();
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Lỗi sync lot"),
+  });
+
+  const genFloorMut = useMutation({
+    mutationFn: (floorId: number) => parkingService.generateSlotsForFloor(lotId as number, floorId),
+    onSuccess: (res) => {
+      makeGenerateToast(res);
+      queryClient.invalidateQueries({ queryKey: ["zoneSlots"] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Lỗi sync floor"),
+  });
+
+  const genZoneMut = useMutation({
+    mutationFn: ({ floorId, zoneId }: { floorId: number; zoneId: number }) =>
+      parkingService.generateSlotsForZone(lotId as number, floorId, zoneId),
+    onSuccess: (res) => {
+      makeGenerateToast(res);
+      queryClient.invalidateQueries({ queryKey: ["zoneSlots"] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Lỗi sync zone"),
   });
 
   // ─── Handlers ──────────────────────────────────────────
@@ -153,6 +212,7 @@ export function StructureManagerTab() {
       floorId,
       id: zone.id,
       zone_name: zone.zone_name,
+      prefix: zone.prefix ?? "",
       description: zone.description ?? "",
       total_slots: zone.total_slots,
       priceHour: zone.priceHour ?? 20000,
@@ -170,13 +230,29 @@ export function StructureManagerTab() {
           <h2 className="text-xl font-bold text-slate-800">Quản lý Cấu trúc Bãi đỗ</h2>
           <p className="text-sm text-slate-500 mt-0.5">Thêm, sửa tầng và khu vực đang hoạt động</p>
         </div>
-        <Button
-          onClick={() => { setAddingFloor(true); setExpandedFloor(null); }}
-          className="bg-black text-white hover:bg-slate-800 font-semibold shadow-md"
-          disabled={addingFloor}
-        >
-          <Plus className="w-4 h-4 mr-2" /> Thêm Tầng Mới
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Sync toàn bộ Lot */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => genLotMut.mutate()}
+            disabled={genLotMut.isPending || !lotId}
+            className="text-xs font-semibold border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+          >
+            {genLotMut.isPending
+              ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            }
+            Sync tất cả Slots
+          </Button>
+          <Button
+            onClick={() => { setAddingFloor(true); setExpandedFloor(null); }}
+            className="bg-black text-white hover:bg-slate-800 font-semibold shadow-md"
+            disabled={addingFloor}
+          >
+            <Plus className="w-4 h-4 mr-2" /> Thêm Tầng Mới
+          </Button>
+        </div>
       </div>
 
       {/* Body */}
@@ -268,6 +344,18 @@ export function StructureManagerTab() {
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                   <Button
                     variant="outline" size="sm"
+                    onClick={() => genFloorMut.mutate(floor.id)}
+                    disabled={genFloorMut.isPending}
+                    className="text-xs h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                  >
+                    {genFloorMut.isPending
+                      ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      : <RefreshCw className="w-3 h-3 mr-1" />
+                    }
+                    Sync tầng
+                  </Button>
+                  <Button
+                    variant="outline" size="sm"
                     onClick={() => { startEditFloor(floor); setExpandedFloor(floor.id); }}
                     className="text-xs h-8 hover:bg-slate-100"
                   >
@@ -332,6 +420,14 @@ export function StructureManagerTab() {
                                 onChange={e => setZoneForm(p => ({ ...p, description: e.target.value }))} />
                             </div>
                             <div className="space-y-1.5">
+                              <Label className="text-xs text-slate-500">Tiền tố (1-2 ký tự HOA)</Label>
+                              <Input value={zoneForm.prefix as string} maxLength={2} className="uppercase font-mono"
+                                onChange={e => {
+                                  const val = e.target.value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 2);
+                                  setZoneForm(p => ({ ...p, prefix: val }));
+                                }} />
+                            </div>
+                            <div className="space-y-1.5">
                               <Label className="text-xs text-slate-500">Số chỗ đỗ</Label>
                               <Input type="number" value={zoneForm.total_slots as number}
                                 onChange={e => setZoneForm(p => ({ ...p, total_slots: Number(e.target.value) }))} />
@@ -377,11 +473,42 @@ export function StructureManagerTab() {
                               <p className="text-xs text-slate-400 mt-0.5">{zone.description}</p>
                             </div>
                           </div>
-                          <Button variant="outline" size="sm"
-                            onClick={() => startEditZone(floor.id, zone)}
-                            className="text-xs h-8 bg-white hover:bg-slate-50">
-                            <Edit2 className="w-3 h-3 mr-1.5" /> Cập nhật
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            {/* Toggle xem DISABLED slots */}
+                            <button
+                              onClick={() => toggleDisabled(zone.id)}
+                              className={cn(
+                                "flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors font-medium",
+                                showDisabled[zone.id]
+                                  ? "bg-slate-700 text-white border-slate-700"
+                                  : "bg-white text-slate-400 border-slate-200 hover:bg-slate-50"
+                              )}
+                              title={showDisabled[zone.id] ? "Ẩn slots DISABLED" : "Xem slots DISABLED"}
+                            >
+                              {showDisabled[zone.id]
+                                ? <EyeOff className="w-3 h-3" />
+                                : <Eye className="w-3 h-3" />
+                              }
+                              <span className="hidden sm:inline">Disabled</span>
+                            </button>
+                            {/* Sync zone */}
+                            <Button variant="outline" size="sm"
+                              onClick={() => genZoneMut.mutate({ floorId: floor.id, zoneId: zone.id })}
+                              disabled={genZoneMut.isPending}
+                              className="text-xs h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                            >
+                              {genZoneMut.isPending
+                                ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                : <Zap className="w-3 h-3 mr-1" />
+                              }
+                              Sync
+                            </Button>
+                            <Button variant="outline" size="sm"
+                              onClick={() => startEditZone(floor.id, zone)}
+                              className="text-xs h-8 bg-white hover:bg-slate-50">
+                              <Edit2 className="w-3 h-3 mr-1.5" /> Cập nhật
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -401,10 +528,40 @@ export function StructureManagerTab() {
                             onChange={e => setNewZoneForm(p => ({ ...p, zone_name: e.target.value }))} />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-slate-500">Tiền tố ký hiệu ô đỗ</Label>
-                          <Input placeholder="VD: B" maxLength={3} className="uppercase font-mono"
-                            value={newZoneForm.prefix}
-                            onChange={e => setNewZoneForm(p => ({ ...p, prefix: e.target.value.toUpperCase() }))} />
+                          <Label className="text-xs text-slate-500">
+                            Tiền tố ký hiệu ô đỗ <span className="text-red-400">*</span>
+                            <span className="ml-1 text-[10px] text-slate-400 font-normal">(1–2 ký tự HOA)</span>
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              placeholder="A"
+                              maxLength={2}
+                              className="uppercase font-mono tracking-widest text-center text-base font-bold pr-10"
+                              value={newZoneForm.prefix}
+                              onChange={e => {
+                                const val = e.target.value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 2);
+                                setNewZoneForm(p => ({ ...p, prefix: val }));
+                              }}
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">
+                              {newZoneForm.prefix.length}/2
+                            </span>
+                          </div>
+                          {/* Live preview */}
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {newZoneForm.prefix.length > 0 ? (
+                              <>
+                                {[1, 2, 3].map(n => (
+                                  <span key={n} className="text-[10px] font-mono font-bold bg-slate-800 text-white px-1.5 py-0.5 rounded">
+                                    {newZoneForm.prefix}-{String(n).padStart(3, "0")}
+                                  </span>
+                                ))}
+                                <span className="text-[10px] text-slate-400 font-mono">...</span>
+                              </>
+                            ) : (
+                              <span className="text-[10px] text-red-400 font-medium">Bắt buộc nhập tiền tố</span>
+                            )}
+                          </div>
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs text-slate-500">Số chỗ đỗ</Label>
@@ -414,7 +571,7 @@ export function StructureManagerTab() {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs text-slate-500">Mô tả (tuỳ chọn)</Label>
-                          <Input placeholder="Ghi chú thêm"
+                          <Input placeholder="VD: Khu vực xe hơi"
                             value={newZoneForm.description}
                             onChange={e => setNewZoneForm(p => ({ ...p, description: e.target.value }))} />
                         </div>
@@ -442,7 +599,7 @@ export function StructureManagerTab() {
                       <div className="flex gap-2 mt-4 justify-end">
                         <Button variant="ghost" size="sm" onClick={() => setAddingZone(null)}>Huỷ</Button>
                         <Button size="sm"
-                          disabled={createZoneMut.isPending || !newZoneForm.zone_name.trim()}
+                          disabled={createZoneMut.isPending || !newZoneForm.zone_name.trim() || newZoneForm.prefix.length === 0}
                           onClick={() => createZoneMut.mutate(floor.id)}
                           className="bg-black hover:bg-slate-800 text-white font-semibold">
                           {createZoneMut.isPending ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}
