@@ -2,7 +2,14 @@
 
 import * as React from "react";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Check, Clock, Settings } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Check,
+  Clock,
+  Settings,
+  Layers,
+  LayoutGrid,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,13 +30,12 @@ import { Input } from "@/components/ui/input";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { Label } from "@/components/ui/label";
 
 import { TicketDetail, TicketData } from "./ticket-detail";
-import { MockFloor, MockSlot } from "./components/mock-data";
-import { Slot } from "./components/slot";
+import { MockFloor } from "./components/mock-data";
 import { SetupWizardTab } from "./components/setup-wizard-modal";
 import { StructureManagerTab } from "./components/structure-manager-modal";
+import { ZoneSlotGrid, ApiSlot } from "./components/zone-slot-grid";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { parkingService } from "@/services/parking.service";
@@ -39,7 +45,7 @@ import { Loader2 } from "lucide-react";
 export default function ParkingLotManagementPage() {
   const { lotId } = useCustomerStore();
   const [date, setDate] = React.useState<Date>();
-  
+
   // Fetch real structure
   const { data: floorsResponse, isLoading } = useQuery({
     queryKey: ["parkingLotFloors", lotId],
@@ -51,21 +57,24 @@ export default function ParkingLotManagementPage() {
     if (!floorsResponse?.data) return [] as MockFloor[];
     return floorsResponse.data.map((floor: any) => ({
       id: floor.id.toString(),
+      floorId: floor.id as number,
       name: floor.floor_name,
-      zones: (floor.parkingZone || []).map((zone: any) => {
-        const prefix = zone.description?.match(/Tiền tố (.*)/)?.[1]?.trim() || zone.zone_name.charAt(0);
-        return {
-          id: zone.id.toString(),
-          name: zone.zone_name,
-          slots: Array.from({ length: zone.total_slots || 0 }).map((_, idx) => ({
-            id: `slot_${zone.id}_${idx + 1}`,
-            name: `${prefix}${idx + 1}`,
-            status: "available", // Mock status
-            type: "car",
-          }))
-        };
-      })
-    })) as MockFloor[];
+      zones: (floor.parkingZone || []).map((zone: any) => ({
+        id: zone.id.toString(),
+        zoneId: zone.id as number,
+        floorId: floor.id as number, // truyền xuống để ZoneSlotGrid dùng
+        name: zone.zone_name,
+        totalSlots: zone.total_slots || 0,
+        slots: [], // Không dùng mock nữa — ZoneSlotGrid tự fetch
+      })),
+    })) as (MockFloor & {
+      floorId: number;
+      zones: (MockFloor["zones"][number] & {
+        zoneId: number;
+        floorId: number;
+        totalSlots: number;
+      })[];
+    })[];
   }, [floorsResponse]);
 
   const [selectedFloor, setSelectedFloor] = React.useState("");
@@ -81,7 +90,7 @@ export default function ParkingLotManagementPage() {
   // Modal State
   const [isConfigOpen, setIsConfigOpen] = React.useState(false);
   const hasData = floorsData.length > 0;
-  
+
   const [activeTab, setActiveTab] = React.useState(hasData ? "edit" : "setup");
 
   // Whenever we change floors, reset selected zone to 'all'
@@ -91,8 +100,8 @@ export default function ParkingLotManagementPage() {
 
   // Make sure to sync activeTab correctly when opening
   const openConfigModal = (tab: "setup" | "edit") => {
-     setActiveTab(tab);
-     setIsConfigOpen(true);
+    setActiveTab(tab);
+    setIsConfigOpen(true);
   };
 
   const [isTicketOpen, setIsTicketOpen] = React.useState(false);
@@ -108,13 +117,11 @@ export default function ParkingLotManagementPage() {
     return currentFloor.zones.filter((z) => z.id === selectedZone);
   }, [currentFloor, selectedZone]);
 
-  const totalSlotsCurrentFloor =
-    currentFloor?.zones.reduce((acc, z) => acc + z.slots.length, 0) || 0;
-
-  const handleSlotClick = (slot: MockSlot) => {
-    if (slot.ticket) {
-      setSelectedTicket({ data: slot.ticket, status: slot.status as any });
-      setIsTicketOpen(true);
+  const handleSlotClick = (slot: ApiSlot) => {
+    // Slot OCCUPIED/RESERVED: có thể mở ticket detail sau khi fetch booking data
+    // Hiện tại API list không trả ticket data — để mở rộng sau
+    if (slot.status === "OCCUPIED" || slot.status === "RESERVED") {
+      // TODO: fetch booking detail by slot.id
     }
   };
 
@@ -147,7 +154,8 @@ export default function ParkingLotManagementPage() {
                 variant="outline"
                 className="bg-white text-slate-800 hover:bg-slate-50 shadow-sm border-slate-200 px-6 font-semibold"
               >
-                <Settings className="w-4 h-4 mr-2 text-slate-500" /> Quản lý Sơ đồ
+                <Settings className="w-4 h-4 mr-1 text-slate-500" /> Quản lý Sơ
+                đồ
               </Button>
             )}
 
@@ -196,89 +204,138 @@ export default function ParkingLotManagementPage() {
             </div>
           </div>
 
-          {/* SELECTORS: Floor & Zone */}
-          <div className="flex flex-wrap justify-between items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200/60">
-            <div className="flex items-center gap-6">
-              <div className="space-y-1">
-                <Label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                  Tầng / Vị trí
-                </Label>
-                <Select value={selectedFloor} onValueChange={setSelectedFloor}>
-                  <SelectTrigger className="w-[200px] bg-slate-50 border-slate-200 shadow-none font-bold text-base h-12">
-                    <SelectValue placeholder="Chọn tầng" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {floorsData.map((floor) => (
-                      <SelectItem
-                        key={floor.id}
-                        value={floor.id}
-                        className="font-semibold"
-                      >
-                        {floor.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          {/* SELECTORS: Floor dropdown + Zone pills */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+            {/* Floor selector row */}
+            <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Layers className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">
+                  Tầng
+                </span>
               </div>
-
-              <div className="w-px h-12 bg-slate-200 hidden sm:block"></div>
-
-              <div className="space-y-1">
-                <Label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                  Khu vực phân bổ
-                </Label>
-                <Select value={selectedZone} onValueChange={setSelectedZone}>
-                  <SelectTrigger className="w-[200px] bg-slate-50 border-slate-200 shadow-none font-bold text-base h-12">
-                    <SelectValue placeholder="Khu vực" />
-                  </SelectTrigger>
-                  <SelectContent>
+              <Select value={selectedFloor} onValueChange={setSelectedFloor}>
+                <SelectTrigger className="w-[220px] h-9 bg-slate-50 border-slate-200 font-bold text-sm shadow-none focus:ring-0">
+                  <SelectValue placeholder="Chọn tầng..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {floorsData.map((floor) => (
                     <SelectItem
-                      value="all"
-                      className="font-semibold text-blue-600"
+                      key={floor.id}
+                      value={floor.id}
+                      className="font-semibold"
                     >
-                      Tất cả Khu vực
+                      {floor.name}
                     </SelectItem>
-                    {currentFloor?.zones.map((z) => (
-                      <SelectItem
-                        key={z.id}
-                        value={z.id}
-                        className="font-semibold"
-                      >
-                        {z.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                Tổng Số Chỗ Tầng Này
-              </span>
-              <div className="px-4 py-1.5 bg-slate-800 text-white rounded-lg shadow-inner font-mono text-xl font-bold tracking-wider">
-                {totalSlotsCurrentFloor}
+            {/* Zone pills row */}
+            <div className="flex items-center px-4 py-2.5 gap-2 overflow-x-auto">
+              <div className="flex items-center gap-1.5 mr-1 shrink-0">
+                <LayoutGrid className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">
+                  Khu vực
+                </span>
               </div>
+
+              {/* All zones pill */}
+              <button
+                onClick={() => setSelectedZone("all")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 shrink-0 ${
+                  selectedZone === "all"
+                    ? "bg-slate-900 text-white shadow-md shadow-slate-200"
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                }`}
+              >
+                <LayoutGrid className="w-3 h-3" />
+                Tất cả
+              </button>
+
+              {/* Per-zone pills */}
+              {currentFloor?.zones.map((z) => {
+                const zz = z as any;
+                const isActive = selectedZone === z.id;
+                return (
+                  <button
+                    key={z.id}
+                    onClick={() => setSelectedZone(z.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-200 whitespace-nowrap shrink-0 ${
+                      isActive
+                        ? "bg-slate-900 text-white shadow-md shadow-slate-300"
+                        : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                    }`}
+                  >
+                    {z.name}
+                    {zz.totalSlots > 0 && (
+                      <span
+                        className={`text-[10px] font-bold rounded-full px-1 ${
+                          isActive ? "text-white/70" : "text-slate-400"
+                        }`}
+                      >
+                        {zz.totalSlots}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* GRID */}
-          <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-2 sm:p-6 min-h-[500px] overflow-hidden flex flex-col relative w-full">
-            <div className="flex-1 overflow-auto bg-slate-50 rounded-xl border border-slate-200 p-4 sm:p-8 relative">
-              {/* Decorative Pattern Background */}
+          <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col relative w-full">
+            {/* Grid header bar */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/60 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <span className="text-sm font-bold text-slate-800 ">
+                  Sơ đồ bãi đỗ
+                </span>
+                <span className="text-slate-300 font-light">—</span>
+                <span className="text-sm font-bold text-slate-800 tracking-tight">
+                  {currentFloor?.name ?? ""}
+                </span>
+                {selectedZone !== "all" &&
+                  currentFloor?.zones.find((z) => z.id === selectedZone)
+                    ?.name && (
+                    <>
+                      <span className="text-slate-300">/</span>
+                      <span className="text-sm font-bold text-slate-600">
+                        {
+                          currentFloor?.zones.find((z) => z.id === selectedZone)
+                            ?.name
+                        }
+                      </span>
+                    </>
+                  )}
+              </div>
+              <span className="text-[11px] font-mono text-slate-400 bg-white border border-slate-200 px-2.5 py-1 rounded-full">
+                Tự động cập nhật mỗi 30s
+              </span>
+            </div>
+
+            <div className="flex-1 overflow-auto bg-slate-50/40 p-4 sm:p-8 relative min-h-[460px]">
+              {/* Dot pattern background */}
               <div
-                className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                className="absolute inset-0 opacity-[0.035] pointer-events-none"
                 style={{
                   backgroundImage:
-                    "radial-gradient(circle at 2px 2px, black 1px, transparent 0)",
-                  backgroundSize: "32px 32px",
+                    "radial-gradient(circle at 1.5px 1.5px, #94a3b8 1px, transparent 0)",
+                  backgroundSize: "28px 28px",
                 }}
-              ></div>
+              />
 
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-4 mt-20 relative z-10">
-                  <Loader2 className="w-10 h-10 animate-spin" />
-                  <p className="font-semibold tracking-wide">Đang tải cấu trúc bãi đỗ...</p>
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-md flex items-center justify-center">
+                      <Loader2 className="w-7 h-7 animate-spin text-slate-400" />
+                    </div>
+                  </div>
+                  <p className="font-semibold tracking-wide text-sm">
+                    Đang tải cấu trúc bãi đỗ...
+                  </p>
                 </div>
               ) : activeZones.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-6 mt-20 relative z-10">
@@ -286,86 +343,96 @@ export default function ParkingLotManagementPage() {
                     <Settings className="w-14 h-14 text-slate-300 pointer-events-none animate-spin-slow" />
                   </div>
                   <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-black text-slate-800">Bãi đỗ chưa có Cấu trúc</h2>
+                    <h2 className="text-2xl font-black text-slate-800">
+                      Bãi đỗ chưa có Cấu trúc
+                    </h2>
                     <p className="font-medium tracking-wide text-slate-500 max-w-md mx-auto">
-                      Quý khách cần phác thảo Tầng và Khu vực đỗ xe để hệ thống có thể quản lý và hiển thị không gian trực quan.
+                      Quý khách cần phác thảo Tầng và Khu vực đỗ xe để hệ thống
+                      có thể quản lý và hiển thị không gian trực quan.
                     </p>
                   </div>
                   {!hasData && (
-                    <Button 
-                      onClick={() => openConfigModal("setup")} 
+                    <Button
+                      onClick={() => openConfigModal("setup")}
                       className="mt-6 bg-black text-white px-10 py-7 rounded-2xl hover:bg-slate-800 shadow-2xl hover:shadow-black/20 hover:-translate-y-1 transition-all duration-300 font-bold text-lg"
                     >
-                       Tạo Sơ Đồ Khởi Tạo Ngay
+                      Tạo Sơ Đồ Khởi Tạo Ngay
                     </Button>
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col gap-16 relative z-10">
-                  {activeZones.map((zone, idx) => (
-                    <div key={zone.id} className="space-y-6 relative">
-                      <div className="flex items-center gap-4 pb-3 border-b-2 border-slate-200/80">
-                        <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center font-bold text-sm shadow-md">
-                          {idx + 1}
-                        </div>
-                        <h3 className="text-2xl font-black text-slate-800 tracking-tight">
-                          {zone.name}
-                        </h3>
-                      </div>
-                      <div className="flex flex-wrap gap-x-6 gap-y-12 py-4 items-center justify-start">
-                        {zone.slots.map((slot) => (
-                          <div key={slot.id} className="relative group">
-                            <Slot
-                              slot={slot}
-                              onClick={() => handleSlotClick(slot)}
-                              size={selectedZone === "all" ? "small" : "normal"}
-                              orientation="bottom"
-                            />
-                            {/* Minor decorative shadow effect for realism on normal size */}
-                            {selectedZone !== "all" && (
-                              <div className="absolute -bottom-2 -right-2 w-full h-full bg-slate-200/50 rounded-xl -z-10 blur-sm pointer-events-none group-hover:bg-slate-300/50 transition-colors"></div>
-                            )}
+                <div className="flex flex-col gap-12 relative z-10">
+                  {activeZones.map((zone, idx) => {
+                    const z = zone as any;
+                    return (
+                      <div key={zone.id} className="relative">
+                        {lotId && z.zoneId ? (
+                          <ZoneSlotGrid
+                            lotId={lotId as number}
+                            floorId={
+                              z.floorId ?? (currentFloor as any)?.floorId
+                            }
+                            zoneId={z.zoneId}
+                            zoneName={zone.name}
+                            zoneIndex={idx}
+                            size={selectedZone === "all" ? "small" : "normal"}
+                            onSlotClick={handleSlotClick}
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Đang tải...
                           </div>
-                        ))}
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
 
           {/* LEGEND */}
-          <div className="flex flex-wrap gap-8 justify-center bg-white p-5 rounded-2xl shadow-sm border border-slate-200/60 font-semibold text-slate-600">
-            <div className="flex items-center gap-3">
-              <div className="w-6 h-10 rounded-md bg-white border-2 border-dashed border-slate-300 shadow-sm"></div>
-              <span>Chỗ trống</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="relative w-6 h-10 rounded-md bg-blue-300 border-2 border-blue-600 shadow-sm overflow-hidden">
-                <div className="absolute bottom-0 left-0 w-full h-1/2 bg-blue-500"></div>
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-white px-5 py-3.5 rounded-2xl shadow-sm border border-slate-200/60">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">
+              Chú thích
+            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Available */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full">
+                <div className="w-4 h-7 rounded-sm bg-white border-2 border-dashed border-slate-300 shadow-sm shrink-0" />
+                <span className="text-xs font-semibold text-slate-500">
+                  Chỗ trống
+                </span>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
               </div>
-              <span className="text-black">
-                Có xe đang đỗ (Thanh thời gian)
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="relative w-6 h-10 rounded-md bg-orange-500 shadow-sm border-2 border-orange-600 flex items-center justify-center">
-                <div className="bg-black/20 rounded-full p-0.5">
-                  <Check className="w-3 h-3 text-white" />
+
+              {/* Occupied */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
+                <div className="relative w-4 h-7 rounded-sm bg-blue-200 border-2 border-blue-500 shadow-sm overflow-hidden shrink-0">
+                  <div className="absolute bottom-0 left-0 w-full h-1/2 bg-blue-500" />
                 </div>
+                <span className="text-xs font-semibold text-blue-600">
+                  Xe đang đỗ
+                </span>
               </div>
-              <span className="text-orange-600">Đã đặt trước</span>
+
+              {/* Reserved */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-full">
+                <div className="relative w-4 h-7 rounded-sm bg-orange-500 border-2 border-orange-600 flex items-center justify-center shrink-0">
+                  <Check className="w-2.5 h-2.5 text-white" />
+                </div>
+                <span className="text-xs font-semibold text-orange-600">
+                  Đã đặt trước
+                </span>
+              </div>
             </div>
+
+            <span className="text-[10px] text-slate-400 font-medium hidden md:inline">
+              Nhấn vào ô đỗ để xem chi tiết
+            </span>
           </div>
         </div>
-
-        <TicketDetail
-          isOpen={isTicketOpen}
-          onClose={() => setIsTicketOpen(false)}
-          data={selectedTicket.data}
-          status={selectedTicket.status}
-        />
 
         <TicketDetail
           isOpen={isTicketOpen}
@@ -378,14 +445,14 @@ export default function ParkingLotManagementPage() {
         <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
           <DialogContent className="sm:max-w-[1000px] h-[90vh] flex flex-col p-0 overflow-hidden bg-white">
             <div className="flex border-b overflow-x-auto bg-slate-50/50">
-              <button 
+              <button
                 onClick={() => setActiveTab("setup")}
                 disabled={hasData}
                 className={`py-4 px-6 font-semibold border-b-2 text-sm transition-colors ${activeTab === "setup" ? "border-black text-black" : "border-transparent text-slate-500 hover:text-slate-800"} disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 Khởi tạo Cấu trúc
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab("edit")}
                 disabled={!hasData}
                 className={`py-4 px-6 font-semibold border-b-2 text-sm transition-colors ${activeTab === "edit" ? "border-black text-black" : "border-transparent text-slate-500"} disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -394,7 +461,9 @@ export default function ParkingLotManagementPage() {
               </button>
             </div>
             <div className="flex-1 overflow-hidden relative">
-              {activeTab === "setup" && <SetupWizardTab onClose={() => setIsConfigOpen(false)} />}
+              {activeTab === "setup" && (
+                <SetupWizardTab onClose={() => setIsConfigOpen(false)} />
+              )}
               {activeTab === "edit" && <StructureManagerTab />}
             </div>
           </DialogContent>
