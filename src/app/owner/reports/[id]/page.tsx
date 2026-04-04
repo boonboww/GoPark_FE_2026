@@ -61,21 +61,21 @@ export default function ReportDetailPage() {
             <Button variant="ghost" asChild className="-ml-4">
               <Link href="/owner/reports">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Reports
+                Về trang Báo cáo
               </Link>
             </Button>
             
             {!isEditing && report && (
               <Button onClick={handleEditToggle}>
                 <Edit className="mr-2 h-4 w-4" />
-                Edit Report
+                Chỉnh sửa Báo cáo
               </Button>
             )}
           </div>
 
           {!report ? (
             <div className="flex justify-center items-center h-64">
-              <p className="text-muted-foreground">Loading report details...</p>
+              <p className="text-muted-foreground">Đang tải chi tiết báo cáo...</p>
             </div>
           ) : isEditing ? (
             <ReportForm 

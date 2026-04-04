@@ -50,11 +50,11 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
   const getStatusBadge = (status: TransactionLog['status']) => {
     switch (status) {
       case 'PAID':
-        return <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 border-emerald-200">Paid</Badge>;
+        return <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 border-emerald-200">Đã thanh toán</Badge>;
       case 'PENDING':
-        return <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 border-amber-200">Pending</Badge>;
+        return <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 border-amber-200">Chờ xử lý</Badge>;
       case 'FAILED':
-        return <Badge className="bg-rose-500/15 text-rose-600 hover:bg-rose-500/25 border-rose-200">Failed</Badge>;
+        return <Badge className="bg-rose-500/15 text-rose-600 hover:bg-rose-500/25 border-rose-200">Thất bại</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -66,9 +66,9 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
       {/* Recent Transactions Table */}
       <Card className="col-span-full lg:col-span-4">
         <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
+          <CardTitle>Giao dịch gần đây</CardTitle>
           <CardDescription>
-            Latest payments across your parking lots.
+            Các khoản thanh toán mới nhất trên các bãi đỗ xe.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -76,12 +76,12 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Lot Name</TableHead>
-                  <TableHead>Plate</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Method</TableHead>
+                  <TableHead>Tên bãi</TableHead>
+                  <TableHead>Biển số</TableHead>
+                  <TableHead>Thời gian</TableHead>
+                  <TableHead>Số tiền</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead className="text-right">Phương thức</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -108,9 +108,9 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
       {/* Top Parking Lots Table */}
       <Card className="col-span-full lg:col-span-3">
         <CardHeader>
-          <CardTitle>Top Performing Lots</CardTitle>
+          <CardTitle>Bãi đỗ hiệu quả nhất</CardTitle>
           <CardDescription>
-            Your highest revenue generating locations.
+            Các bãi đỗ tạo ra doanh thu cao nhất.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -118,9 +118,9 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
-                  <TableHead>Lot Name</TableHead>
-                  <TableHead>Revenue</TableHead>
-                  <TableHead className="text-right">Occupancy</TableHead>
+                  <TableHead>Tên bãi</TableHead>
+                  <TableHead>Doanh thu</TableHead>
+                  <TableHead className="text-right">Tỉ lệ lấp đầy</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

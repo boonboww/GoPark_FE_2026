@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
 import { Plus, Edit2, Trash2, Camera, Car, Info, QrCode, Mail, ArrowLeft, Wallet, User, Phone, Users, Loader2 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -264,6 +263,7 @@ export default function ProfilePage() {
   };
 
   const handleShowQR = (vehicle: Vehicle) => {
+
   // 1. Lấy booking mới nhất
   const latestBooking = getLatestConfirmedBookingForVehicle(vehicle.plate_number);
 
@@ -312,6 +312,7 @@ export default function ProfilePage() {
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )[0];
   };
+
 
   if (!isMounted) return null;
 
@@ -405,7 +406,6 @@ export default function ProfilePage() {
                   Nạp tiền
                 </Button>
                 <Button onClick={() => router.push('/users/wallet')} variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-100 dark:hover:bg-emerald-800/60 dark:hover:text-white">
-
                   Lịch sử GD
                 </Button>
               </div>

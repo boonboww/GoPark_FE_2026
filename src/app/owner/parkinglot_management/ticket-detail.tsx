@@ -64,11 +64,11 @@ export function TicketDetail({
       // Time left string
       const remaining = end - now;
       if (remaining <= 0) {
-        setTimeLeft("Expired");
+        setTimeLeft("Đã hết hạn");
       } else {
         const hours = Math.floor((remaining / (1000 * 60 * 60)) % 24);
         const minutes = Math.floor((remaining / (1000 * 60)) % 60);
-        setTimeLeft(`${hours}h ${minutes}m left`);
+        setTimeLeft(`Còn lại ${hours}h ${minutes}m`);
       }
     };
 
@@ -84,16 +84,16 @@ export function TicketDetail({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Ticket Details</DialogTitle>
+          <DialogTitle>Chi tiết vé</DialogTitle>
           <DialogDescription>
-            Information about the parking slot {data.position}.
+            Thông tin về chỗ đỗ xe {data.position}.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Ticket Code</Label>
+              <Label>Mã vé</Label>
               <Input
                 value={data.ticketCode}
                 readOnly
@@ -101,7 +101,7 @@ export function TicketDetail({
               />
             </div>
             <div className="space-y-2">
-              <Label>Position</Label>
+              <Label>Vị trí</Label>
               <Input
                 value={data.position}
                 readOnly
@@ -112,7 +112,7 @@ export function TicketDetail({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>License Plate</Label>
+              <Label>Biển số xe</Label>
               <Input
                 value={data.licensePlate}
                 readOnly
@@ -120,7 +120,7 @@ export function TicketDetail({
               />
             </div>
             <div className="space-y-2">
-              <Label>Customer</Label>
+              <Label>Khách hàng</Label>
               <Input
                 value={data.customerName}
                 readOnly
@@ -131,7 +131,7 @@ export function TicketDetail({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Start Time</Label>
+              <Label>Thời gian bắt đầu</Label>
               <Input
                 value={format(data.startTime, "HH:mm dd/MM/yyyy")}
                 readOnly
@@ -139,7 +139,7 @@ export function TicketDetail({
               />
             </div>
             <div className="space-y-2">
-              <Label>End Time</Label>
+              <Label>Thời gian kết thúc</Label>
               <Input
                 value={format(data.endTime, "HH:mm dd/MM/yyyy")}
                 readOnly
@@ -149,7 +149,7 @@ export function TicketDetail({
           </div>
 
           <div className="space-y-2">
-            <Label>Price</Label>
+            <Label>Giá tiền</Label>
             <Input
               value={`${data.price.toLocaleString()} VND`}
               readOnly
@@ -160,7 +160,7 @@ export function TicketDetail({
           {status === "occupied" && (
             <div className="space-y-2 pt-4 border-t">
               <div className="flex justify-between text-sm font-medium">
-                <span>Parking Duration</span>
+                <span>Thời gian đỗ xe</span>
                 <span className="text-blue-600">{timeLeft}</span>
               </div>
               {/* Progress Bar: 0% = Start, 100% = End */}
@@ -175,7 +175,7 @@ export function TicketDetail({
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose}>Đóng</Button>
         </div>
       </DialogContent>
     </Dialog>

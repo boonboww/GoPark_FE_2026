@@ -26,21 +26,21 @@ export function ReportList() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Reports</CardTitle>
+        <CardTitle>Báo cáo</CardTitle>
         <CardDescription>
-          Manage user reports and system issues across parking lots.
+          Quản lý báo cáo người dùng và sự cố hệ thống trên các bãi đỗ xe.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex flex-col items-center justify-center p-12 gap-4">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-            <p className="text-muted-foreground font-medium">Loading reports...</p>
+            <p className="text-muted-foreground font-medium">Đang tải báo cáo...</p>
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center justify-center p-12 gap-4 text-destructive bg-destructive/5 rounded-lg border border-destructive/20">
             <AlertCircle className="w-8 h-8" />
-            <p className="font-medium">Failed to load reports. Please try again later.</p>
+            <p className="font-medium">Không thể tải báo cáo. Vui lòng thử lại sau.</p>
           </div>
         ) : (
           <ReportDataTable columns={columns} data={reports} />

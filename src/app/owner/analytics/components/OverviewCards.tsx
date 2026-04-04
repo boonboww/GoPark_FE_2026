@@ -32,7 +32,7 @@ export function OverviewCards({ metrics }: OverviewCardsProps) {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+          <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -54,14 +54,14 @@ export function OverviewCards({ metrics }: OverviewCardsProps) {
                 {metrics.revenueStatus.value}%
               </span>
             )}
-            <span>from last month</span>
+            <span>so với tháng trước</span>
           </p>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Successful Transactions</CardTitle>
+          <CardTitle className="text-sm font-medium">Giao dịch thành công</CardTitle>
           <CreditCard className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -69,14 +69,14 @@ export function OverviewCards({ metrics }: OverviewCardsProps) {
             +{new Intl.NumberFormat('vi-VN').format(metrics.successfulTransactions)}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Total completed payments
+            Tổng thanh toán hoàn tất
           </p>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
+          <CardTitle className="text-sm font-medium">Tỉ lệ lấp đầy</CardTitle>
           <Car className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
@@ -88,20 +88,20 @@ export function OverviewCards({ metrics }: OverviewCardsProps) {
             />
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Current capacity utilization
+            Mức sử dụng công suất hiện tại
           </p>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Managed Lots</CardTitle>
+          <CardTitle className="text-sm font-medium">Bãi đỗ đang quản lý</CardTitle>
           <Building2 className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{metrics.totalParkingLots}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            Active parking locations
+            Số lượng bãi đỗ đang hoạt động
           </p>
         </CardContent>
       </Card>

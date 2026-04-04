@@ -78,11 +78,16 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={displayUser.avatar} alt={displayUser.name} />
+                  <AvatarImage
+                    src={displayUser.avatar}
+                    alt={displayUser.name}
+                  />
                   <AvatarFallback className="rounded-lg">GP</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{displayUser.name}</span>
+                  <span className="truncate font-medium">
+                    {displayUser.name}
+                  </span>
                   <span className="text-muted-foreground truncate text-xs">
                     {displayUser.email}
                   </span>
@@ -94,23 +99,26 @@ export function NavUser({
               <DropdownMenuItem asChild>
                 <Link href="/owner/account">
                   <IconUserCircle />
-                  Account
+                  Tài khoản
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/owner/billing">
                   <IconCreditCard />
-                  Billing
+                  Thanh toán
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer" onClick={() => {
-              logout();
-              router.push("/auth/login");
-            }}>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => {
+                logout();
+                router.push("/auth/login");
+              }}
+            >
               <IconLogout />
-              Log out
+              Đăng xuất
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

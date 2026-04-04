@@ -35,7 +35,7 @@ export default function AnalyticsPage() {
         setData(result);
       } catch (error) {
         console.error("Failed to fetch analytics:", error);
-        toast.error("Failed to load analytics data.");
+        toast.error("Không tải được dữ liệu thống kê.");
       } finally {
         setIsLoading(false);
       }
@@ -79,10 +79,10 @@ export default function AnalyticsPage() {
         wb,
         `GoPark_Analytics_${new Date().toISOString().split("T")[0]}.xlsx`,
       );
-      toast.success("Analytics data exported successfully!");
+      toast.success("Xuất dữ liệu thống kê thành công!");
     } catch (error) {
       console.error("Export failed", error);
-      toast.error("Failed to export data.");
+      toast.error("Xuất dữ liệu thất bại.");
     }
   };
 
