@@ -13,6 +13,7 @@ export function ParkingLayout() {
     const selection = {
     floorNumber: floor.floor_number,
     zoneName: zone.zone_name,
+    zoneId : zone.id,
     slot: slot
   };
     setSelectedSpot(selection);
@@ -68,7 +69,14 @@ export function ParkingLayout() {
 
                       {/* 3. Lặp qua từng vị trí đỗ (Slots) */}
                       <div className="flex gap-3 flex-wrap">
-                        {zone.slot?.map((slot: any) => {
+                        {zone.slot
+                        ?.slice() // Tạo bản sao mảng để tránh lỗi "read-only"
+                        .sort((a: any, b: any) => {
+                          // Sắp xếp theo ID (tăng dần) - vì ID tạo trước sẽ nhỏ hơn
+                          // Hoặc sắp xếp theo slot.code nếu bạn muốn theo tên A1, A2, A3...
+                          return a.id - b.id; 
+                        })
+                          .map((slot: any) => {
                           const isOccupied = slot.status !== "EMPTY";
                           const isSelected = selectedSpot?.slot.id === slot.id;
 

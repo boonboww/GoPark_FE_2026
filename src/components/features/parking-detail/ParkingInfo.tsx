@@ -1,26 +1,54 @@
 "use client";
 
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { MapPin, Clock, Star, Banknote, Info, User, Phone, Mail, Car, Bike } from "lucide-react";
 import { ParkingContext } from "./ParkingContext";
-
+import { MapLocationPicker } from "@/components/ui/map-location-picker";
+import { useRouter } from "next/navigation";
 export function ParkingInfo() {
 
   const context = useContext(ParkingContext);
-  if(!context) return null;
-  const {dataLot,loadingLot} = context;
-  console.log("ParkingInfo Component - Data from Context:", dataLot, "Loading:", loadingLot);
+  if (!context) return null;
+  const { dataLot, loadingLot } = context;
+  //console.log("ParkingInfo Component - Data from Context:", dataLot, "Loading:", loadingLot);
 
-    const formatVnd = (n?: number) => n ? new Intl.NumberFormat('vi-VN').format(n) + 'đ' : '';
-    const getRuleByType = (type: string) => {
-      if(!dataLot?.pricingRule) return undefined;
-      return dataLot.pricingRule.find((r: any) => {
-        const vt = String(r.vehicle_type || '').toLowerCase();
-        return vt.includes(type.toLowerCase());
-      });
-    }
-    const carRule = getRuleByType('car');
-    const motorRule = getRuleByType('motor');
+  const [selectedAreaIndex, setSelectedAreaIndex] = useState(0);
+  const pricingRules = Array.isArray(dataLot?.pricingRule) ? dataLot.pricingRule : [];
+  const validIndex = selectedAreaIndex < pricingRules.length ? selectedAreaIndex : 0;
+  const selectedRule = pricingRules[validIndex] || null;
+  const router = useRouter();
+
+  const formatVnd = (n?: number) => n ? new Intl.NumberFormat('vi-VN').format(n) + 'đ' : '';
+  function formatTime(startTime: string, endTime: string, days: string) {
+    if (!startTime || !endTime || !days) return "chưa cập nhật"
+
+    const opendate = new Date(startTime)
+    const closedate = new Date(endTime)
+
+
+    //lấy giờ và phút
+    const openTime = opendate.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+
+    const closeTime = closedate.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+
+    const date_activity = days
+    return `${openTime}-${closeTime} (${date_activity})`
+  }
+
+  const handleBooking = () => {
+    // Ví dụ: Kiểm tra đăng nhập
+    // if (!isLoggedIn) return alert("Vui lòng đăng nhập!");
+    
+    router.push(`/users/myBooking/${dataLot.id}`);
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-6 space-y-6 transition-colors">
@@ -29,18 +57,18 @@ export function ParkingInfo() {
         <div className="w-full md:w-1/3 space-y-6">
           <div className="space-y-4">
             <div className="aspect-video w-full rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
-              <img 
-                src="https://images.unsplash.com/photo-1590674899484-d5640e854abe?q=80&w=800&auto=format&fit=crop" 
-                alt="Parking" 
+              <img
+                src="https://images.unsplash.com/photo-1590674899484-d5640e854abe?q=80&w=800&auto=format&fit=crop"
+                alt="Parking"
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="flex gap-2">
               <div className="w-1/3 aspect-video rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                 <img src="https://images.unsplash.com/photo-1604063155776-081e7e45fcc3?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover" />
+                <img src="https://images.unsplash.com/photo-1604063155776-081e7e45fcc3?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover" />
               </div>
               <div className="w-1/3 aspect-video rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                 <img src="https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover" />
+                <img src="https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover" />
               </div>
               <div className="w-1/3 aspect-video rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-gray-500 dark:text-gray-400 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                 +3
@@ -58,16 +86,29 @@ export function ParkingInfo() {
               <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Công ty CP bãi đỗ An Tâm</p>
               <div className="flex flex-col space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <span className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /> 0909 123 456</span>
-                <span className="flex items-center gap-2"><Mail className="w-4 h-4 text-gray-400" /> contact@antam.com</span>
+                <span className="flex items-center gap-2"><Mail className="w-4 h-4 text-gray-400" /> {dataLot?.owner?.email} </span>
               </div>
             </div>
 
-            <button 
-              type="button" 
+            <button
+              type="button"
+              onClick={handleBooking}
               className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
             >
               Đặt ngay
             </button>
+          </div>
+
+          {/* Tọa độ hiển thị */}
+          <div className="flex gap-3 justify-center items-center">
+            <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700/30 px-3 py-3 rounded-xl border border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 w-full justify-center shadow-sm transition-all hover:border-blue-300">
+              <MapPin className="w-4 h-4 text-blue-500 shrink-0" />
+              <span className="whitespace-nowrap">Lat: <span className="font-bold text-gray-700 dark:text-gray-200 text-sm">{dataLot.lat ?? '---'}</span></span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700/30 px-3 py-3 rounded-xl border border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 w-full justify-center shadow-sm transition-all hover:border-blue-300">
+              <MapPin className="w-4 h-4 text-blue-500 shrink-0" />
+              <span className="whitespace-nowrap">Lng: <span className="font-bold text-gray-700 dark:text-gray-200 text-sm">{dataLot.lng ?? '---'}</span></span>
+            </div>
           </div>
         </div>
 
@@ -76,15 +117,10 @@ export function ParkingInfo() {
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{dataLot.name}</h1>
-              <div className="flex items-center text-yellow-500 mt-1">
-                <Star className="w-5 h-5 fill-current" />
-                <span className="ml-1 font-semibold text-gray-800 dark:text-gray-200">4.8</span>
-                <span className="ml-1 text-gray-500 dark:text-gray-400 text-sm">(124 đánh giá)</span>
-              </div>
             </div>
             {/* Nhãn Đang hoạt động */}
             <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap">
-              Đang hoạt động
+              {dataLot.status}
             </div>
           </div>
 
@@ -100,66 +136,66 @@ export function ParkingInfo() {
               <Clock className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
               <div>
                 <p className="font-medium text-gray-900 dark:text-gray-200">Giờ hoạt động</p>
-                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">06:00 - 23:00 (Thứ 2 - Chủ Nhật)</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{formatTime(dataLot.open_time, dataLot.close_time, dataLot.operating_days)}</p>
               </div>
             </div>
           </div>
 
           {/* Bảng giá vé */}
           <div className="mt-6 border-t border-gray-100 dark:border-gray-700/50 pt-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Banknote className="w-5 h-5 text-gray-400" />
-              <p className="font-medium text-gray-900 dark:text-gray-200">Bảng giá vé</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Card Ô tô */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-3 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-md">
-                    <Car className="w-4 h-4" />
-                  </div>
-                  <h4 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">Giá đỗ Ô tô</h4>
-                </div>
-                {carRule ? (
-                   <ul className="space-y-2 mt-2 pt-2 border-t border-gray-50 dark:border-gray-700/50">
-                     <li className="flex justify-between items-center">
-                       <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">THEO GIỜ</span>
-                       <span className="font-bold text-blue-600 dark:text-blue-400 text-sm whitespace-nowrap">{formatVnd(carRule.price_per_hour)}<span className="text-[10px] font-normal text-gray-500 ml-1">/h</span></span>
-                     </li>
-                     <li className="flex justify-between items-center">
-                       <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">THEO NGÀY</span>
-                       <span className="font-bold text-blue-600 dark:text-blue-400 text-sm whitespace-nowrap">{formatVnd(carRule.price_per_day)}<span className="text-[10px] font-normal text-gray-500 ml-1">/ngày</span></span>
-                     </li>
-                   </ul>
-                ) : (
-                   <p className="text-xs text-gray-400 italic mt-2 border-t border-gray-50 dark:border-gray-700/50 pt-2 text-center">Chưa cập nhật giá</p>
-                )}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Banknote className="w-5 h-5 text-gray-400" />
+                <p className="font-medium text-gray-900 dark:text-gray-200">Bảng giá vé</p>
               </div>
+              
+              {/* Bộ lọc khu vực */}
+              {pricingRules.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 hidden sm:block">Khu vực:</p>
+                  <select 
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none font-medium text-gray-700 dark:text-gray-200 shadow-sm cursor-pointer"
+                    value={validIndex}
+                    onChange={(e) => setSelectedAreaIndex(Number(e.target.value))}
+                  >
+                    {pricingRules.map((rule: any, idx: number) => {
+                      const zoneName = rule.parkingZone.zone_name
+                      return <option key={rule.id} value={idx}>{zoneName}</option>;
+                    })}
+                  </select>
+                </div>
+              )}
+            </div>
 
-              {/* Card Xe máy */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 p-3 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 rounded-md">
-                    <Bike className="w-4 h-4" />
+            {pricingRules.length > 0 && selectedRule ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Giá theo giờ */}
+                <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/50 p-5 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center text-center group">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                    <Clock className="w-6 h-6" />
                   </div>
-                  <h4 className="font-semibold text-gray-800 dark:text-gray-100 text-sm">Giá đỗ Xe máy</h4>
+                  <h4 className="font-semibold text-gray-500 dark:text-gray-400 text-xs mb-1 uppercase tracking-wider">Giá theo giờ</h4>
+                  <div className="font-bold text-blue-600 dark:text-blue-400 text-2xl mt-1">
+                    {formatVnd(selectedRule.price_per_hour)}<span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-1">/h</span>
+                  </div>
                 </div>
-                {motorRule ? (
-                   <ul className="space-y-2 mt-2 pt-2 border-t border-gray-50 dark:border-gray-700/50">
-                     <li className="flex justify-between items-center">
-                       <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">THEO GIỜ</span>
-                       <span className="font-bold text-green-600 dark:text-green-400 text-sm whitespace-nowrap">{formatVnd(motorRule.price_per_hour)}<span className="text-[10px] font-normal text-gray-500 ml-1">/h</span></span>
-                     </li>
-                     <li className="flex justify-between items-center">
-                       <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">THEO NGÀY</span>
-                       <span className="font-bold text-green-600 dark:text-green-400 text-sm whitespace-nowrap">{formatVnd(motorRule.day)}<span className="text-[10px] font-normal text-gray-500 ml-1">/ngày</span></span>
-                     </li>
-                   </ul>
-                ) : (
-                   <p className="text-xs text-gray-400 italic mt-2 border-t border-gray-50 dark:border-gray-700/50 pt-2 text-center">Chưa cập nhật giá</p>
-                )}
+
+                {/* Giá theo ngày */}
+                <div className="bg-green-50/50 dark:bg-green-900/10 rounded-xl border border-green-100 dark:border-green-800/50 p-5 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center text-center group">
+                  <div className="p-3 bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                    <Banknote className="w-6 h-6" />
+                  </div>
+                  <h4 className="font-semibold text-gray-500 dark:text-gray-400 text-xs mb-1 uppercase tracking-wider">Giá theo ngày</h4>
+                  <div className="font-bold text-green-600 dark:text-green-400 text-2xl mt-1">
+                    {formatVnd(selectedRule.price_per_day || selectedRule.day)}<span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-1">/ngày</span>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center justify-center py-8 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-400 font-medium">Chưa cập nhật bảng giá</p>
+              </div>
+            )}
           </div>
 
           {/* Tiện ích */}
@@ -168,7 +204,20 @@ export function ParkingInfo() {
               <Info className="w-5 h-5 text-gray-400 shrink-0" />
               <p className="font-medium text-gray-900 dark:text-gray-200">Tiện ích</p>
             </div>
-            <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed pl-7">Camera 24/7, Có mái che, Rửa xe</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pl-7">
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700 p-3 text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Tổng số chỗ</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{dataLot.total_slots ?? '...'}</p>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700 p-3 text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Chỗ trống</p>
+                <p className="text-lg font-bold text-green-600 dark:text-green-500">{dataLot.available_slots ?? '...'}</p>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700 p-3 text-center flex flex-col justify-center items-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">Khác</p>
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Camera 24/7, Có mái che</p>
+              </div>
+            </div>
           </div>
 
           {/* Mô tả */}
@@ -183,17 +232,11 @@ export function ParkingInfo() {
 
       {/* Bản đồ */}
       <div className="mt-6 rounded-lg overflow-hidden h-[300px] border border-gray-200 dark:border-gray-700">
-        <iframe 
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.513364273523!2d106.699042215334!3d10.7719363923241!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31752f40a3b49e59%3A0xa1bd14e483a602db!2sCh%E1%BB%A3%20B%E1%BA%BFn%20Th%C3%A0nh!5e0!3m2!1svi!2s!4v1655000000000!5m2!1svi!2s" 
-          width="100%" 
-          height="100%" 
-          style={{ border: 0 }} 
-          allowFullScreen={true} 
-          loading="lazy" 
-          referrerPolicy="no-referrer-when-downgrade"
-          title="Bản đồ vị trí bãi đỗ xe"
-          className="dark:opacity-80"
-        ></iframe>
+        <MapLocationPicker
+          location={dataLot.lat && dataLot.lng ? { lat: Number(dataLot.lat), lng: Number(dataLot.lng) } : null}
+          onChange={(loc) => context.setDataLot((prev: any) => ({ ...prev, lat: loc.lat, lng: loc.lng }))}
+          className="w-full h-full border-0"
+        />
       </div>
     </div>
   );
