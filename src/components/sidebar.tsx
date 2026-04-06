@@ -20,7 +20,8 @@ import {
   X,
   LogOut,
   Bell,
-  Search
+  Search,
+  BellDot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,9 +78,9 @@ const sidebarItems: SidebarItem[] = [
     icon: BarChart3,
   },
   {
-    title: "Bảo mật",
-    href: "/admin/security",
-    icon: Shield,
+    title: "Thông Báo",
+    href: "/admin/notifications",
+    icon: BellDot,
   },
   {
     title: "Cài đặt",
@@ -132,25 +133,25 @@ export default function AdminSidebar({ className = "" }: AdminSidebarProps) {
 
     if (hasChildren) {
       return (
-        <div key={item.title} className="mb-1">
+        <div key={item.title}>
           <button
             onClick={() => toggleExpanded(item.title)}
-            className={`w-full flex items-center justify-between px-3 py-2.5 text-left rounded-lg transition-all duration-200 group
-              ${active || childActive ? (!isCollapsed ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-600' : '') : 'hover:bg-blue-50 hover:text-blue-700'}
+            className={`w-full flex items-center justify-between px-3 py-2 text-left rounded-xl transition-all duration-200 group
+              ${active || childActive ? (!isCollapsed ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-sm shadow-blue-500/5' : '') : 'hover:bg-gray-50'}
               ${level > 0 ? 'ml-4 text-sm' : ''}`}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               {isCollapsed && (active || childActive) ? (
-                <span className="flex items-center justify-center w-11 h-11 bg-blue-100 rounded-lg mx-auto">
-                  <Icon className="w-6 h-6 text-blue-600" />
+                <span className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mx-auto shadow-md shadow-blue-500/25">
+                  <Icon className="w-5 h-5 text-white" />
                 </span>
               ) : (
-                <span className="flex items-center justify-center w-11 h-11 mx-auto">
-                  <Icon className={`${isCollapsed ? 'w-6 h-6' : 'w-4 h-4'} ${active || childActive ? 'text-blue-600' : 'text-gray-500 group-hover:text-blue-600'}`} />
+                <span className="flex items-center justify-center w-10 h-10 mx-auto">
+                  <Icon className={`${isCollapsed ? 'w-5 h-5' : 'w-[18px] h-[18px]'} ${active || childActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'} transition-colors`} />
                 </span>
               )}
               {!isCollapsed && (
-                <span className={`font-medium ${active || childActive ? 'text-blue-700' : 'text-gray-700 group-hover:text-blue-700'}`}>
+                <span className={`text-[13px] font-medium ${active || childActive ? 'text-blue-700' : 'text-gray-600 group-hover:text-gray-800'} transition-colors`}>
                   {item.title}
                 </span>
               )}
@@ -158,21 +159,17 @@ export default function AdminSidebar({ className = "" }: AdminSidebarProps) {
             {!isCollapsed && (
               <div className="flex items-center gap-2">
                 {item.badge && (
-                  <Badge variant="secondary" className="bg-red-100 text-red-700 text-xs">
+                  <Badge variant="secondary" className="bg-red-500 text-white text-[10px] px-1.5 py-0 min-w-[20px] h-5 flex items-center justify-center rounded-full font-semibold">
                     {item.badge}
                   </Badge>
                 )}
-                {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                )}
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-300 transition-transform duration-200 ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
               </div>
             )}
           </button>
 
           {isExpanded && !isCollapsed && (
-            <div className="mt-1 space-y-1 ml-4">
+            <div className="mt-0.5 space-y-0.5 ml-5 pl-3 border-l-2 border-gray-100">
               {item.children?.map(child => renderSidebarItem(child, level + 1))}
             </div>
           )}
@@ -184,28 +181,28 @@ export default function AdminSidebar({ className = "" }: AdminSidebarProps) {
       <Link
         key={item.title}
         href={item.href || '#'}
-        className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 group mb-1
-          ${active ? (!isCollapsed ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-600' : '') : 'hover:bg-blue-50 hover:text-blue-700'}
-          ${level > 0 ? 'ml-4 text-sm' : ''}`}
+        className={`flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 group
+          ${active ? (!isCollapsed ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 shadow-sm shadow-blue-500/5' : '') : 'hover:bg-gray-50'}
+          ${level > 0 ? 'text-sm' : ''}`}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {isCollapsed && active ? (
-            <span className="flex items-center justify-center w-11 h-11 bg-blue-100 rounded-lg mx-auto">
-              <Icon className="w-6 h-6 text-blue-600" />
+            <span className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mx-auto shadow-md shadow-blue-500/25">
+              <Icon className="w-5 h-5 text-white" />
             </span>
           ) : (
-            <span className="flex items-center justify-center w-11 h-11 mx-auto">
-              <Icon className={`${isCollapsed ? 'w-6 h-6' : 'w-4 h-4'} ${active ? 'text-blue-600' : 'text-gray-500 group-hover:text-blue-600'}`} />
+            <span className="flex items-center justify-center w-10 h-10 mx-auto">
+              <Icon className={`${isCollapsed ? 'w-5 h-5' : 'w-[18px] h-[18px]'} ${active ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'} transition-colors`} />
             </span>
           )}
           {!isCollapsed && (
-            <span className={`font-medium ${active ? 'text-blue-700' : 'text-gray-700 group-hover:text-blue-700'}`}>
+            <span className={`text-[13px] font-medium ${active ? 'text-blue-700' : 'text-gray-600 group-hover:text-gray-800'} transition-colors`}>
               {item.title}
             </span>
           )}
         </div>
         {!isCollapsed && item.badge && (
-          <Badge variant="secondary" className="bg-red-100 text-red-700 text-xs">
+          <Badge variant="secondary" className="bg-red-500 text-white text-[10px] px-1.5 py-0 min-w-[20px] h-5 flex items-center justify-center rounded-full font-semibold">
             {item.badge}
           </Badge>
         )}
@@ -234,24 +231,24 @@ export default function AdminSidebar({ className = "" }: AdminSidebarProps) {
       </Button>
 
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 z-50 bg-white border-r border-gray-200 shadow-lg transition-all duration-300 lg:relative lg:translate-x-0
-        ${isCollapsed ? 'w-16 min-w-[56px]' : 'w-72'}
+      <div className={`fixed left-0 top-0 z-50 bg-white border-r border-gray-100 shadow-[2px_0_12px_rgba(0,0,0,0.04)] transition-all duration-300 lg:sticky lg:top-0 lg:translate-x-0
+        ${isCollapsed ? 'w-[68px] min-w-[68px]' : 'w-[272px]'}
         h-screen flex flex-col
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         ${className}
       `}>
         
         {/* Header */}
-        <div className={`p-4 border-b border-gray-200 ${isCollapsed ? 'px-2' : ''}`}>
+        <div className={`p-4 border-b border-gray-100 ${isCollapsed ? 'px-3' : ''}`}>
           <div className="flex items-center justify-between">
             {!isCollapsed && (
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center">
-                  <img src="logo.png" alt="GoPark Logo" />
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden">
+                  <img src="/logo.png" alt="GoPark Logo" className="w-9 h-9 object-contain" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg text-gray-800">GoPark Admin</h1>
-                  <p className="text-xs text-gray-500">Quản lý hệ thống</p>
+                  <h1 className="font-bold text-[15px] text-gray-900 tracking-tight">GoPark Admin</h1>
+                  <p className="text-[11px] text-gray-400 font-medium">Quản lý hệ thống</p>
                 </div>
               </div>
             )}
@@ -259,7 +256,7 @@ export default function AdminSidebar({ className = "" }: AdminSidebarProps) {
               variant="ghost"
               size="sm"
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden lg:flex w-8 h-8 p-0"
+              className="hidden lg:flex w-8 h-8 p-0 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
             >
               <Menu className="w-4 h-4" />
             </Button>
@@ -268,59 +265,61 @@ export default function AdminSidebar({ className = "" }: AdminSidebarProps) {
 
         {/* Admin Info */}
         {!isCollapsed && (
-          <div className="p-4 border-b border-gray-200">
+          <div className="px-4 py-3.5 border-b border-gray-100">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-medium">AD</span>
+              <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-md shadow-purple-500/20">
+                <span className="text-white text-xs font-bold">AD</span>
               </div>
-              <div className="flex-1">
-                <p className="font-medium text-gray-800">Admin User</p>
-                <p className="text-xs text-gray-500">admin@gopark.com</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-gray-800 truncate">Admin User</p>
+                <p className="text-[11px] text-gray-400 truncate">admin@gopark.com</p>
               </div>
-              <div className="relative">
+              <button className="relative p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
                 <Bell className="w-4 h-4 text-gray-400" />
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-              </div>
+                <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></div>
+              </button>
             </div>
           </div>
         )}
 
         {/* Navigation */}
-        <nav className={`flex-1 overflow-y-auto ${isCollapsed ? 'flex flex-col items-center justify-center pt-16' : 'p-4'}`}>
-          <div className={`${isCollapsed ? 'flex flex-col gap-2 items-center justify-center' : 'space-y-2'}`}>
+        <nav className={`flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent ${isCollapsed ? 'flex flex-col items-center pt-4' : 'px-3 py-3'}`}>
+          <div className={`${isCollapsed ? 'flex flex-col gap-1.5 items-center' : 'space-y-0.5'}`}>
             {sidebarItems.map(item => renderSidebarItem(item))}
           </div>
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-3 border-t border-gray-100 mt-auto">
           {!isCollapsed ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500">
+            <div className="space-y-1">
+              <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-400 rounded-lg hover:bg-gray-50 hover:text-gray-600 transition-colors">
                 <Search className="w-4 h-4" />
-                <span>Tìm kiếm nhanh</span>
-              </div>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-red-600 hover:text-red-700 cursor-pointer hover:bg-red-50"
+                <span className="text-[13px]">Tìm kiếm nhanh</span>
+              </button>
+              <button 
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
                 onClick={() => {
                   localStorage.removeItem("token");
                   localStorage.removeItem("role");
                   window.location.href = "/account/login";
                 }}
               >
-                <LogOut className="w-4 h-4 mr-2" />
-                Đăng xuất
-              </Button>
+                <LogOut className="w-4 h-4" />
+                <span className="text-[13px] font-medium">Đăng xuất</span>
+              </button>
             </div>
           ) : (
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="w-full p-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+            <button 
+              className="w-full flex items-center justify-center p-2 text-red-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("role");
+                window.location.href = "/account/login";
+              }}
             >
               <LogOut className="w-4 h-4" />
-            </Button>
+            </button>
           )}
         </div>
       </div>
