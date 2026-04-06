@@ -261,26 +261,29 @@ export default function RevenueReportPage() {
     <div className="space-y-6">
 
       {/* ── Tiêu đề + chọn khoảng thời gian ──────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-2xl px-8 py-6 shadow-lg">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Báo cáo Doanh thu</h1>
-          <p className="text-gray-500 mt-1">Thống kê tổng quan doanh thu hệ thống GoPark</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+            <BarChart3 className="w-6 h-6" />
+            Báo cáo Doanh thu
+          </h1>
+          <p className="text-blue-200/70 mt-1 text-sm">Thống kê tổng quan doanh thu hệ thống GoPark</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mt-4 sm:mt-0">
           {/* Bộ chọn khoảng thời gian */}
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="h-10 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="h-10 px-4 border border-white/20 rounded-lg bg-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 backdrop-blur-sm [&>option]:text-gray-900"
           >
             {PERIODS.map((p) => (
               <option key={p.value} value={p.value}>{p.label}</option>
             ))}
           </select>
-          <Button onClick={fetchData} variant="outline" className="flex items-center gap-2">
+          <Button onClick={fetchData} className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2">
             <RefreshCw size={16} />Làm mới
           </Button>
-          <Button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white">
+          <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2">
             <Download size={16} />Xuất báo cáo
           </Button>
         </div>

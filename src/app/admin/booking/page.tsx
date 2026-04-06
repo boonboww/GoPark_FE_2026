@@ -338,40 +338,35 @@ export default function AdminBookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
-      <div className="container mx-auto px-4 py-8">
+    <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-2xl px-8 py-6 shadow-lg">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+              <Calendar className="w-6 h-6" />
               Quản lý đặt chỗ
             </h1>
-            <p className="text-gray-600">
+            <p className="text-blue-200/70 mt-1 text-sm">
               Tìm thấy {filteredBookings.length} đặt chỗ
               {usingMockData && (
-                <span className="ml-2 text-orange-600 text-sm">
-                  (Dữ liệu mẫu - API không khả dụng)
-                </span>
+                <span className="ml-2 text-orange-300 text-xs">(Dữ liệu mẫu)</span>
               )}
             </p>
             {error && (
-              <p className="text-red-600 text-sm mt-1">
-                Lỗi kết nối API: {error}
-              </p>
+              <p className="text-red-300 text-xs mt-1">Lỗi kết nối API: {error}</p>
             )}
           </div>
           <div className="flex gap-3 mt-4 sm:mt-0">
             <Button 
               onClick={fetchBookings}
-              variant="outline"
-              className="flex items-center gap-2"
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2"
             >
               <RefreshCw size={16} />
               Làm mới
             </Button>
             <Button 
               onClick={exportBookings}
-              className="flex items-center gap-2"
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2"
             >
               <Download size={16} />
               Xuất Excel
@@ -640,7 +635,6 @@ export default function AdminBookingPage() {
             </div>
           )}
         </div>
-      </div>
     </div>
   );
 }
