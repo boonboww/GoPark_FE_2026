@@ -88,7 +88,7 @@ export default function OwnerProfile({
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
           <p className="text-muted-foreground font-medium">
-            Loading profile...
+            Đang tải hồ sơ...
           </p>
         </div>
       </Card>
@@ -317,7 +317,7 @@ export default function OwnerProfile({
                     )}
                     <p className="flex items-center justify-center md:justify-start gap-2 text-muted-foreground text-sm">
                       <MapPin className="w-4 h-4" />
-                      Total Parking Lots:{" "}
+                      Tổng số bãi đỗ:{" "}
                       <span className="font-semibold text-foreground">
                         {profile.totalLots}
                       </span>

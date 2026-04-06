@@ -15,7 +15,7 @@ export function ReportDetail({ report }: ReportDetailProps) {
           <div>
             <CardTitle className="text-2xl">{report.title}</CardTitle>
             <CardDescription className="mt-1.5">
-              Report ID: {report.id}
+              Mã báo cáo: {report.id}
             </CardDescription>
           </div>
           <div className="flex space-x-2">
@@ -26,29 +26,29 @@ export function ReportDetail({ report }: ReportDetailProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="bg-muted/50 p-4 rounded-lg">
-          <h3 className="font-medium mb-2 border-b pb-2">Description</h3>
+          <h3 className="font-medium mb-2 border-b pb-2">Mô tả</h3>
           <p className="text-sm text-foreground/80 whitespace-pre-wrap">{report.description}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">User ID</p>
+            <p className="text-sm font-medium text-muted-foreground">ID Người dùng</p>
             <p className="text-sm">{report.user_id}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Parking Lot ID</p>
+            <p className="text-sm font-medium text-muted-foreground">ID Bãi đỗ xe</p>
             <p className="text-sm">{report.parking_lot_id}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Booking ID</p>
+            <p className="text-sm font-medium text-muted-foreground">ID Đặt chỗ</p>
             <p className="text-sm">{report.booking_id || "N/A"}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Created At</p>
+            <p className="text-sm font-medium text-muted-foreground">Ngày tạo</p>
             <p className="text-sm">{format(new Date(report.created_at), "PPp")}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Last Updated</p>
+            <p className="text-sm font-medium text-muted-foreground">Cập nhật lần cuối</p>
             <p className="text-sm">{format(new Date(report.updated_at), "PPp")}</p>
           </div>
         </div>

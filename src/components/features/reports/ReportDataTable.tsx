@@ -63,7 +63,7 @@ export function ReportDataTable<TData, TValue>({
     <div>
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
         <Input
-          placeholder="Search by title..."
+          placeholder="Tìm kiếm theo tiêu đề..."
           value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("title")?.setFilterValue(event.target.value)
@@ -78,13 +78,13 @@ export function ReportDataTable<TData, TValue>({
             }}
           >
             <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Priority" />
+              <SelectValue placeholder="Mức ưu tiên" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Priorities</SelectItem>
-              <SelectItem value="HIGH">High</SelectItem>
-              <SelectItem value="MEDIUM">Medium</SelectItem>
-              <SelectItem value="LOW">Low</SelectItem>
+              <SelectItem value="ALL">Tất cả mức độ</SelectItem>
+              <SelectItem value="HIGH">Cao</SelectItem>
+              <SelectItem value="MEDIUM">Vừa</SelectItem>
+              <SelectItem value="LOW">Thấp</SelectItem>
             </SelectContent>
           </Select>
 
@@ -95,14 +95,14 @@ export function ReportDataTable<TData, TValue>({
             }}
           >
             <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder="Trạng thái" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Statuses</SelectItem>
-              <SelectItem value="OPEN">Open</SelectItem>
-              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-              <SelectItem value="RESOLVED">Resolved</SelectItem>
-              <SelectItem value="REJECTED">Rejected</SelectItem>
+              <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
+              <SelectItem value="OPEN">Mở</SelectItem>
+              <SelectItem value="IN_PROGRESS">Đang xử lý</SelectItem>
+              <SelectItem value="RESOLVED">Đã giải quyết</SelectItem>
+              <SelectItem value="REJECTED">Từ chối</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -150,7 +150,7 @@ export function ReportDataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  Không có kết quả.
                 </TableCell>
               </TableRow>
             )}
@@ -164,7 +164,7 @@ export function ReportDataTable<TData, TValue>({
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
-          Previous
+          Trước đó
         </Button>
         <Button
           variant="outline"
@@ -172,7 +172,7 @@ export function ReportDataTable<TData, TValue>({
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
         >
-          Next
+          Tiếp theo
         </Button>
       </div>
     </div>
