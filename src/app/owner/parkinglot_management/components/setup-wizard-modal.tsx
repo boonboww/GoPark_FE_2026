@@ -183,8 +183,13 @@ export function SetupWizardTab({ onClose }: any) {
           const isNewZone = String(zone.id).startsWith("z_new");
 
           if (isNewZone) {
+            if (!zone.prefix || zone.prefix.trim() === "") {
+              throw new Error(`Khu vực "${zone.name}" thiếu tiền tố mã ô đỗ (Prefix)`);
+            }
+
             const zoneRes = await parkingService.createZone(currentFloorId, {
               zone_name: zone.name,
+              prefix: zone.prefix,
               total_slots: zone.count,
               description: `Khu vực ${zone.name} - Tiền tố ${zone.prefix}`,
             });
@@ -199,8 +204,6 @@ export function SetupWizardTab({ onClose }: any) {
             await parkingService.createPricingRule({
               price_per_hour: zone.priceHour,
               price_per_day: zone.priceDay,
-              parking_lot_id: lotId,
-              parking_floor_id: currentFloorId,
               parking_zone_id: currentZoneId,
             });
           } else {
@@ -525,15 +528,19 @@ export function SetupWizardTab({ onClose }: any) {
                                 <Label>Tiền tố mã ô đỗ</Label>
                                 <Input
                                   value={z.prefix}
-                                  onChange={(e) =>
+                                  onChange={(e) => {
+                                    const val = e.target.value
+                                      .replace(/[^A-Za-z0-9]/g, "")
+                                      .toUpperCase()
+                                      .slice(0, 10);
                                     setZones(
                                       zones.map((zn) =>
                                         zn.id === z.id
-                                          ? { ...zn, prefix: e.target.value }
+                                          ? { ...zn, prefix: val }
                                           : zn,
                                       ),
-                                    )
-                                  }
+                                    );
+                                  }}
                                   placeholder="VD: A"
                                   className="font-mono text-center uppercase"
                                 />

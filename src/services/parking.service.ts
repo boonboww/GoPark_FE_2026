@@ -78,8 +78,8 @@ class ParkingService {
    * Cập nhật Bảng giá (Pricing Rule)
    * PATCH /payment/pricing-rule/:lotId/floors/:floorId/zones/:zoneId/rule/:ruleId
    */
-  async updatePricingRule(lotId: number, floorId: number, zoneId: number, ruleId: number, payload: { price_per_hour?: number; price_per_day?: number }) {
-    return patch<any>(`/payment/pricing-rule/${lotId}/floors/${floorId}/zones/${zoneId}/rule/${ruleId}`, payload);
+  async updatePricingRule(pricingId: number, payload: { price_per_hour?: number; price_per_day?: number }) {
+    return patch<any>(`/payment/pricing-rule/rule/${pricingId}`, payload);
   }
 
   /**
@@ -97,8 +97,6 @@ class ParkingService {
   async createPricingRule(payload: {
     price_per_hour: number;
     price_per_day: number;
-    parking_lot_id: number;
-    parking_floor_id: number;
     parking_zone_id: number;
   }) {
     return post<any>(`/payment/pricing-rule`, payload);
