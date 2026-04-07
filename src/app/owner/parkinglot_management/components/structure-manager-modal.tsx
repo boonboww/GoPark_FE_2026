@@ -97,7 +97,7 @@ export function StructureManagerTab() {
       try {
         const ruleId = payload.rule_id ?? payload.id;
         await parkingService.updatePricingRule(
-          lotId as number, payload.floorId, payload.id, ruleId,
+          ruleId,
           { price_per_hour: Number(payload.priceHour), price_per_day: Number(payload.priceDay) }
         );
       } catch { /* pricing may not exist yet – non-blocking */ }
@@ -137,8 +137,6 @@ export function StructureManagerTab() {
         await parkingService.createPricingRule({
           price_per_hour: Number(newZoneForm.priceHour),
           price_per_day: Number(newZoneForm.priceDay),
-          parking_lot_id: lotId as number,
-          parking_floor_id: floorId,
           parking_zone_id: newZoneId,
         });
         // Auto-generate slots ngay sau khi tạo zone
