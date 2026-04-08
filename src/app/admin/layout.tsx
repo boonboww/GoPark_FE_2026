@@ -9,9 +9,9 @@ export default function AdminLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       <AdminSidebar />
-      <main className="flex-1 lg:ml-0">
+      <main className="flex-1 overflow-y-auto">
         <div className="p-6 pt-16 lg:pt-6">
           <Suspense
             fallback={
