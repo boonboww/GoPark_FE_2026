@@ -10,7 +10,7 @@ function ParkingProvider({children} : {children : React.ReactNode}) {
     const [dataLot,setDataLot] = useState<any>({});
     const [loadingLot,setLoadingLot] = useState(true);
     const [selectedSpot, setSelectedSpot] = useState<any>(null);
-
+    
     const params = useParams();
     const parkingLotId = params.id;
     console.log("Parking Lot ID:", parkingLotId);
