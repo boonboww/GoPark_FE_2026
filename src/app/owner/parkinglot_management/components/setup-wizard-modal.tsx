@@ -7,7 +7,6 @@ import {
   Settings,
   Plus,
   Trash2,
-  CheckCircle2,
   ChevronRight,
   ChevronLeft,
   LogOut,
@@ -19,13 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { parkingService } from "@/services/parking.service";
@@ -187,10 +180,10 @@ export function SetupWizardTab({ onClose }: any) {
               throw new Error(`Khu vực "${zone.name}" thiếu tiền tố mã ô đỗ (Prefix)`);
             }
 
-            const zoneRes = await parkingService.createZone(currentFloorId, {
+            const zoneRes = await parkingService.createZone(Number(currentFloorId), {
               zone_name: zone.name,
               prefix: zone.prefix,
-              total_slots: zone.count,
+              total_slots: Number(zone.count),
               description: `Khu vực ${zone.name} - Tiền tố ${zone.prefix}`,
             });
 
@@ -202,25 +195,29 @@ export function SetupWizardTab({ onClose }: any) {
 
             // Thêm giá tiền cho zone mới
             await parkingService.createPricingRule({
-              price_per_hour: zone.priceHour,
-              price_per_day: zone.priceDay,
-              parking_zone_id: currentZoneId,
+              price_per_hour: Number(zone.priceHour),
+              price_per_day: Number(zone.priceDay),
+              parking_zone_id: Number(currentZoneId),
+              parking_lot_id: Number(lotId),
+              parking_floor_id: Number(currentFloorId),
             });
-          } else {
-            // Đối với khu vực cũ, nếu sau này cần update số lượng ô đỗ hay giá,
-            // ta sẽ gọi các hàm API tương ứng:
-            // await parkingService.updateZone(currentZoneId, { total_slots: zone.count });
-            // await parkingService.updatePricingRule(...);
           }
         }
       }
+
+      // Bước cuối: Generate slots cho toàn bộ lot
+      await parkingService.generateSlotsForLot(Number(lotId));
     },
     onSuccess: () => {
       toast.success("Thiết lập sơ đồ bãi đỗ xe thành công");
 
-      // Refresh dữ liệu ở trang chính
+      // Refresh floors list (page.tsx dùng key này)
       queryClient.invalidateQueries({
-        queryKey: ["parkingLotStructure", lotId],
+        queryKey: ["parkingLotFloors", lotId],
+      });
+      // Refresh tất cả slot grids
+      queryClient.invalidateQueries({
+        queryKey: ["zoneSlots"],
       });
 
       onClose();

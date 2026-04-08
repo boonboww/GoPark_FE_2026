@@ -23,9 +23,15 @@ class ParkingService {
    * Đăng ký khách vãng lai (walk-in) vào bãi đỗ xe
    * POST /parking-lots/:id/walk-in
    */
-  async walkInCheckIn(lotId: number, payload: WalkInRequest): Promise<WalkInResponse> {
+  async walkInCheckIn(
+    lotId: number,
+    payload: WalkInRequest,
+  ): Promise<WalkInResponse> {
     try {
-      const response = await post<WalkInResponse>(`/parking-lots/${lotId}/walk-in`, payload);
+      const response = await post<WalkInResponse>(
+        `/parking-lots/${lotId}/walk-in`,
+        payload,
+      );
       return response;
     } catch (error) {
       console.error("Error in walkInCheckIn:", error);
@@ -37,7 +43,10 @@ class ParkingService {
    * Thêm Tầng (Floor) vào bãi đỗ xe
    * POST /parking-lots/:id/floors
    */
-  async createFloor(lotId: number, payload: { floor_name: string; floor_number: number; description?: string }) {
+  async createFloor(
+    lotId: number,
+    payload: { floor_name: string; floor_number: number; description?: string },
+  ) {
     return post<any>(`/parking-lots/${lotId}/floors`, payload);
   }
 
@@ -45,7 +54,15 @@ class ParkingService {
    * Thêm Khu vực (Zone) vào tầng
    * POST /parking-lots/floors/:floorId/zones
    */
-  async createZone(floorId: number, payload: { zone_name: string; prefix: string; total_slots: number; description?: string }) {
+  async createZone(
+    floorId: number,
+    payload: {
+      zone_name: string;
+      prefix: string;
+      total_slots: number;
+      description?: string;
+    },
+  ) {
     return post<any>(`/parking-lots/floors/${floorId}/zones`, payload);
   }
 
@@ -62,7 +79,15 @@ class ParkingService {
    * Cập nhật Tầng (Floor)
    * PATCH /parking-lots/:lotId/floors/:floorId
    */
-  async updateFloor(lotId: number, floorId: number, payload: { floor_name?: string; floor_number?: number; description?: string }) {
+  async updateFloor(
+    lotId: number,
+    floorId: number,
+    payload: {
+      floor_name?: string;
+      floor_number?: number;
+      description?: string;
+    },
+  ) {
     return patch<any>(`/parking-lots/${lotId}/floors/${floorId}`, payload);
   }
 
@@ -70,16 +95,38 @@ class ParkingService {
    * Cập nhật Khu vực (Zone) mới
    * PATCH /parking-lots/:lotId/floors/:floorId/zones/:zoneId
    */
-  async updateZone(lotId: number, floorId: number, zoneId: number, payload: { zone_name?: string; prefix?: string; description?: string; total_slots?: number }) {
-    return patch<any>(`/parking-lots/${lotId}/floors/${floorId}/zones/${zoneId}`, payload);
+  async updateZone(
+    lotId: number,
+    floorId: number,
+    zoneId: number,
+    payload: {
+      zone_name?: string;
+      prefix?: string;
+      description?: string;
+      total_slots?: number;
+    },
+  ) {
+    return patch<any>(
+      `/parking-lots/${lotId}/floors/${floorId}/zones/${zoneId}`,
+      payload,
+    );
   }
 
   /**
    * Cập nhật Bảng giá (Pricing Rule)
    * PATCH /payment/pricing-rule/:lotId/floors/:floorId/zones/:zoneId/rule/:ruleId
    */
-  async updatePricingRule(pricingId: number, payload: { price_per_hour?: number; price_per_day?: number }) {
-    return patch<any>(`/payment/pricing-rule/rule/${pricingId}`, payload);
+  async updatePricingRule(
+    lotId: number,
+    floorId: number,
+    zoneId: number,
+    ruleId: number,
+    payload: { price_per_hour?: number; price_per_day?: number },
+  ) {
+    return patch<any>(
+      `/payment/pricing-rule/${lotId}/floors/${floorId}/zones/${zoneId}/rule/${ruleId}`,
+      payload,
+    );
   }
 
   /**
@@ -98,6 +145,8 @@ class ParkingService {
     price_per_hour: number;
     price_per_day: number;
     parking_zone_id: number;
+    parking_lot_id: number;
+    parking_floor_id: number;
   }) {
     return post<any>(`/payment/pricing-rule`, payload);
   }
@@ -123,9 +172,16 @@ class ParkingService {
    * GET /parking-lots/:lotId/floors/:floorId/zones/:zoneId/slots
    * GET /parking-lots/:lotId/floors/:floorId/zones/:zoneId/slots?includeDisabled=true
    */
-  async getZoneSlots(lotId: number, floorId: number, zoneId: number, includeDisabled = false) {
+  async getZoneSlots(
+    lotId: number,
+    floorId: number,
+    zoneId: number,
+    includeDisabled = false,
+  ) {
     const query = includeDisabled ? "?includeDisabled=true" : "";
-    return get<any>(`/parking-lots/${lotId}/floors/${floorId}/zones/${zoneId}/slots${query}`);
+    return get<any>(
+      `/parking-lots/${lotId}/floors/${floorId}/zones/${zoneId}/slots${query}`,
+    );
   }
 
   /**
@@ -141,7 +197,10 @@ class ParkingService {
    * POST /parking-lots/:lotId/floors/:floorId/generate-slots
    */
   async generateSlotsForFloor(lotId: number, floorId: number) {
-    return post<any>(`/parking-lots/${lotId}/floors/${floorId}/generate-slots`, {});
+    return post<any>(
+      `/parking-lots/${lotId}/floors/${floorId}/generate-slots`,
+      {},
+    );
   }
 
   /**
@@ -149,7 +208,10 @@ class ParkingService {
    * POST /parking-lots/:lotId/floors/:floorId/zones/:zoneId/generate-slots
    */
   async generateSlotsForZone(lotId: number, floorId: number, zoneId: number) {
-    return post<any>(`/parking-lots/${lotId}/floors/${floorId}/zones/${zoneId}/generate-slots`, {});
+    return post<any>(
+      `/parking-lots/${lotId}/floors/${floorId}/zones/${zoneId}/generate-slots`,
+      {},
+    );
   }
 }
 

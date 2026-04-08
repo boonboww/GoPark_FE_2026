@@ -88,21 +88,45 @@ export function StructureManagerTab() {
   // Update zone + pricing
   const updateZoneMut = useMutation({
     mutationFn: async (payload: any) => {
-      await parkingService.updateZone(lotId as number, payload.floorId, payload.id, {
+      // 1. Update Zone structure
+      await parkingService.updateZone(lotId as number, Number(payload.floorId), Number(payload.id), {
         zone_name: payload.zone_name,
         prefix: payload.prefix,
         description: payload.description,
         total_slots: Number(payload.total_slots),
       });
+
+      // 2. Auto-sync slots after capacity change
       try {
-        const ruleId = payload.rule_id ?? payload.id;
+        await parkingService.generateSlotsForZone(lotId as number, Number(payload.floorId), Number(payload.id));
+      } catch (e) {
+        console.error("Auto-sync failed:", e);
+      }
+
+      // 3. Update Pricing
+      try {
+        const ruleId = Number(payload.rule_id ?? payload.id); 
         await parkingService.updatePricingRule(
+          lotId as number,
+          Number(payload.floorId),
+          Number(payload.id),
           ruleId,
-          { price_per_hour: Number(payload.priceHour), price_per_day: Number(payload.priceDay) }
+          { 
+            price_per_hour: Number(payload.priceHour), 
+            price_per_day: Number(payload.priceDay) 
+          }
         );
-      } catch { /* pricing may not exist yet – non-blocking */ }
+      } catch (err) { 
+        console.warn("Pricing rule update failed (might not exist):", err);
+      }
     },
-    onSuccess: () => { toast.success("Cập nhật khu vực & giá thành công"); invalidate(); setEditingZone(null); },
+    onSuccess: () => { 
+      toast.success("Cập nhật khu vực & giá thành công"); 
+      invalidate(); 
+      // Invalidate zone slots cache trên trang chính
+      queryClient.invalidateQueries({ queryKey: ["zoneSlots"] });
+      setEditingZone(null); 
+    },
     onError: (err: any) => toast.error(err.message || "Lỗi cập nhật khu vực"),
   });
 
@@ -131,13 +155,15 @@ export function StructureManagerTab() {
         total_slots: Number(newZoneForm.total_slots),
         description: newZoneForm.description, 
       });
-      const newZoneId = res?.data?.id;
+      const newZoneId = Number(res?.data?.id);
       if (newZoneId && lotId) {
         // Tạo pricing rule
         await parkingService.createPricingRule({
           price_per_hour: Number(newZoneForm.priceHour),
           price_per_day: Number(newZoneForm.priceDay),
           parking_zone_id: newZoneId,
+          parking_lot_id: Number(lotId),
+          parking_floor_id: Number(floorId),
         });
         // Auto-generate slots ngay sau khi tạo zone
         try {
@@ -206,15 +232,21 @@ export function StructureManagerTab() {
 
   const startEditZone = (floorId: number, zone: any) => {
     setEditingZone(zone.id);
+    // Lấy ruleId từ pricing_rule (nếu BE trả về) hoặc dùng zone.id làm fallback
+    const ruleId = zone.pricing_rule?.[0]?.id || zone.id;
+    const priceHour = zone.pricing_rule?.[0]?.price_per_hour ?? zone.priceHour ?? 20000;
+    const priceDay = zone.pricing_rule?.[0]?.price_per_day ?? zone.priceDay ?? 150000;
+
     setZoneForm({
       floorId,
       id: zone.id,
+      rule_id: ruleId,
       zone_name: zone.zone_name,
       prefix: zone.prefix ?? "",
       description: zone.description ?? "",
       total_slots: zone.total_slots,
-      priceHour: zone.priceHour ?? 20000,
-      priceDay: zone.priceDay ?? 150000,
+      priceHour: priceHour,
+      priceDay: priceDay,
     });
   };
 

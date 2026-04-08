@@ -32,11 +32,12 @@ import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 import { TicketDetail, TicketData } from "./ticket-detail";
-import { MockFloor } from "./components/mock-data";
+import { MockFloor, MockZone, MockSlot, getMockTicket } from "./components/mock-data";
 import { SetupWizardTab } from "./components/setup-wizard-modal";
 import { StructureManagerTab } from "./components/structure-manager-modal";
 import { ZoneSlotGrid, ApiSlot } from "./components/zone-slot-grid";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useQuery } from "@tanstack/react-query";
 import { parkingService } from "@/services/parking.service";
 import { useCustomerStore } from "@/stores/customer.store";
@@ -54,27 +55,26 @@ export default function ParkingLotManagementPage() {
   });
 
   const floorsData = React.useMemo(() => {
-    if (!floorsResponse?.data) return [] as MockFloor[];
-    return floorsResponse.data.map((floor: any) => ({
-      id: floor.id.toString(),
-      floorId: floor.id as number,
-      name: floor.floor_name,
-      zones: (floor.parkingZone || []).map((zone: any) => ({
-        id: zone.id.toString(),
-        zoneId: zone.id as number,
-        floorId: floor.id as number, // truyền xuống để ZoneSlotGrid dùng
-        name: zone.zone_name,
-        totalSlots: zone.total_slots || 0,
-        slots: [], // Không dùng mock nữa — ZoneSlotGrid tự fetch
-      })),
-    })) as (MockFloor & {
-      floorId: number;
-      zones: (MockFloor["zones"][number] & {
-        zoneId: number;
-        floorId: number;
-        totalSlots: number;
-      })[];
-    })[];
+    const rawFloors = Array.isArray(floorsResponse) ? floorsResponse : (floorsResponse?.data ?? []);
+    
+    return rawFloors.map((floor: any) => {
+      // Tìm mảng zones từ các tên trường phổ biến
+      const rawZones = floor.parkingZone || floor.parkingZones || floor.zones || floor.parking_zones || [];
+      
+      return {
+        id: (floor.id || "").toString(),
+        floorId: floor.id as number,
+        name: floor.floor_name || floor.name || `Tầng ${floor.floor_number}`,
+        zones: (Array.isArray(rawZones) ? rawZones : []).map((zone: any) => ({
+          id: (zone.id || "").toString(),
+          zoneId: zone.id as number,
+          floorId: floor.id as number,
+          name: zone.zone_name || zone.name || `Khu ${zone.prefix || zone.id}`,
+          totalSlots: zone.total_slots || zone.totalSlots || 0,
+          slots: [], 
+        })),
+      };
+    }) as (MockFloor & { floorId: number; zones: (MockZone & { zoneId: number; floorId: number; totalSlots: number })[] })[];
   }, [floorsResponse]);
 
   const [selectedFloor, setSelectedFloor] = React.useState("");
@@ -118,10 +118,19 @@ export default function ParkingLotManagementPage() {
   }, [currentFloor, selectedZone]);
 
   const handleSlotClick = (slot: ApiSlot) => {
-    // Slot OCCUPIED/RESERVED: có thể mở ticket detail sau khi fetch booking data
-    // Hiện tại API list không trả ticket data — để mở rộng sau
+    // Nếu là ô đang đỗ hoặc đã đặt
     if (slot.status === "OCCUPIED" || slot.status === "RESERVED") {
-      // TODO: fetch booking detail by slot.id
+      const status = slot.status === "OCCUPIED" ? "occupied" : "reserved";
+      
+      // Tạo dữ liệu vé (Mock) để hiển thị
+      // Sau này khi có API lấy booking chi tiết theo SlotID, ta sẽ gọi API tại đây
+      const mockTicket = getMockTicket(slot.code, status);
+      
+      setSelectedTicket({
+        data: mockTicket,
+        status: status
+      });
+      setIsTicketOpen(true);
     }
   };
 
@@ -444,6 +453,9 @@ export default function ParkingLotManagementPage() {
         {/* MASTER CONFIG MODAL */}
         <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
           <DialogContent className="sm:max-w-[1000px] h-[90vh] flex flex-col p-0 overflow-hidden bg-white">
+            <VisuallyHidden>
+              <DialogTitle>Cấu hình Sơ đồ Bãi đỗ xe</DialogTitle>
+            </VisuallyHidden>
             <div className="flex border-b overflow-x-auto bg-slate-50/50">
               <button
                 onClick={() => setActiveTab("setup")}
