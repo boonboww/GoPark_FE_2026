@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ReportDetail } from "@/components/features/reports/ReportDetail";
 import { ReportForm } from "@/components/features/reports/ReportForm";
-import { MOCK_REPORTS } from "@/components/features/reports/ReportList";
+const MOCK_REPORTS: any[] = [];
 import { Button } from "@/components/ui/button";
 import { Report } from "@/types/report";
 import Link from "next/link";

@@ -24,6 +24,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dayjs": "^1.11.20",
     "framer-motion": "^12.34.0",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.563.0",

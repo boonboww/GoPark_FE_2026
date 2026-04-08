@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -29,6 +29,22 @@ interface Vehicle {
   plate_number: string;
   image: string;
   type: string;
+  qr_code_data?: string | null; 
+  booking_status?: string | null;
+}
+
+interface Booking {
+  id: string;
+  qrCode?: {
+    content: string; // Chuỗi dùng để sinh QR
+  };
+  status: string;
+  vehicle: {
+    plate_number: string;
+    type:string;
+    image:string;
+  };
+  created_at: string;
 }
 
 const MAX_VEHICLES = 3;
@@ -38,6 +54,7 @@ export default function ProfilePage() {
   const { user: authUser, updateUser } = useAuthStore();
   const { data: balance, isLoading: isWalletLoading } = useWallet();
   const [isMounted, setIsMounted] = useState(false);
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
   // States
   const [profile, setProfile] = useState<UserProfile>({
@@ -71,6 +88,7 @@ export default function ProfilePage() {
     try {
       const res = await apiClient<any>("/users/me", { method: "GET" });
       if (res.data) {
+        console.log(res.data)
         setEmail(res.data.email);
         setProfile({
           name: res.data.profile?.name || "",
@@ -78,7 +96,12 @@ export default function ProfilePage() {
           gender: res.data.profile?.gender || "",
           image: res.data.profile?.image || "",
         });
-        setVehicles(res.data.vehicles || []);
+
+        const rawVehicles = res.data.vehicles || [];
+        const rawBookings = res.data.bookings || [];
+        
+        setVehicles(rawVehicles || []);
+        setBookings(rawBookings || []);
       }
     } catch (e) {
       console.error(e);
@@ -90,6 +113,14 @@ export default function ProfilePage() {
     fetchProfile();
   }, []);
 
+  // //booking mới nhất của mỗi xe
+  // const getLatestConfirmedBooking = (plateNumber: string) => {
+  //   return bookings
+  //     .filter(b => b.vehicle.plate_number === plateNumber && b.status === 'confirmed')
+  //     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]; 
+  //     // Lấy phần tử đầu tiên sau khi sắp xếp mới nhất lên đầu
+  // };
+  
   // -- BASE 64 UPLOAD --
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isProfile: boolean) => {
     const file = e.target.files?.[0];
@@ -113,6 +144,7 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
+  console.log(bookings,vehicles)
   const openEditProfile = () => {
     setPForm({ ...profile });
     setIsProfileDialogOpen(true);
@@ -231,15 +263,54 @@ export default function ProfilePage() {
   };
 
   const handleShowQR = (vehicle: Vehicle) => {
-    const qrPayload = JSON.stringify({
-      action: "PARKING_CHECKIN",
-      vehicleId: vehicle.id,
-      plateNumber: vehicle.plate_number,
-      userId: authUser?.id,
-      timestamp: new Date().toISOString()
-    });
-    setQrCodeData(qrPayload);
+
+  // 1. Lấy booking mới nhất
+  const latestBooking = getLatestConfirmedBookingForVehicle(vehicle.plate_number);
+
+  // 2. Kiểm tra xem có booking và có nội dung QR không
+  if (latestBooking && latestBooking.qrCode?.content) {
+    setQrCodeData(latestBooking.qrCode.content);
     setIsQrDialogOpen(true);
+  } else {
+    // 3. Nếu không có booking, có thể hiển thị mã định danh xe mặc định 
+    // hoặc thông báo cho người dùng
+    toast.error(`Xe ${vehicle.plate_number} hiện không có lịch đặt chỗ nào được xác nhận.`);
+    
+    // Nếu bạn vẫn muốn hiện QR biển số xe (QR rỗng) thì dùng dòng dưới:
+    // setQrCodeData(vehicle.plate_number); 
+    // setIsQrDialogOpen(true);
+  }
+};
+
+
+  const normalizePlate = (plate: string) => {
+    return plate.replace(/[-.\s]/g, "").toUpperCase();
+  };
+
+  const getLatestConfirmedBookingForVehicle = (plateNumber: string) => {
+    console.log("Đang tìm cho xe:", plateNumber);
+    console.log("Danh sách biển số trong booking:", bookings.map(b => b.vehicle.plate_number));
+    if (!bookings || !Array.isArray(bookings) || !plateNumber) return null;
+
+    const normalizedTarget = normalizePlate(plateNumber);
+
+    const vBookings = bookings.filter((b) => {
+      // Thêm optional chaining (?.) để an toàn
+      const bPlate = b.vehicle?.plate_number;
+      if (!bPlate) return false;
+
+      return (
+        normalizePlate(bPlate) === normalizedTarget &&
+        b.status?.toLowerCase().trim() === "confirmed"
+      );
+    });
+
+    if (vBookings.length === 0) return null;
+
+    // Sắp xếp lấy cái mới nhất
+    return vBookings.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0];
   };
 
 
@@ -281,6 +352,7 @@ export default function ProfilePage() {
                     <AvatarImage src={profile.image} alt={profile.name} className="object-cover" />
                     <AvatarFallback className="text-2xl bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
                       {(profile.name || authUser?.profile?.name || "U").charAt(0).toUpperCase()}
+
                     </AvatarFallback>
                   </Avatar>
                   <h2 className="mt-3 font-semibold text-lg text-slate-800 dark:text-white">{profile.name || "Chưa cập nhật tên"}</h2>
@@ -370,7 +442,10 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
-                  {(vehicles || []).map((v) => (
+                  {(vehicles || []).map((v) => {
+                    const latestBooking = getLatestConfirmedBookingForVehicle(v.plate_number);
+                    console.log(latestBooking)
+                    return (
                     <div key={v.id} className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors bg-white group relative overflow-hidden">
                       {/* Ảnh phương tiện / QR code giả lập */}
                       <div className="flex gap-3">
@@ -384,13 +459,31 @@ export default function ProfilePage() {
                           )}
                         </div>
                         {/* QR Code */}
-                        <div 
-                          className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-slate-100 flex flex-col items-center justify-center bg-slate-50 flex-shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
-                          onClick={() => handleShowQR(v)}
-                        >
-                          <QrCode className="w-12 h-12 text-slate-800" />
-                          <span className="text-[10px] text-slate-500 mt-1 font-medium text-center px-1 break-all flex-wrap">Xem QR</span>
-                        </div>
+                        {latestBooking ? (
+                          <div 
+                            className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-green-200 flex flex-col items-center justify-center bg-green-50 flex-shrink-0 cursor-pointer hover:bg-green-100 transition-transform hover:scale-[1.02]"
+                            onClick={() => {
+                              if (latestBooking.qrCode?.content) {
+                                setQrCodeData(latestBooking.qrCode.content);
+                                setIsQrDialogOpen(true);
+                              } else {
+                                handleShowQR(v);
+                              }
+                            }}
+                          >
+                            <QrCode className="w-10 h-10 text-green-700 mb-1" />
+                            <span className="text-[10px] text-green-700 font-bold tracking-wide uppercase px-1">Mã Book</span>
+                            <span className="text-[9px] text-green-600 mt-0.5 px-2 py-[1px] bg-green-200 rounded-full font-bold">CONFIRMED</span>
+                          </div>
+                        ) : (
+                          <div 
+                            className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-slate-100 flex flex-col items-center justify-center bg-slate-50 flex-shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
+                            onClick={() => handleShowQR(v)}
+                          >
+                            <QrCode className="w-12 h-12 text-slate-800" />
+                            <span className="text-[10px] text-slate-500 mt-1 font-medium text-center px-1 break-all flex-wrap">Xem QR rỗng</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Thông tin phương tiện */}
@@ -403,6 +496,15 @@ export default function ProfilePage() {
                                   <Car className="w-4 h-4 text-blue-600" />
                                   <span className="font-medium text-slate-700">Ô tô ({v.type})</span>
                                 </div>
+                                {latestBooking && (
+                                   <div className="inline-flex items-center mt-2 bg-green-100/50 border border-green-200 px-3 py-1.5 rounded-lg shadow-sm">
+                                     <span className="relative flex h-2 w-2 mr-2.5">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                     </span>
+                                     <span className="text-xs font-semibold text-green-700">Đã có lịch đặt chỗ</span>
+                                   </div>
+                                 )}
                             </div>
                             <div className="flex items-center gap-2 absolute top-0 right-0 z-10 sm:invisible group-hover:visible transition-all">
                               <Button variant="ghost" size="icon" onClick={() => openEditVehicle(v)} className="h-8 w-8 text-blue-600 hover:bg-blue-50 cursor-pointer">
@@ -416,14 +518,17 @@ export default function ProfilePage() {
                         </div>
                         <div className="mt-3 text-xs text-slate-400 flex items-center gap-1">
                           <Info className="w-3.5 h-3.5" />
-                          <span className="line-clamp-1">Trình mã QR khi ra/vào bãi.</span>
+                          <span className="line-clamp-1">{latestBooking ? "Trình mã Book QR xanh khi ra/vào bãi đỗ." : "Trình mã QR khi ra/vào bãi."}</span>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
             </CardContent>
+
+              
+
           </Card>
         </div>
       </div>
