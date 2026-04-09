@@ -104,7 +104,7 @@ export function MapLocationPicker({
             }
           }
         }}
-        mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+        mapStyle="https://tiles.openfreemap.org/styles/bright"
         cursor="crosshair"
       >
         <NavigationControl position="bottom-right" />
