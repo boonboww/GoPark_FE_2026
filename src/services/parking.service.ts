@@ -220,6 +220,16 @@ class ParkingService {
       {},
     );
   }
+
+  /**
+   * Lấy bản đồ chỗ trống trong khoảng thời gian
+   * GET /parking-lots/:id/available-map?start_time=...&end_time=...
+   */
+  async getAvailableMap(lotId: number, startTime: string, endTime: string) {
+    return get<any>(
+      `/parking-lots/${lotId}/available-map?start_time=${startTime}&end_time=${endTime}`,
+    );
+  }
 }
 
 export const parkingService = new ParkingService();
