@@ -83,7 +83,14 @@ export default function VnpayReturnPage() {
         <CardFooter>
           <Button 
             className="w-full"
-            onClick={() => router.push('/users/wallet')}
+            onClick={() => {
+              const orderInfo = searchParams.get('vnp_OrderInfo') || '';
+              if (orderInfo.startsWith('PayBooking_')) {
+                router.push('/users/profile');
+              } else {
+                router.push('/users/wallet');
+              }
+            }}
           >
             Quay về trang chủ
           </Button>

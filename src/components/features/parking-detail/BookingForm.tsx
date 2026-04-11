@@ -1,6 +1,6 @@
 "use client";
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Car, Clock, ShieldCheck, MapPin, Search, CreditCard, Package } from "lucide-react";
+import { Car, Clock, ShieldCheck, MapPin, Search, CreditCard, Package, Calendar1Icon, ClockIcon } from "lucide-react";
 import { get } from "@/lib/api";
 import { any } from "zod";
 import { useParams, useRouter } from "next/navigation";
@@ -9,8 +9,37 @@ import { post } from "@/lib/api";
 import dayjs from "dayjs";
 import { useAuthStore } from '@/stores/auth.store';
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const HOURS = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0"));
+const MINUTES = ["00", "15", "30", "45"];
 
 
+// Kiểm tra xem một giờ có phải là quá khứ không (Dùng cho Giờ Vào)
+const checkIsPastHour = (h:string, selectedDate:string, today:string) => {
+  const isToday = selectedDate === today;
+  if (!isToday) return false;
+  return parseInt(h) < dayjs().hour();
+};
+
+// Kiểm tra xem một phút có phải là quá khứ không (Dùng cho Phút Vào)
+const checkIsPastMinute = (m:string, selectedDate:string, selectedHour:string, today:string) => {
+  const isToday = selectedDate === today;
+  const isCurrentHour = selectedHour === dayjs().format("HH");
+  return isToday && isCurrentHour && parseInt(m) < dayjs().minute();
+};
+
+// Kiểm tra giờ ra (Phải sau giờ vào nếu cùng ngày)
+const checkIsBeforeStartHour = (h:string, startDate:string, endDate:string, startHour:string) => {
+  const isSameDay = startDate === endDate;
+  return isSameDay && parseInt(h) < parseInt(startHour);
+};
 
 export function BookingForm() {
 
@@ -25,6 +54,7 @@ export function BookingForm() {
 
   const [paymentMethod, setPaymentMethod] = useState("vnpay");
 
+  const today = dayjs().format("YYYY-MM-DD");
   //const [selectedVehicleId, setSelectedVehicleId] = useState<number | string>("");
 
   const context = useContext(ParkingContext);
@@ -33,6 +63,10 @@ export function BookingForm() {
 
   const { dataLot, loadingLot, selectedSpot } = context;
 
+  // Helper to split dynamic strings for Select components
+  const getHH = (timeStr: string) => timeStr ? timeStr.split('T')[1]?.split(':')[0] || "00" : "00";
+  const getMM = (timeStr: string) => timeStr ? timeStr.split('T')[1]?.split(':')[1]?.substring(0, 2) || "00" : "00";
+
   console.log("Data Lot in BookingForm:", dataLot);
 
   console.log("Selected Spot in BookingForm:", selectedSpot);
@@ -40,11 +74,35 @@ export function BookingForm() {
 
   useEffect(() => {
 
+    //1.chọn biển số xe
     if (dataLot?.userVehicles?.length > 0) {
 
       setSelectedPlate(dataLot.userVehicles[0].plate_number);
 
     }
+
+    //2.thiết lập thời gian mặc định
+    if(!startTime) {
+      const now = dayjs();
+      // Tính toán số phút được làm tròn (ví dụ: 24 -> 30, 46 -> 00 của giờ kế tiếp)
+      const currentMinute = now.minute();
+      let roundedMinute = 0;
+
+      if (currentMinute < 15) roundedMinute = 15;
+      else if (currentMinute < 30) roundedMinute = 30;
+      else if (currentMinute < 45) roundedMinute = 45;
+      else roundedMinute = 60; // Sẽ nhảy sang giờ tiếp theo
+
+      // Thiết lập Start Time: Ngày hôm nay + Giờ hiện tại + Phút đã làm tròn
+      const start = now.minute(roundedMinute).second(0);
+      
+      // Thiết lập End Time: Start Time + 1 giờ
+      const end = start.add(1, "hour");
+
+      setStartTime(start.format("YYYY-MM-DDTHH:mm"));
+      setEndTime(end.format("YYYY-MM-DDTHH:mm"));
+    }
+
 
   }, [dataLot])
 
@@ -61,16 +119,17 @@ export function BookingForm() {
 
     if (selectedSpot) {
       dataLot?.parkingFloor?.forEach((floor: any) => {
-        const zone = floor.parkingZone?.find(
+        const zone = floor.parkingZones?.find(
           (z: any) => z.zone_name === selectedSpot.zoneName
         );
-        if (zone) selectedZone = zone;
+        if (zone) selectedZone = { ...zone, floor_name: floor.floor_name };
       });
     }
 
+    console.log(selectedZone)
     const pricing = selectedZone
 
-      ? dataLot?.pricingRule?.find((p: any) => p.parkingZone_id === selectedZone.zoneId)
+      ? dataLot?.pricingRules?.find((p: any) => p.zone_name === selectedZone.zone_name && p.floor_name === selectedZone.floor_name)
 
       : null;
 
@@ -89,7 +148,10 @@ export function BookingForm() {
 
   }, [dataLot, selectedPlate, selectedSpot]);
 
-  // 3. Logic tính tổng tiền tạm tính
+
+  
+
+  // 4. Logic tính tổng tiền tạm tính
 
   const totalPrice = useMemo(() => {
     console.log("--- Debug Time ---");
@@ -106,12 +168,15 @@ export function BookingForm() {
       return 0;
     }
 
-    // Tính tổng số phút chênh lệch
-
+    //số phút chênh lệch
     const totalMinutes = end.diff(start, "minute");
     const pricePerHour = bookingDetails.priceHourly || 0;
     const priceDay = bookingDetails.priceDayly || 0;
+    
+    //giá tiền 1p
     const priceMin = pricePerHour / 60;
+
+    //
     const days = Math.floor(totalMinutes / 1440);
     const remainingMinutes = totalMinutes % 1440;
 
@@ -123,6 +188,10 @@ export function BookingForm() {
 
   async function handBooking(e: any) {
     e.preventDefault();
+    const start = dayjs(startTime);
+    const end = dayjs(endTime);
+    const now = dayjs();
+
 
     if (!selectedPlate) {
       alert("Vui lòng chọn biển số xe");
@@ -134,6 +203,19 @@ export function BookingForm() {
       return;
     }
 
+
+    if(start.isBefore(now,"minute")){
+      alert("giờ vào không được nhỏ hơn giờ hiên tại");
+      return;
+    }
+
+
+    if (end.isBefore(start) || end.isSame(start)) {
+      alert("Lỗi: Thời gian ra phải sau thời gian vào!\n(Lưu ý: 12:00 AM là 00:00 sáng)");
+      return; // Chặn gửi BE
+    }
+
+
     if (!selectedSpot) {
       alert("Vui lòng chọn vị trí đỗ");
       return;
@@ -143,25 +225,19 @@ export function BookingForm() {
       alert("Thời gian ra phải sau thời gian vào - Vui lòng chọn lại");
       return;
     }
-
-    const start = dayjs(startTime);
-    const end = dayjs(endTime);
-
-    if (end.isBefore(start) || end.isSame(start)) {
-      alert("Lỗi: Thời gian ra phải sau thời gian vào!\n(Lưu ý: 12:00 AM là 00:00 sáng)");
-      return; // Chặn gửi BE
-    }
+    
 
     const vehicle = bookingDetails.vehicle;
 
+    console.log(startTime, endTime)
     const bookingData = {
       user_id: String(vehicle.user.id),
       vehicle_id: vehicle.id,
       slot_id: selectedSpot?.slot.id,
       parking_lot_id: dataLot.id,
-      start_time: dayjs(startTime).toISOString(),
+      start_time: dayjs(startTime).toISOString(), // Output: 2026-04-10T03:45:00.000Z
       end_time: dayjs(endTime).toISOString(),
-      status: "PENDING"
+      status: paymentMethod === 'cash' ? "PENDING" : "PENDING_PAYMENT"
     }
 
     console.log("Booking Data:", bookingData);
@@ -240,7 +316,7 @@ export function BookingForm() {
 
           setTimeout(() => {
             router.push("/users/profile");
-          }, 2000);
+          }, 1000);
 
           return;
 
@@ -256,11 +332,26 @@ export function BookingForm() {
 
       }
 
+      if (paymentMethod === 'cash') {
+        toast.success("Đặt chỗ thành công! Vui lòng thanh toán tiền mặt khi đến bãi.", {
+          position: "top-right",
+          style: {
+            padding: '16px',
+            fontSize: '16px',
+            width: '350px',
+            fontWeight: 'bold',
+            marginTop: '20px',
+          },
+          duration: 5000,
+        });
 
+        // Chuyển hướng sau 1 giây tương tự như wallet
+        setTimeout(() => {
+          router.push("/users/profile");
+        }, 1000);
 
-      // Nếu phương thức là cash hoặc khác
-
-      alert('Đặt chỗ thành công! Vui lòng thanh toán khi đến bãi (tiền mặt).');
+        return;
+      }
 
     } catch (error) {
 
@@ -349,129 +440,213 @@ export function BookingForm() {
         </div>
 
 
-
-        {/* Gói dịch vụ */}
-
-        {/* <div>
-
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
-
-              <Package className="w-4 h-4 text-gray-500" />
-
-              Gói dịch vụ
-
-            </label>
-
-            <div className="relative">
-
-              <select
-
-                value={servicePackage}
-
-                onChange={(e) => setServicePackage(e.target.value)}
-
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all text-gray-900 dark:text-white font-medium appearance-none cursor-pointer"
-
-              >
-
-                <option value="hourly">Theo giờ</option>
-
-                <option value="dayly">Theo ngày</option>
-
-              </select>
-
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-
-                <Package className="w-4 h-4 text-green-700 dark:text-green-700" />
-
-              </div>
-
-            </div>
-
-        </div> */}
-
-
-
         {/* Thời gian - Đã điều chỉnh để lấy toàn bộ chiều rộng (rộng hơn) */}
 
-        <div className="flex flex-col gap-5">
-
-          <div>
-
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
-
-              <Clock className="w-4 h-4 text-gray-500" />
-
-              Giờ vào
-
-            </label>
-
-            {/* Giờ vào */}
-
-            <input
-
-              type="datetime-local"
-
-              value={startTime}
-
-              onChange={(e) => setStartTime(e.target.value)}
-
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none text-base text-gray-900 dark:text-white transition-colors block"
-
-            />
-
+        {/* Grid Date/Time Inputs */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+          {/* Check-in Date */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-gray-400 tracking-[0.05em] uppercase pl-1">NGÀY VÀO</label>
+            <div className="relative">
+              <input
+                type="date"
+                min={today}
+                value={startTime ? startTime.split('T')[0] : ""}
+                onChange={(e) => {
+                  const date = e.target.value;
+                  const time = startTime.split('T')[1] || "00:00";
+                  setStartTime(`${date}T${time}`);
+                }}
+                className="w-full h-14 px-4 bg-white border border-[#E9ECEF] rounded-[20px] focus:outline-none focus:border-green-600 focus:ring-4 focus:ring-green-600/5 transition-all font-bold text-[#0A1F1C] text-sm"
+              />
+            </div>
           </div>
 
-          <div>
+          {/* Check-in Time Dropdowns */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-gray-400 tracking-[0.05em] uppercase pl-1">GIỜ VÀO</label>
+            <div className="flex gap-2">
+              <Select
+                value={getHH(startTime)}
+                onValueChange={(val) => {
+                  const date = startTime.split('T')[0] || dayjs().format("YYYY-MM-DD");
+                  const mm = getMM(startTime);
+                  setStartTime(`${date}T${val}:${mm}`);
+                }}
+              >
+                <SelectTrigger className="h-14 rounded-[20px] border-[#E9ECEF] font-bold text-[#0A1F1C] flex-1">
+                  <SelectValue placeholder="Giờ" />
+                </SelectTrigger>
+                {/* <SelectContent>
+                  {HOURS.map((h) => (
+                    <SelectItem key={h} value={h}>{h}h</SelectItem>
+                  ))}
+                </SelectContent> */}
 
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
 
-              <Clock className="w-4 h-4 text-gray-500" />
+                <SelectContent>
+                  {HOURS.map((h) => (
+                    <SelectItem 
+                      key={h} 
+                      value={h} 
+                      disabled={checkIsPastHour(h, startTime.split('T')[0], today)}
+                    >
+                      {h}h
+                    </SelectItem>
+                  ))}
+                </SelectContent>
 
-              Giờ ra
+              </Select>
+              <Select
+                value={getMM(startTime)}
+                onValueChange={(val) => {
+                  const date = startTime.split('T')[0] || dayjs().format("YYYY-MM-DD");
+                  const hh = getHH(startTime);
+                  setStartTime(`${date}T${hh}:${val}`);
+                }}
+              >
+                <SelectTrigger className="h-14 rounded-[20px] border-[#E9ECEF] font-bold text-[#0A1F1C] flex-1">
+                  <SelectValue placeholder="Phút" />
+                </SelectTrigger>
+                {/* <SelectContent>
+                  {MINUTES.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent> */}
 
-            </label>
+                <SelectContent>
+                  {MINUTES.map((m) => (
+                    <SelectItem 
+                      key={m} 
+                      value={m} 
+                      disabled={checkIsPastMinute(m, startTime.split('T')[0], getHH(startTime), today)}
+                    >
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
 
-            {/* Giờ ra */}
 
-            <input
-
-              type="datetime-local"
-
-              value={endTime}
-
-              min={startTime}
-
-              onChange={(e) => setEndTime(e.target.value)}
-
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none text-base text-gray-900 dark:text-white transition-colors block"
-
-            />
-
+              </Select>
+            </div>
           </div>
 
+          {/* Check-out Date */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-gray-400 tracking-[0.05em] uppercase pl-1">NGÀY RA</label>
+            <div className="relative">
+              <input
+                type="date"
+                min={today}
+                value={endTime ? endTime.split('T')[0] : ""}
+                onChange={(e) => {
+                  const date = e.target.value;
+                  const time = endTime.split('T')[1] || "00:00";
+                  setEndTime(`${date}T${time}`);
+                }}
+                className="w-full h-14 px-4 bg-white border border-[#E9ECEF] rounded-[20px] focus:outline-none focus:border-green-600 focus:ring-4 focus:ring-green-600/5 transition-all font-bold text-[#0A1F1C] text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Check-out Time Dropdowns */}
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-gray-400 tracking-[0.05em] uppercase pl-1">GIỜ RA</label>
+            <div className="flex gap-2">
+              <Select
+                value={getHH(endTime)}
+                onValueChange={(val) => {
+                  const date = endTime.split('T')[0] || dayjs().format("YYYY-MM-DD");
+                  const mm = getMM(endTime);
+                  setEndTime(`${date}T${val}:${mm}`);
+                }}
+              >
+                <SelectTrigger className="h-14 rounded-[20px] border-[#E9ECEF] font-bold text-[#0A1F1C] flex-1">
+                  <SelectValue placeholder="Giờ" />
+                </SelectTrigger>
+                {/* <SelectContent>
+                  {HOURS.map((h) => (
+                    <SelectItem key={h} value={h}>{h}h</SelectItem>
+                  ))}
+                </SelectContent> */}
+
+                <SelectContent>
+                  {HOURS.map((h) => (
+                    <SelectItem 
+                      key={h} 
+                      value={h} 
+                      disabled={checkIsBeforeStartHour(h, startTime.split('T')[0], endTime.split('T')[0], getHH(startTime))}
+                    >
+                      {h}h
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+
+              </Select>
+              <Select
+                value={getMM(endTime)}
+                onValueChange={(val) => {
+                  const date = endTime.split('T')[0] || dayjs().format("YYYY-MM-DD");
+                  const hh = getHH(endTime);
+                  setEndTime(`${date}T${hh}:${val}`);
+                }}
+              >
+                <SelectTrigger className="h-14 rounded-[20px] border-[#E9ECEF] font-bold text-[#0A1F1C] flex-1">
+                  <SelectValue placeholder="Phút" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MINUTES.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
 
+        {/* Selected Time Summary - Match UI Precisely */}
+        <div className="bg-[#F8F9FA] rounded-[24px] p-6 border border-[#F1F3F5] space-y-3">
+          <label className="text-[11px] font-bold text-[#ADB5BD] tracking-widest uppercase block">
+            THỜI GIAN ĐÃ CHỌN
+          </label>
 
-        {/* Dòng ghi chú về thời gian theo yêu cầu của bạn */}
+          <div className="flex gap-4 items-center">
+            {/* Icon Clock - Màu xanh đặc trưng */}
+            <div className="w-8 h-8 bg-[#00875A] rounded-full flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4 text-white" />
+            </div>
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md border border-blue-100 dark:border-blue-800">
+            <div className="flex flex-col gap-2">
+              {/* Hàng Từ */}
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] text-gray-400 min-w-[35px]">Từ:</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[18px] font-bold text-slate-800">
+                    {startTime ? dayjs(startTime).format("HH:mm") : "--:--"}
+                  </span>
+                  <span className="text-gray-300">-</span>
+                  <span className="text-[18px] font-bold text-slate-800">
+                    {startTime ? dayjs(startTime).format("DD/MM/YYYY") : "--/--/----"}
+                  </span>
+                </div>
+              </div>
 
-          <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
-
-            <strong>💡 Lưu ý về thời gian:</strong>
-
-            <br />
-
-            - 12h <strong>AM</strong> tương ứng với <strong>00:00</strong> (nửa đêm giờ VN).
-
-            <br />
-
-            - 12h <strong>PM</strong> tương ứng với <strong>12:00</strong> (trưa giờ VN).
-
-          </p>
-
+              {/* Hàng Đến */}
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] text-gray-400 min-w-[35px]">Đến:</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[18px] font-bold text-slate-800">
+                    {endTime ? dayjs(endTime).format("HH:mm") : "--:--"}
+                  </span>
+                  <span className="text-gray-300">-</span>
+                  <span className="text-[18px] font-bold text-slate-800">
+                    {endTime ? dayjs(endTime).format("DD/MM/YYYY") : "--/--/----"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
 
@@ -494,7 +669,7 @@ export function BookingForm() {
 
               {selectedSpot
 
-                ? `${selectedSpot.floorNumber}-${selectedSpot.zoneName}-${selectedSpot.slot.code}`
+                ? `${selectedSpot.floorName}-${selectedSpot.zoneName}-${selectedSpot.slot.code}`
 
                 : "Chưa chọn"}
 

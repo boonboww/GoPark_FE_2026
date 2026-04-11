@@ -301,7 +301,7 @@ export default function ProfilePage() {
 
       return (
         normalizePlate(bPlate) === normalizedTarget &&
-        b.status?.toLowerCase().trim() === "confirmed"
+        (b.status?.toLowerCase().trim() === "confirmed" || b.status?.toLowerCase().trim() === "pending")
       );
     });
 
