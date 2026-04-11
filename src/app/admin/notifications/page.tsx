@@ -151,8 +151,10 @@ export default function NotificationsPage() {
   };
 
   useEffect(() => {
-    fetchNotifications();
+    if (notifications.length === 0) {
+      fetchNotifications();
     fetchUsers();
+    }
   }, []);
 
   // Filter logic
@@ -163,7 +165,7 @@ export default function NotificationsPage() {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (n) =>
-          n.title.toLowerCase().includes(term) ||
+          (n.title || "").toLowerCase().includes(term) ||
           (n.content?.toLowerCase().includes(term) ?? false)
       );
     }

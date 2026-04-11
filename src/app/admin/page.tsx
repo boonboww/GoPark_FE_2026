@@ -37,6 +37,7 @@ import { Search, X } from "lucide-react";
 import { adminService, type AdminStats, type AdminActivity, type SystemStatus } from "@/services/admin.service";
 
 import RoleGuard from "@/components/RoleGuard";
+import { useAdminStore } from "@/stores";
 
 
 const MOCK_SYSTEM_STATUS: SystemStatus = {
@@ -47,11 +48,16 @@ const MOCK_SYSTEM_STATUS: SystemStatus = {
 };
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [activities, setActivities] = useState<AdminActivity[]>([]);
-  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    overviewStats: stats,
+    recentActivities: activities,
+    systemStatus,
+    isDashboardLoading: loading,
+    dashboardError: error,
+    setDashboardData,
+    setDashboardLoading,
+    setDashboardError
+  } = useAdminStore();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,11 +69,26 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   const filteredActivities = activities.filter((activity) => {
+    if (!activity) return false;
+    
+    // Safely access properties with optional chaining and fallback to empty string
+    const content = activity.content || "";
+    const username = activity.username || "";
+    const type = activity.type || "";
+    const status = activity.status || "";
+
     const matchesSearch =
-      activity.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activity.user.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === "all" || activity.type.toLowerCase() === typeFilter.toLowerCase();
-    const matchesStatus = statusFilter === "all" || activity.status.toLowerCase() === statusFilter.toLowerCase();
+      content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      username.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesType = 
+      typeFilter === "all" || 
+      type.toLowerCase() === typeFilter.toLowerCase();
+      
+    const matchesStatus = 
+      statusFilter === "all" || 
+      status.toLowerCase() === statusFilter.toLowerCase();
+      
     return matchesSearch && matchesType && matchesStatus;
   });
 
@@ -76,11 +97,10 @@ export default function AdminDashboard() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-  useEffect(() => {
-    const fetchData = async () => {
+
+  const fetchData = async () => {
       try {
-        setLoading(true);
-        setError(null);
+        setDashboardLoading(true);
 
         // Fetch all data using adminService
         const [statsData, activitiesData, statusData] = await Promise.all([
@@ -89,22 +109,21 @@ export default function AdminDashboard() {
           adminService.getSystemStatus().catch(() => null), // Optional, fallback handled below
         ]);
 
-        setStats(statsData);
-        setActivities(activitiesData );
-        setSystemStatus(statusData || MOCK_SYSTEM_STATUS);
+        setDashboardData(
+          statsData, 
+          activitiesData, 
+          statusData || MOCK_SYSTEM_STATUS
+        );
       } catch (err: any) {
         console.error("Fetch error:", err);
-        // Fallback to mock data on error for demo purposes
-        setStats(null);
-        setActivities([]);
-        setSystemStatus(MOCK_SYSTEM_STATUS);
-        setError(`Lỗi: ${err.message}`);
-      } finally {
-        setLoading(false);
+        setDashboardError(err.message);
       }
     };
 
-    fetchData();
+  useEffect(() => {
+    if (!stats) {
+      fetchData();
+    }
   }, []);
 
   const formatCurrency = (amount: number) => {
@@ -190,7 +209,6 @@ export default function AdminDashboard() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               Lỗi server không hoạt động
             </h3>
-            <p className="text-gray-600 mb-4">{error}</p>
             <Button onClick={() => window.location.reload()}>Thử lại</Button>
           </div>
         </div>
@@ -322,19 +340,35 @@ export default function AdminDashboard() {
                         let Icon = Activity;
                         let colorClass = "blue";
                         
-                        if (activity.type.toLowerCase().includes("user")) {
-                          Icon = UserPlus;
-                          colorClass = "indigo";
-                        } else if (activity.type.toLowerCase().includes("parking")) {
-                          Icon = MapPin;
-                          colorClass = "emerald";
-                        } else if (activity.type.toLowerCase().includes("payment")) {
-                          Icon = CreditCard;
-                          colorClass = "amber";
-                        } else if (activity.type.toLowerCase().includes("system")) {
-                          Icon = Settings;
-                          colorClass = "rose";
+                        const activityType = activity.type.toLowerCase();
+
+                        switch (true) {
+                          case activityType.includes("user"):
+                            Icon = UserPlus;
+                            colorClass = "indigo";
+                            break;
+                          case activityType.includes("parking"):
+                            Icon = MapPin;
+                            colorClass = "emerald";
+                            break;
+                          case activityType.includes("wallet") || activityType.includes("payment"):
+                            Icon = CreditCard;
+                            colorClass = "amber";
+                            break;
+                          case activityType.includes("booking"):
+                            Icon = Receipt;
+                            colorClass = "blue";
+                            break;
+                          case activityType.includes("system"):
+                            Icon = Settings;
+                            colorClass = "rose";
+                            break;
+                          default:
+                            Icon = Activity;
+                            colorClass = "blue";
+                            break;
                         }
+                    
 
                         const statusConfig = {
                           success: { label: "Thành công", class: "text-emerald-700 bg-emerald-50 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/50" },
@@ -356,7 +390,7 @@ export default function AdminDashboard() {
                             </TableCell>
                             <TableCell className="py-3">
                               <p className="text-sm font-bold text-slate-700 dark:text-slate-200 line-clamp-1 group-hover:text-blue-600 transition-colors">
-                                {activity.message}
+                                {activity.content}
                               </p>
                             </TableCell>
                             <TableCell className="py-3">
@@ -364,7 +398,7 @@ export default function AdminDashboard() {
                                 <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
                                   <Users className="w-3 h-3 text-slate-400" />
                                 </div>
-                                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{activity.user}</span>
+                                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{activity.username}</span>
                               </div>
                             </TableCell>
                             <TableCell className="py-3">
