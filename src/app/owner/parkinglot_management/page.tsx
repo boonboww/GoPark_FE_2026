@@ -9,7 +9,11 @@ import {
   Settings,
   Layers,
   LayoutGrid,
+  Filter,
+  Search,
+  RotateCcw,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,11 +36,17 @@ import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 import { TicketDetail, TicketData } from "./ticket-detail";
-import { MockFloor } from "./components/mock-data";
+import {
+  MockFloor,
+  MockZone,
+  MockSlot,
+  getMockTicket,
+} from "./components/mock-data";
 import { SetupWizardTab } from "./components/setup-wizard-modal";
 import { StructureManagerTab } from "./components/structure-manager-modal";
 import { ZoneSlotGrid, ApiSlot } from "./components/zone-slot-grid";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useQuery } from "@tanstack/react-query";
 import { parkingService } from "@/services/parking.service";
 import { useCustomerStore } from "@/stores/customer.store";
@@ -44,7 +54,12 @@ import { Loader2 } from "lucide-react";
 
 export default function ParkingLotManagementPage() {
   const { lotId } = useCustomerStore();
-  const [date, setDate] = React.useState<Date>();
+  const [date, setDate] = React.useState<Date>(new Date());
+  const [startTime, setStartTime] = React.useState("10:00");
+  const [endTime, setEndTime] = React.useState("14:00");
+  const [isFilterOpen, setIsFilterOpen] = React.useState(false);
+  const [isFetchingAvailable, setIsFetchingAvailable] = React.useState(false);
+  const [availableMapData, setAvailableMapData] = React.useState<any>(null);
 
   // Fetch real structure
   const { data: floorsResponse, isLoading } = useQuery({
@@ -54,22 +69,35 @@ export default function ParkingLotManagementPage() {
   });
 
   const floorsData = React.useMemo(() => {
-    if (!floorsResponse?.data) return [] as MockFloor[];
-    return floorsResponse.data.map((floor: any) => ({
-      id: floor.id.toString(),
-      floorId: floor.id as number,
-      name: floor.floor_name,
-      zones: (floor.parkingZone || []).map((zone: any) => ({
-        id: zone.id.toString(),
-        zoneId: zone.id as number,
-        floorId: floor.id as number, // truyền xuống để ZoneSlotGrid dùng
-        name: zone.zone_name,
-        totalSlots: zone.total_slots || 0,
-        slots: [], // Không dùng mock nữa — ZoneSlotGrid tự fetch
-      })),
-    })) as (MockFloor & {
+    const rawFloors = Array.isArray(floorsResponse)
+      ? floorsResponse
+      : (floorsResponse?.data ?? []);
+
+    return rawFloors.map((floor: any) => {
+      // Tìm mảng zones từ các tên trường phổ biến
+      const rawZones =
+        floor.parkingZone ||
+        floor.parkingZones ||
+        floor.zones ||
+        floor.parking_zones ||
+        [];
+
+      return {
+        id: (floor.id || "").toString(),
+        floorId: floor.id as number,
+        name: floor.floor_name || floor.name || `Tầng ${floor.floor_number}`,
+        zones: (Array.isArray(rawZones) ? rawZones : []).map((zone: any) => ({
+          id: (zone.id || "").toString(),
+          zoneId: zone.id as number,
+          floorId: floor.id as number,
+          name: zone.zone_name || zone.name || `Khu ${zone.prefix || zone.id}`,
+          totalSlots: zone.total_slots || zone.totalSlots || 0,
+          slots: [],
+        })),
+      };
+    }) as (MockFloor & {
       floorId: number;
-      zones: (MockFloor["zones"][number] & {
+      zones: (MockZone & {
         zoneId: number;
         floorId: number;
         totalSlots: number;
@@ -117,12 +145,74 @@ export default function ParkingLotManagementPage() {
     return currentFloor.zones.filter((z) => z.id === selectedZone);
   }, [currentFloor, selectedZone]);
 
-  const handleSlotClick = (slot: ApiSlot) => {
-    // Slot OCCUPIED/RESERVED: có thể mở ticket detail sau khi fetch booking data
-    // Hiện tại API list không trả ticket data — để mở rộng sau
-    if (slot.status === "OCCUPIED" || slot.status === "RESERVED") {
-      // TODO: fetch booking detail by slot.id
+  // Pre-calculate zone slots map for availability map mode
+  const zoneSlotsMap = React.useMemo(() => {
+    if (!availableMapData) return new Map<number, ApiSlot[]>();
+    const map = new Map<number, ApiSlot[]>();
+    const floors = availableMapData.parkingFloor || [];
+    for (const f of floors) {
+      const zones = f.parkingZones || f.zones || f.parking_zones || [];
+      for (const zone of zones) {
+        const slots = zone.slot || zone.slots || [];
+        // Chỉ lấy các slot còn trống
+        map.set(zone.id, slots.filter((s: any) => s.status === "AVAILABLE"));
+      }
     }
+    return map;
+  }, [availableMapData]);
+
+  const handleSlotClick = (slot: ApiSlot) => {
+    // Nếu là ô đang đỗ hoặc đã đặt
+    if (slot.status === "OCCUPIED" || slot.status === "RESERVED") {
+      const status = slot.status === "OCCUPIED" ? "occupied" : "reserved";
+
+      // Tạo dữ liệu vé (Mock) để hiển thị
+      // Sau này khi có API lấy booking chi tiết theo SlotID, ta sẽ gọi API tại đây
+      const mockTicket = getMockTicket(slot.code, status);
+
+      setSelectedTicket({
+        data: mockTicket,
+        status: status,
+      });
+      setIsTicketOpen(true);
+    }
+  };
+
+  const handleApplyFilter = async () => {
+    if (!lotId || !date) {
+      toast.error("Vui lòng chọn đầy đủ thông tin");
+      return;
+    }
+
+    try {
+      setIsFetchingAvailable(true);
+      
+      // Combine date and time
+      const combine = (timeStr: string) => {
+        const d = new Date(date);
+        const [h, m] = timeStr.split(":").map(Number);
+        d.setHours(h, m, 0, 0);
+        return d.toISOString();
+      };
+
+      const startISO = combine(startTime);
+      const endISO = combine(endTime);
+
+      const response = await parkingService.getAvailableMap(lotId, startISO, endISO);
+      
+      setAvailableMapData(response?.data || response);
+      setIsFilterOpen(false);
+      toast.success("Đã cập nhật bản đồ chỗ trống");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Lỗi khi tải bản đồ chỗ trống");
+    } finally {
+      setIsFetchingAvailable(false);
+    }
+  };
+
+  const handleResetFilter = () => {
+    setAvailableMapData(null);
+    toast.info("Đã quay lại chế độ thời gian thực");
   };
 
   return (
@@ -159,48 +249,113 @@ export default function ParkingLotManagementPage() {
               </Button>
             )}
 
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <Popover>
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              {availableMapData && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetFilter}
+                  className="text-slate-500 hover:text-red-500 hover:bg-red-50 font-bold h-11 px-4 transition-all"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" /> Xoá lọc
+                </Button>
+              )}
+
+              <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    variant={availableMapData ? "default" : "outline"}
                     className={cn(
-                      "w-[200px] justify-start text-left font-semibold h-11 border-slate-200 bg-slate-50 hover:bg-slate-100",
-                      !date && "text-muted-foreground",
+                      "h-11 px-6 rounded-xl font-bold transition-all duration-300",
+                      availableMapData 
+                        ? "bg-amber-500 hover:bg-amber-600 border-amber-500 shadow-lg shadow-amber-200" 
+                        : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-sm"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Chọn ngày xem</span>}
+                    <Filter className="mr-2 h-4 w-4" />
+                    {availableMapData ? "Đang lọc" : "Bộ lọc thời gian"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    initialFocus
-                  />
+                <PopoverContent className="w-[320px] p-5 rounded-2xl shadow-2xl border-slate-100" align="end">
+                  <div className="space-y-5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-black text-slate-800 tracking-tight">Cấu hình thời gian</h4>
+                      <div className="p-1.5 bg-slate-100 rounded-lg text-slate-400">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                    </div>
+                    
+                    {/* Date Picker Section */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ngày kiểm tra</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-bold border-slate-200 h-10 bg-slate-50"
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
+                            {date ? format(date, "PPP") : "Chọn ngày"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={date}
+                            onSelect={(d) => d && setDate(d)}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Time Range Section */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Khoảng giờ (In - Out)</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="relative">
+                          <Input
+                            type="time"
+                            value={startTime}
+                            onChange={(e) => setStartTime(e.target.value)}
+                            className="h-10 border-slate-200 bg-slate-50 font-bold px-3"
+                          />
+                        </div>
+                        <div className="relative">
+                          <Input
+                            type="time"
+                            value={endTime}
+                            onChange={(e) => setEndTime(e.target.value)}
+                            className="h-10 border-slate-200 bg-slate-50 font-bold px-3"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex flex-col gap-2">
+                      <Button 
+                        className="w-full bg-black text-white hover:bg-slate-800 font-bold h-11 rounded-xl shadow-lg"
+                        onClick={handleApplyFilter}
+                        disabled={isFetchingAvailable}
+                      >
+                        {isFetchingAvailable ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Search className="w-4 h-4 mr-2" />
+                        )}
+                        Áp dụng Lọc
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full text-slate-400 hover:text-slate-600 font-bold text-xs"
+                        onClick={() => setIsFilterOpen(false)}
+                      >
+                        Đóng
+                      </Button>
+                    </div>
+                  </div>
                 </PopoverContent>
               </Popover>
-              <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-lg border border-slate-200">
-                <div className="relative w-28">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    type="time"
-                    className="pl-9 h-9 border-0 shadow-none bg-transparent font-semibold"
-                    defaultValue="10:00"
-                  />
-                </div>
-                <div className="w-4 border-t-2 border-slate-300"></div>
-                <div className="relative w-28">
-                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <Input
-                    type="time"
-                    className="pl-9 h-9 border-0 shadow-none bg-transparent font-semibold"
-                    defaultValue="14:00"
-                  />
-                </div>
-              </div>
             </div>
           </div>
 
@@ -377,6 +532,8 @@ export default function ParkingLotManagementPage() {
                             zoneIndex={idx}
                             size={selectedZone === "all" ? "small" : "normal"}
                             onSlotClick={handleSlotClick}
+                            overrideSlots={zoneSlotsMap.get(z.zoneId)}
+                            isPreviewMode={!!availableMapData}
                           />
                         ) : (
                           <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
@@ -444,6 +601,9 @@ export default function ParkingLotManagementPage() {
         {/* MASTER CONFIG MODAL */}
         <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
           <DialogContent className="sm:max-w-[1000px] h-[90vh] flex flex-col p-0 overflow-hidden bg-white">
+            <VisuallyHidden>
+              <DialogTitle>Cấu hình Sơ đồ Bãi đỗ xe</DialogTitle>
+            </VisuallyHidden>
             <div className="flex border-b overflow-x-auto bg-slate-50/50">
               <button
                 onClick={() => setActiveTab("setup")}

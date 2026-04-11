@@ -13,6 +13,7 @@ import {
   IconListDetails,
   IconReport,
   IconSettings,
+  IconTicket,
   IconUser,
   IconUsers,
 } from "@tabler/icons-react";
@@ -47,6 +48,11 @@ const data = {
       title: "Quản lý bãi đỗ xe",
       url: "/owner/parkinglot_management",
       icon: IconListDetails,
+    },
+    {
+      title: "Lịch sử Booking",
+      url: "/owner/bookings",
+      icon: IconTicket,
     },
     {
       title: "Phân tích",
