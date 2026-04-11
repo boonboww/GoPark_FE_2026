@@ -14,13 +14,14 @@ import { toast } from "sonner";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { useCustomerStore } from "@/stores/customer.store";
 
 export default function AnalyticsPage() {
+  const { lotId } = useCustomerStore();
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: addDays(new Date(), -7),
     to: new Date(),
   });
-  const [selectedLot, setSelectedLot] = useState<string>("all");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -28,9 +29,10 @@ export default function AnalyticsPage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        const currentLotId = lotId ? lotId.toString() : "all";
         const result = await analyticsService.getAnalytics(
           dateRange,
-          selectedLot,
+          currentLotId,
         );
         setData(result);
       } catch (error) {
@@ -42,7 +44,7 @@ export default function AnalyticsPage() {
     };
 
     fetchData();
-  }, [dateRange, selectedLot]);
+  }, [dateRange, lotId]);
 
   const handleExport = () => {
     if (!data) return;
@@ -103,9 +105,6 @@ export default function AnalyticsPage() {
           <DashboardHeader
             dateRange={dateRange}
             setDateRange={setDateRange}
-            selectedLot={selectedLot}
-            setSelectedLot={setSelectedLot}
-            parkingLots={data?.parkingLotsList || []}
             onExport={handleExport}
           />
 

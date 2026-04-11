@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import DetailHistoryBooking from "./detailHistoryBooking";
-import { any } from "zod";
-import { mapDataBooking } from "../shareBooking/page";
+// import { any } from "zod";
+// import { mapDataBooking } from "../shareBooking/page";
 interface BookingItem {
   id: string;
   name: string;
@@ -108,7 +108,7 @@ function historyBooking(){
       //     status: statusMap[b.status] || b.status
       //   }
       // })
-      const mapData = res.data.map(mapDataBooking)
+      const mapData = res.data.map((b: any) => b); // mapDataBooking missing
       console.log(mapData)
       setBooking(mapData);
       

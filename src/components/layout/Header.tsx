@@ -80,7 +80,7 @@ const Header = () => {
             Tìm bãi đỗ
           </Link>
           <Link
-            href="/users/myBooking"
+            href="/users/historyBooking"
             className="transition-colors hover:text-primary hover:font-semibold"
           >
             <History className="h-5 w-5 inline-block mr-1" />

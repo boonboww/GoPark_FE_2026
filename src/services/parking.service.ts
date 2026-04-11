@@ -20,6 +20,14 @@ export interface WalkInResponse {
 
 class ParkingService {
   /**
+   * Lấy tất cả bãi đỗ xe
+   * GET /parking-lots/all
+   */
+  async getAllParkingLots() {
+    return get<any>("/parking-lots/all");
+  }
+
+  /**
    * Đăng ký khách vãng lai (walk-in) vào bãi đỗ xe
    * POST /parking-lots/:id/walk-in
    */
@@ -43,7 +51,6 @@ class ParkingService {
    * Thêm Tầng (Floor) vào bãi đỗ xe
    * POST /parking-lots/:id/floors
    */
-
   async createFloor(
     lotId: number,
     payload: { floor_name: string; floor_number: number; description?: string },
@@ -55,7 +62,6 @@ class ParkingService {
    * Thêm Khu vực (Zone) vào tầng
    * POST /parking-lots/floors/:floorId/zones
    */
-
   async createZone(
     floorId: number,
     payload: {
@@ -81,7 +87,6 @@ class ParkingService {
    * Cập nhật Tầng (Floor)
    * PATCH /parking-lots/:lotId/floors/:floorId
    */
-
   async updateFloor(
     lotId: number,
     floorId: number,
@@ -98,7 +103,6 @@ class ParkingService {
    * Cập nhật Khu vực (Zone) mới
    * PATCH /parking-lots/:lotId/floors/:floorId/zones/:zoneId
    */
-
   async updateZone(
     lotId: number,
     floorId: number,
@@ -120,7 +124,6 @@ class ParkingService {
    * Cập nhật Bảng giá (Pricing Rule)
    * PATCH /payment/pricing-rule/:lotId/floors/:floorId/zones/:zoneId/rule/:ruleId
    */
-
   async updatePricingRule(
     lotId: number,
     floorId: number,
@@ -150,7 +153,6 @@ class ParkingService {
     price_per_hour: number;
     price_per_day: number;
     parking_zone_id: number;
-
     parking_lot_id: number;
     parking_floor_id: number;
   }) {
@@ -178,7 +180,6 @@ class ParkingService {
    * GET /parking-lots/:lotId/floors/:floorId/zones/:zoneId/slots
    * GET /parking-lots/:lotId/floors/:floorId/zones/:zoneId/slots?includeDisabled=true
    */
-
   async getZoneSlots(
     lotId: number,
     floorId: number,
