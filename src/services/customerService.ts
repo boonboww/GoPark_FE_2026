@@ -9,3 +9,5 @@ export const getCustomersByLot = (
   search: string = "",
 ): Promise<unknown> =>
   get<unknown>(`/parking-lots/${lotId}/users`, search ? { search } : undefined);
+
+

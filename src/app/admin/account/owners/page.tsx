@@ -42,32 +42,25 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { adminService, OwnerList, OwnerStats } from "@/services/admin.service";
+import { useAdminStore } from "@/stores";
 
 // ─── Kiểu dữ liệu ───────────────────────────────────────────────────────────
 
 /** Thông tin bãi đỗ xe của chủ bãi */
 interface ParkingLot {
-  _id: string;
+  id: string;
   name: string;
   address: string;
   totalSlots: number;
-  status: "active" | "pending" | "suspended";
+  status: "ACTIVE" | "PENDING" | "SUSPENDED";
   rating: number;
 }
 
 /** Thông tin chủ bãi đỗ */
-interface Owner {
-  _id: string;
-  userName: string;
-  email: string;
-  phoneNumber: string;
+interface Owner extends OwnerList {
   avatar?: string;
-  status: "active" | "banned";
-  totalParkingLots: number;
-  totalRevenue: number;
-  totalBookings: number;
-  lastActive: string;
-  createdAt: string;
+  lastActive?: string;
   address?: string;
   businessName?: string;
   parkingLots?: ParkingLot[];
@@ -86,12 +79,17 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 /** Cấu hình màu sắc & nhãn cho trạng thái tài khoản */
 const statusConfig = {
-  active: {
+  ACTIVE: {
     label: "Hoạt động",
     className: "bg-green-100 text-green-800 border-green-200",
     dot: "bg-green-500",
   },
-  banned: {
+  BLOCKED: {
+    label: "Đã khóa",
+    className: "bg-red-100 text-red-800 border-red-200",
+    dot: "bg-red-500",
+  },
+  BANNED: {
     label: "Đã khóa",
     className: "bg-red-100 text-red-800 border-red-200",
     dot: "bg-red-500",
@@ -105,102 +103,6 @@ const parkingLotStatusConfig: Record<string, { label: string; className: string 
   suspended: { label: "Tạm ngưng", className: "bg-red-100 text-red-700" },
 };
 
-// ─── Dữ liệu mẫu (mock data) ────────────────────────────────────────────────
-
-const mockOwners: Owner[] = [
-  {
-    _id: "o1",
-    userName: "Trần Quốc Bảo",
-    email: "tranquocbao@gmail.com",
-    phoneNumber: "0901 111 222",
-    status: "active",
-    totalParkingLots: 3,
-    totalRevenue: 45600000,
-    totalBookings: 312,
-    lastActive: "2026-03-13T14:30:00Z",
-    createdAt: "2025-04-10T08:00:00Z",
-    address: "456 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh",
-    businessName: "Công ty TNHH Bãi đỗ Quốc Bảo",
-    parkingLots: [
-      { _id: "pl1", name: "Bãi đỗ xe Times City", address: "458 Minh Khai, HN", totalSlots: 120, status: "active", rating: 4.5 },
-      { _id: "pl2", name: "Bãi đỗ xe Vincom Đồng Khởi", address: "72 Lê Thánh Tôn, Q1", totalSlots: 80, status: "active", rating: 4.2 },
-      { _id: "pl3", name: "Bãi đỗ xe Thảo Điền", address: "12 Quốc Hương, Q2", totalSlots: 50, status: "pending", rating: 0 },
-    ],
-  },
-  {
-    _id: "o2",
-    userName: "Nguyễn Thị Hương",
-    email: "nguyenthihuong@gmail.com",
-    phoneNumber: "0938 333 444",
-    status: "active",
-    totalParkingLots: 2,
-    totalRevenue: 28900000,
-    totalBookings: 198,
-    lastActive: "2026-03-13T09:15:00Z",
-    createdAt: "2025-07-22T10:30:00Z",
-    address: "89 Trần Hưng Đạo, Quận 5, TP. Hồ Chí Minh",
-    businessName: "Bãi xe Hương Nguyễn",
-    parkingLots: [
-      { _id: "pl4", name: "Bãi đỗ xe Royal City", address: "72A Nguyễn Trãi, HN", totalSlots: 200, status: "active", rating: 4.7 },
-      { _id: "pl5", name: "Bãi đỗ xe Lotte Mart", address: "469 Nguyễn Hữu Thọ, Q7", totalSlots: 150, status: "active", rating: 4.0 },
-    ],
-  },
-  {
-    _id: "o3",
-    userName: "Lê Văn Cường",
-    email: "levancuong@yahoo.com",
-    phoneNumber: "0912 555 666",
-    status: "banned",
-    totalParkingLots: 1,
-    totalRevenue: 5200000,
-    totalBookings: 45,
-    lastActive: "2026-02-15T18:00:00Z",
-    createdAt: "2025-10-05T09:00:00Z",
-    address: "200 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh",
-    businessName: "Bãi xe Văn Cường",
-    parkingLots: [
-      { _id: "pl6", name: "Bãi đỗ xe Quận 10", address: "200 CMT8, Q10", totalSlots: 60, status: "suspended", rating: 3.2 },
-    ],
-  },
-  {
-    _id: "o4",
-    userName: "Phạm Đức Duy",
-    email: "phamducduy@gmail.com",
-    phoneNumber: "0976 777 888",
-    status: "active",
-    totalParkingLots: 5,
-    totalRevenue: 89500000,
-    totalBookings: 567,
-    lastActive: "2026-03-13T16:00:00Z",
-    createdAt: "2025-01-15T14:00:00Z",
-    address: "15 Lê Duẩn, Quận 1, TP. Hồ Chí Minh",
-    businessName: "Hệ thống bãi đỗ xe ParkSmart",
-    parkingLots: [
-      { _id: "pl7", name: "ParkSmart Quận 1", address: "15 Lê Duẩn, Q1", totalSlots: 250, status: "active", rating: 4.8 },
-      { _id: "pl8", name: "ParkSmart Quận 3", address: "100 Pasteur, Q3", totalSlots: 180, status: "active", rating: 4.6 },
-      { _id: "pl9", name: "ParkSmart Phú Nhuận", address: "50 Phan Xích Long, PN", totalSlots: 100, status: "active", rating: 4.4 },
-      { _id: "pl10", name: "ParkSmart Tân Bình", address: "200 Hoàng Văn Thụ, TB", totalSlots: 90, status: "active", rating: 4.3 },
-      { _id: "pl11", name: "ParkSmart Bình Thạnh", address: "300 Xô Viết Nghệ Tĩnh, BT", totalSlots: 75, status: "pending", rating: 0 },
-    ],
-  },
-  {
-    _id: "o5",
-    userName: "Hoàng Minh Tuấn",
-    email: "hoangminhtuan@outlook.com",
-    phoneNumber: "0889 999 000",
-    status: "active",
-    totalParkingLots: 1,
-    totalRevenue: 12300000,
-    totalBookings: 89,
-    lastActive: "2026-03-12T20:45:00Z",
-    createdAt: "2025-08-30T16:00:00Z",
-    address: "78 Nguyễn Thị Minh Khai, Quận 1, TP. Hồ Chí Minh",
-    businessName: "Bãi xe Minh Tuấn",
-    parkingLots: [
-      { _id: "pl12", name: "Bãi đỗ xe Bitexco", address: "2 Hải Triều, Q1", totalSlots: 300, status: "active", rating: 4.9 },
-    ],
-  },
-];
 
 // ─── Hàm tiện ích ─────────────────────────────────────────────────────────────
 
@@ -269,11 +171,17 @@ const timeAgo = (dateString: string) => {
 // ─── Component chính ──────────────────────────────────────────────────────────
 
 export default function OwnersPage() {
-  // ── Trạng thái (state) ──────────────────────────────────────────────────────
-  const [owners, setOwners] = useState<Owner[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [usingMockData, setUsingMockData] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    owners,
+    ownerStats,
+    isOwnersLoading: loading,
+    ownersError: error,
+    setOwnerData,
+    setOwnersLoading,
+    setOwnersError,
+    setOwners,
+    setOwnerStats
+  } = useAdminStore();
 
   /** Bộ lọc tìm kiếm / trạng thái / sắp xếp */
   const [filters, setFilters] = useState<Filters>({
@@ -290,57 +198,44 @@ export default function OwnersPage() {
 
   const fetchOwners = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      setUsingMockData(false);
+      setOwnersLoading(true);
 
-      const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+      const [statsData, listData] = await Promise.all([
+        adminService.getOwnerStats(),
+        adminService.getOwners()
+      ]);
 
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/users?role=owner`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) throw new Error(`Lỗi HTTP! Mã: ${response.status}`);
-
-      const result = await response.json();
-      if (result.status === "success") {
-        setOwners(result.data.data || result.data);
-      } else {
-        throw new Error("Không thể tải dữ liệu");
+      if (statsData && listData) {
+        setOwnerData(listData, statsData);
       }
+
     } catch (err) {
       console.error("Lỗi khi tải danh sách chủ bãi đỗ:", err);
-      setError(err instanceof Error ? err.message : "Lỗi không xác định");
-      // Sử dụng dữ liệu mẫu khi API chưa sẵn sàng
-      setUsingMockData(true);
-      setOwners(mockOwners);
-    } finally {
-      setLoading(false);
+      setOwnersError(err instanceof Error ? err.message : "Lỗi không xác định");
     }
   };
 
   /** Tải dữ liệu khi component được mount */
   useEffect(() => {
-    fetchOwners();
+    if (owners.length === 0) {
+      fetchOwners();
+    }
   }, []);
 
   // ── Lọc & sắp xếp danh sách ────────────────────────────────────────────────
 
   const filteredOwners = useMemo(() => {
-    let result = [...owners];
+    let result = [...owners] as Owner[];
 
     // Tìm kiếm theo tên, email, SĐT, tên doanh nghiệp
     if (filters.search) {
       const term = filters.search.toLowerCase();
       result = result.filter(
         (o) =>
-          o.userName.toLowerCase().includes(term) ||
-          o.email.toLowerCase().includes(term) ||
-          o.phoneNumber.replace(/\s/g, "").includes(term.replace(/\s/g, "")) ||
-          (o.businessName && o.businessName.toLowerCase().includes(term))
+          (o.name || "").toLowerCase().includes(term) ||
+          (o.email || "").toLowerCase().includes(term) ||
+          (o.phone || "").replace(/\s/g, "").includes(term.replace(/\s/g, "")) ||
+          (o.businessName || "").toLowerCase().includes(term)
       );
     }
 
@@ -361,7 +256,9 @@ export default function OwnersPage() {
         result.sort((a, b) => b.totalParkingLots - a.totalParkingLots);
         break;
       case "most-revenue":
-        result.sort((a, b) => b.totalRevenue - a.totalRevenue);
+        // Since revenue is a string like "0 Tr ₫", we might need a better way to sort
+        // But for now, we leave it or attempt basic string comparison
+        result.sort((a, b) => b.totalRevenue.localeCompare(a.totalRevenue));
         break;
     }
 
@@ -371,15 +268,20 @@ export default function OwnersPage() {
   // ── Tính toán thống kê ──────────────────────────────────────────────────────
 
   const stats = useMemo(() => {
+    if (ownerStats) {
+      return {
+        total: ownerStats.totalOwners,
+        active: ownerStats.activeOwners,
+        blocked: ownerStats.blockedOwners,
+        newLastMonth: ownerStats.newOwnersLastMonth,
+      };
+    }
+
     const total = owners.length;
-    const active = owners.filter((o) => o.status === "active").length;
-    const banned = owners.filter((o) => o.status === "banned").length;
-    // Tổng số bãi đỗ của tất cả chủ bãi
-    const totalLots = owners.reduce((sum, o) => sum + o.totalParkingLots, 0);
-    // Tổng doanh thu toàn hệ thống
-    const totalRevenue = owners.reduce((sum, o) => sum + o.totalRevenue, 0);
-    return { total, active, banned, totalLots, totalRevenue };
-  }, [owners]);
+    const active = owners.filter((o) => o.status === "ACTIVE").length;
+    const blocked = owners.filter((o) => o.status === "BLOCKED" || o.status === "BANNED").length;
+    return { total, active, blocked, newLastMonth: 0 };
+  }, [owners, ownerStats]);
 
   // ── Xử lý sự kiện ──────────────────────────────────────────────────────────
 
@@ -401,15 +303,15 @@ export default function OwnersPage() {
 
   /** Khóa / mở khóa tài khoản chủ bãi */
   const handleToggleStatus = async (owner: Owner) => {
-    const newStatus = owner.status === "active" ? "banned" : "active";
-    console.log(`Chuyển trạng thái tài khoản ${owner._id} sang ${newStatus}`);
+    const newStatus = owner.status === "ACTIVE" ? "BANNED" : "ACTIVE";
+    console.log(`Chuyển trạng thái tài khoản ${owner.id} sang ${newStatus}`);
     // TODO: Gọi API cập nhật trạng thái
-    setOwners((prev) =>
-      prev.map((o) => (o._id === owner._id ? { ...o, status: newStatus } : o))
+    setOwners(
+      owners.map((o) => (o.id === owner.id ? { ...o, status: newStatus } : o))
     );
     // Cập nhật luôn owner đang xem chi tiết (nếu có)
-    if (selectedOwner && selectedOwner._id === owner._id) {
-      setSelectedOwner((prev) => (prev ? { ...prev, status: newStatus } : prev));
+    if (selectedOwner && selectedOwner.id === owner.id) {
+      setSelectedOwner({ ...selectedOwner, status: newStatus });
     }
   };
 
@@ -418,27 +320,35 @@ export default function OwnersPage() {
   const statCards = [
     {
       title: "Tổng chủ bãi",
-      value: stats.total.toString(),
+      value: stats.total,
       icon: Users,
-      color: "bg-blue-500",
+      gradient: "from-blue-500 to-indigo-600",
+      bgTint: "from-blue-50 to-indigo-50",
+      border: "border-blue-100",
     },
     {
       title: "Đang hoạt động",
-      value: stats.active.toString(),
+      value: stats.active,
       icon: UserCheck,
-      color: "bg-emerald-500",
+      gradient: "from-emerald-500 to-teal-600",
+      bgTint: "from-emerald-50 to-teal-50",
+      border: "border-emerald-100",
     },
     {
-      title: "Tổng bãi đỗ",
-      value: stats.totalLots.toString(),
-      icon: ParkingSquare,
-      color: "bg-violet-500",
+      title: "Chủ bãi mới (tháng)",
+      value: stats.newLastMonth,
+      icon: UserPlus,
+      gradient: "from-violet-500 to-purple-600",
+      bgTint: "from-violet-50 to-purple-50",
+      border: "border-violet-100",
     },
     {
-      title: "Tổng doanh thu",
-      value: formatCompactCurrency(stats.totalRevenue),
-      icon: TrendingUp,
-      color: "bg-orange-500",
+      title: "Đã bị khóa",
+      value: stats.blocked,
+      icon: ShieldBan,
+      gradient: "from-red-500 to-rose-600",
+      bgTint: "from-red-50 to-rose-50",
+      border: "border-red-100",
     },
   ];
 
@@ -468,10 +378,7 @@ export default function OwnersPage() {
             Quản lý Chủ bãi đỗ
           </h1>
           <p className="text-blue-200/70 mt-1 text-sm">
-            Tìm thấy {filteredOwners.length} chủ bãi đỗ
-            {usingMockData && (
-              <span className="ml-2 text-orange-300 text-xs">(Dữ liệu mẫu)</span>
-            )}
+            Tìm thấy {filteredOwners.length} chủ bãi đỗ 
           </p>
           {error && <p className="text-red-300 text-xs mt-1">Lỗi kết nối: {error}</p>}
         </div>
@@ -489,18 +396,30 @@ export default function OwnersPage() {
 
       {/* ── Thẻ thống kê ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => {
+        {statCards.map((card, i) => {
           const Icon = card.icon;
           return (
-            <Card key={card.title} className="hover:shadow-md transition-shadow border-0 shadow-sm">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
+            <Card
+              key={i}
+              className={`bg-gradient-to-br ${card.bgTint} ${card.border} border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden relative shadow-sm`}
+            >
+              <div
+                className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${card.gradient} opacity-[0.04] rounded-full -translate-y-10 translate-x-10`}
+              />
+              <CardContent className="p-5 relative">
+                <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">{card.title}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{card.value}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      {card.title}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {card.value}
+                    </p>
                   </div>
-                  <div className={`w-12 h-12 rounded-xl ${card.color} flex items-center justify-center shadow-lg`}>
-                    <Icon className="w-6 h-6 text-white" />
+                  <div
+                    className={`w-11 h-11 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-lg shadow-black/10`}
+                  >
+                    <Icon className="w-5 h-5 text-white" />
                   </div>
                 </div>
               </CardContent>
@@ -520,24 +439,24 @@ export default function OwnersPage() {
               placeholder="Tìm theo tên, email, SĐT hoặc tên doanh nghiệp..."
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white"
+              className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white text-gray-900"
             />
           </div>
           {/* Lọc trạng thái */}
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange("status", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[160px]"
+            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[160px] text-gray-900"
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="active">Hoạt động</option>
-            <option value="banned">Đã khóa</option>
+            <option value="ACTIVE">Hoạt động</option>
+            <option value="BANNED">Đã khóa</option>
           </select>
           {/* Sắp xếp */}
           <select
             value={filters.sortBy}
             onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[180px]"
+            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[180px] text-gray-900"
           >
             <option value="newest">Mới nhất</option>
             <option value="oldest">Cũ nhất</option>
@@ -586,10 +505,11 @@ export default function OwnersPage() {
             {/* Nội dung bảng */}
             <tbody className="divide-y divide-gray-50">
               {filteredOwners.map((owner) => {
-                const config = statusConfig[owner.status];
+                const statusKey = (owner.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig;
+                const config = statusConfig[statusKey] || statusConfig.ACTIVE;
                 return (
                   <tr
-                    key={owner._id}
+                    key={owner.id}
                     className="hover:bg-blue-50/40 transition-colors cursor-pointer"
                     onClick={() => openDetail(owner)}
                   >
@@ -598,14 +518,14 @@ export default function OwnersPage() {
                       <div className="flex items-center gap-3">
                         {/* Avatar với chữ cái đầu */}
                         <div
-                          className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(owner._id)} flex items-center justify-center flex-shrink-0 shadow-sm`}
+                          className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(owner.id)} flex items-center justify-center flex-shrink-0 shadow-sm`}
                         >
                           <span className="text-white text-sm font-semibold">
-                            {getInitials(owner.userName)}
+                            {getInitials(owner.name)}
                           </span>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">{owner.userName}</p>
+                          <p className="text-sm font-semibold text-gray-900">{owner.name}</p>
                           {/* Tên doanh nghiệp (nếu có) */}
                           {owner.businessName && (
                             <p className="text-xs text-gray-400 flex items-center gap-1">
@@ -626,7 +546,7 @@ export default function OwnersPage() {
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Phone size={14} className="text-gray-400 flex-shrink-0" />
-                          {owner.phoneNumber}
+                          {owner.phone}
                         </div>
                       </div>
                     </td>
@@ -644,7 +564,7 @@ export default function OwnersPage() {
                     {/* Doanh thu */}
                     <td className="px-6 py-4">
                       <p className="text-sm font-semibold text-gray-900">
-                        {formatCompactCurrency(owner.totalRevenue)}
+                        {owner.totalRevenue}
                       </p>
                     </td>
 
@@ -671,7 +591,7 @@ export default function OwnersPage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical size={16} />
+                            <MoreVertical size={16} className="text-slate-600" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
@@ -682,9 +602,9 @@ export default function OwnersPage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleToggleStatus(owner)}
-                            className={owner.status === "active" ? "text-red-600" : "text-green-600"}
+                            className={owner.status === "ACTIVE" ? "text-red-600" : "text-green-600"}
                           >
-                            {owner.status === "active" ? (
+                            {owner.status === "ACTIVE" ? (
                               <>
                                 <Ban size={16} className="mr-2" />
                                 Khóa tài khoản
@@ -736,14 +656,14 @@ export default function OwnersPage() {
               {/* Phần đầu — Avatar, tên, trạng thái */}
               <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-violet-50 to-indigo-50 rounded-xl">
                 <div
-                  className={`w-16 h-16 rounded-full bg-gradient-to-br ${getAvatarColor(selectedOwner._id)} flex items-center justify-center shadow-md`}
+                  className={`w-16 h-16 rounded-full bg-gradient-to-br ${getAvatarColor(selectedOwner.id)} flex items-center justify-center shadow-md`}
                 >
                   <span className="text-white text-xl font-bold">
-                    {getInitials(selectedOwner.userName)}
+                    {getInitials(selectedOwner.name)}
                   </span>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900">{selectedOwner.userName}</h3>
+                  <h3 className="text-xl font-bold text-gray-900">{selectedOwner.name}</h3>
                   {selectedOwner.businessName && (
                     <p className="text-sm text-gray-500 flex items-center gap-1">
                       <Building2 size={14} />
@@ -752,10 +672,10 @@ export default function OwnersPage() {
                   )}
                   <Badge
                     variant="outline"
-                    className={`mt-2 ${statusConfig[selectedOwner.status].className}`}
+                    className={`mt-2 ${(statusConfig[(selectedOwner.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig] || statusConfig.ACTIVE).className}`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[selectedOwner.status].dot} mr-1.5 inline-block`} />
-                    {statusConfig[selectedOwner.status].label}
+                    <span className={`w-1.5 h-1.5 rounded-full ${(statusConfig[(selectedOwner.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig] || statusConfig.ACTIVE).dot} mr-1.5 inline-block`} />
+                    {(statusConfig[(selectedOwner.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig] || statusConfig.ACTIVE).label}
                   </Badge>
                 </div>
               </div>
@@ -773,7 +693,7 @@ export default function OwnersPage() {
                   <Phone size={18} className="text-green-500" />
                   <div>
                     <p className="text-xs text-gray-400">Số điện thoại</p>
-                    <p className="text-sm font-medium text-gray-900">{selectedOwner.phoneNumber}</p>
+                    <p className="text-sm font-medium text-gray-900">{selectedOwner.phone}</p>
                   </div>
                 </div>
                 {selectedOwner.address && (
@@ -796,7 +716,7 @@ export default function OwnersPage() {
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-xl">
                   <TrendingUp className="w-5 h-5 text-green-600 mx-auto mb-1" />
-                  <p className="text-lg font-bold text-green-700">{formatCompactCurrency(selectedOwner.totalRevenue)}</p>
+                  <p className="text-lg font-bold text-green-700">{selectedOwner.totalRevenue}</p>
                   <p className="text-xs text-green-500">Doanh thu</p>
                 </div>
                 <div className="text-center p-4 bg-blue-50 rounded-xl">
@@ -817,7 +737,7 @@ export default function OwnersPage() {
                       const lotStatus = parkingLotStatusConfig[lot.status] || { label: lot.status, className: "bg-gray-100 text-gray-700" };
                       return (
                         <div
-                          key={lot._id}
+                          key={lot.id}
                           className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                         >
                           <div className="flex items-center gap-3">
@@ -858,7 +778,7 @@ export default function OwnersPage() {
               {/* Thông tin bổ sung */}
               <div className="flex items-center justify-between text-sm text-gray-400 px-1">
                 <span>Tham gia: {formatDate(selectedOwner.createdAt)}</span>
-                <span>Hoạt động cuối: {timeAgo(selectedOwner.lastActive)}</span>
+                {selectedOwner.lastActive && <span>Hoạt động cuối: {timeAgo(selectedOwner.lastActive)}</span>}
               </div>
 
               {/* Nút hành động */}
@@ -869,12 +789,12 @@ export default function OwnersPage() {
                 <Button
                   onClick={() => handleToggleStatus(selectedOwner)}
                   className={
-                    selectedOwner.status === "active"
+                    selectedOwner.status === "ACTIVE"
                       ? "bg-red-600 hover:bg-red-700 text-white"
                       : "bg-green-600 hover:bg-green-700 text-white"
                   }
                 >
-                  {selectedOwner.status === "active" ? (
+                  {selectedOwner.status === "ACTIVE" ? (
                     <>
                       <Ban size={16} className="mr-2" />
                       Khóa tài khoản

@@ -16,8 +16,8 @@ export interface AdminStats {
 export interface AdminActivity {
   id: string;
   type: string;
-  message: string;
-  user: string;
+  content: string;
+  username: string;
   time: string;
   status: "success" | "warning" | "error";
 }
@@ -29,9 +29,236 @@ export interface SystemStatus {
   notification: { status: string; message: string };
 }
 
-export interface ApiResponse<T> {
-  status: string;
+export interface WrappedResponse<T> {
+  success: boolean;
+  message: string;
   data: T;
+}
+
+export interface ApiResponse<T> {
+  statusCode: number;
+  message: string;
+  data: T;
+}
+
+export interface UserStats {
+  totalUsers: number;
+  newUsersLastMonth: number;
+  activeUsers: number;
+  blockedUsers: number;
+}
+
+export interface CustomerList {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatar?: string;
+  status: "ACTIVE" | "BANNED";
+  totalBookings: number;
+  totalSpending: number;
+  lastActive: string;
+  createdAt: string;
+  address?: string;
+}
+
+export interface OwnerStats {
+  totalOwners: number;
+  newOwnersLastMonth: number;
+  activeOwners: number;
+  blockedOwners: number;
+}
+
+export interface OwnerList {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  totalParkingLots: number;
+  totalRevenue: string; // Backend returns string like "0 Tr ₫"
+  totalBookings: number;
+  status: "ACTIVE" | "BLOCKED" | string;
+  createdAt: string;
+}
+
+/** Transaction related types */
+export type TransactionStatus = "success" | "pending" | "failed" | "refunded";
+export type PaymentMethod =
+  | "momo"
+  | "vnpay"
+  | "zalopay"
+  | "bank_transfer"
+  | "wallet"
+  | "cash"
+  | "credit_card";
+export type TransactionType =
+  | "top_up"
+  | "withdrawal"
+  | "booking_payment"
+  | "subscription"
+  | "refund"
+  | "penalty";
+
+export interface TransactionUser {
+  _id: string;
+  userName: string;
+  email: string;
+  role: "user" | "owner";
+}
+
+export interface Transaction {
+  _id: string;
+  transactionCode: string;
+  user: TransactionUser;
+  type: TransactionType;
+  status: TransactionStatus;
+  amount: number;
+  paymentMethod: PaymentMethod;
+  description: string;
+  bookingId?: string;
+  parkingLotName?: string;
+  parkingLotAddress?: string;
+  createdAt: string;
+  completedAt?: string;
+  failedReason?: string;
+  refundReason?: string;
+}
+
+/** Report related types */
+export interface MonthlyRevenue {
+  month: string;
+  bookingRevenue: number;
+  subscriptionRevenue: number;
+  penaltyRevenue: number;
+  totalRevenue: number;
+  refunds: number;
+  netRevenue: number;
+}
+
+export interface ParkingLotRevenue {
+  name: string;
+  revenue: number;
+  bookings: number;
+  percentage: number;
+}
+
+export interface RevenueSource {
+  name: string;
+  value: number;
+  color: string;
+}
+
+export interface DailyRevenue {
+  date: string;
+  revenue: number;
+  bookings: number;
+}
+
+export interface RecentTransaction {
+  _id: string;
+  description: string;
+  amount: number;
+  type: "income" | "expense";
+  time: string;
+}
+
+/** Parking Lot related types */
+export type ParkingLotStatus = "active" | "pending" | "suspended" | "closed";
+export type ParkingLotType =
+  | "outdoor"
+  | "indoor"
+  | "underground"
+  | "rooftop"
+  | "multi-level";
+
+export interface OwnerInfoShort {
+  _id: string;
+  userName: string;
+  email: string;
+  phoneNumber: string;
+}
+
+export interface ParkingZone {
+  name: string;
+  totalSlots: number;
+  availableSlots: number;
+}
+
+export interface ParkingLot {
+  _id: string;
+  name: string;
+  address: string;
+  description?: string;
+  owner: OwnerInfoShort;
+  status: ParkingLotStatus;
+  type: ParkingLotType;
+  totalSlots: number;
+  availableSlots: number;
+  occupiedSlots: number;
+  pricePerHour: number;
+  pricePerDay?: number;
+  rating: number;
+  totalReviews: number;
+  totalBookings: number;
+  totalRevenue: number;
+  openTime: string;
+  closeTime: string;
+  amenities: string[];
+  zones?: ParkingZone[];
+  images?: string[];
+  latitude?: number;
+  longitude?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Approval Request related types */
+export type RequestType =
+  | "UPDATE_PARKING_LOT"
+  | "PAYMENT"
+  | "BECOME_OWNER"
+  | "WITHDRAW_FUND"
+  | "REFUND"
+  | "NEW_PARKING_LOT"
+  | "OTHER";
+
+export type RequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "PROCESSING";
+
+export interface Requester {
+  id: string;
+  name?: string;
+  email: string;
+  phone?: string;
+  role?: "user" | "owner";
+}
+
+export interface StatsApprovalRequest {
+  totalRequests: number;
+  pendingRequests: number;
+  approvedRequests: number;
+  rejectedRequests: number;
+}
+
+export interface ApprovalRequest {
+  id: string;
+  requester: Requester;
+  type: RequestType;
+  status: RequestStatus;
+  title?: string;
+  description: string;
+  payload?: any;
+  attachments?: string[];
+  adminNote?: string;
+  relatedParkingLot?: {
+    id: string;
+    name: string;
+    address: string;
+  };
+  newValue?: string;
+  oldValue?: string;
+  amount?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 class AdminService {
@@ -40,7 +267,9 @@ class AdminService {
    * GET /api/v1/admin/stats/overview
    */
   async getOverviewStats(): Promise<AdminStats> {
-    const response = await get<ApiResponse<AdminStats>>("/admin/stats/overview");
+    const response = await get<ApiResponse<AdminStats>>(
+      "/admin/stats/overview",
+    );
     return response.data;
   }
 
@@ -49,7 +278,25 @@ class AdminService {
    * GET /api/v1/admin/stats/activities-recent
    */
   async getRecentActivities(): Promise<AdminActivity[]> {
-    const response = await get<ApiResponse<AdminActivity[]>>("/admin/stats/activities-recent");
+    const response = await get<ApiResponse<AdminActivity[]>>(
+      "/admin/stats/activities-recent",
+    );
+    return response.data;
+  }
+
+  /**
+   * Get user statistics
+   * GET /api/v1/admin/stats/users
+   */
+  async getUserStats(): Promise<UserStats> {
+    const response = await get<
+      ApiResponse<{
+        totalUsers: number;
+        newUsersLastMonth: number;
+        activeUsers: number;
+        blockedUsers: number;
+      }>
+    >("/admin/stats/users");
     return response.data;
   }
 
@@ -59,8 +306,84 @@ class AdminService {
    * (Keeping this one as it was before, assuming it still exists)
    */
   async getSystemStatus(): Promise<SystemStatus> {
-    const response = await get<ApiResponse<SystemStatus>>("/admin/dashboard/system-status");
+    const response = await get<ApiResponse<SystemStatus>>(
+      "/admin/dashboard/system-status",
+    );
     return response.data;
+  }
+
+  async getCustomers(): Promise<CustomerList[]> {
+    const response =
+      await get<ApiResponse<WrappedResponse<CustomerList[]>>>(
+        "/admin/users/list",
+      );
+    return response.data.data;
+  }
+
+  /**
+   * Get owner statistics
+   * GET /api/v1/admin/stats/owners
+   */
+  async getOwnerStats(): Promise<OwnerStats> {
+    const response = await get<ApiResponse<OwnerStats>>("/admin/stats/owners");
+    return response.data;
+  }
+
+  /**
+   * Get list of owners
+   * GET /api/v1/admin/owners/list
+   */
+  async getOwners(): Promise<OwnerList[]> {
+    const response =
+      await get<ApiResponse<WrappedResponse<OwnerList[]>>>(
+        "/admin/owners/list",
+      );
+    return response.data.data;
+  }
+
+  /**
+   * Get list of transactions
+   * GET /api/v1/admin/transactions
+   */
+  async getTransactions(): Promise<Transaction[]> {
+    const response = await get<ApiResponse<WrappedResponse<Transaction[]>>>(
+      "/admin/transactions",
+    );
+    return response.data.data;
+  }
+
+  /**
+   * Get list of all parking lots
+   * GET /api/v1/admin/parking-lots
+   */
+  async getParkingLots(): Promise<ParkingLot[]> {
+    const response = await get<ApiResponse<WrappedResponse<ParkingLot[]>>>(
+      "/admin/parking-lots",
+    );
+    return response.data.data;
+  }
+
+  /**
+   * Get list of all approval requests
+   * GET /api/v1/admin/stats/requests
+   */
+  async getStatsApprovalRequests(): Promise<StatsApprovalRequest> {
+    const response =
+      await get<ApiResponse<StatsApprovalRequest>>("/admin/stats/requests");
+    return response.data;
+  }
+
+  /**  * Get list of all approval requests
+   * GET /api/v1/admin/requests
+   */
+  async getApprovalRequests(): Promise<ApprovalRequest[]> {
+    const response = await get<
+      ApiResponse<{
+        items: ApprovalRequest[];
+        meta: any;
+      }>
+    >("/admin/requests");
+    return response.data.items;
   }
 }
 

@@ -41,58 +41,17 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  adminService,
+  ParkingLot,
+  ParkingLotStatus,
+  ParkingLotType,
+  OwnerInfoShort as OwnerInfo,
+  ParkingZone,
+} from "@/services/admin.service";
+import { useAdminStore } from "@/stores";
 
-// ─── Kiểu dữ liệu ───────────────────────────────────────────────────────────
-
-/** Trạng thái bãi đỗ xe */
-type ParkingLotStatus = "active" | "pending" | "suspended" | "closed";
-
-/** Loại bãi đỗ xe */
-type ParkingLotType = "outdoor" | "indoor" | "underground" | "rooftop" | "multi-level";
-
-/** Thông tin chủ bãi */
-interface OwnerInfo {
-  _id: string;
-  userName: string;
-  email: string;
-  phoneNumber: string;
-}
-
-/** Khu vực đỗ xe */
-interface ParkingZone {
-  name: string;
-  totalSlots: number;
-  availableSlots: number;
-}
-
-/** Thông tin bãi đỗ xe */
-interface ParkingLot {
-  _id: string;
-  name: string;
-  address: string;
-  description?: string;
-  owner: OwnerInfo;
-  status: ParkingLotStatus;
-  type: ParkingLotType;
-  totalSlots: number;
-  availableSlots: number;
-  occupiedSlots: number;
-  pricePerHour: number;
-  pricePerDay?: number;
-  rating: number;
-  totalReviews: number;
-  totalBookings: number;
-  totalRevenue: number;
-  openTime: string;
-  closeTime: string;
-  amenities: string[];
-  zones?: ParkingZone[];
-  images?: string[];
-  latitude?: number;
-  longitude?: number;
-  createdAt: string;
-  updatedAt: string;
-}
+ 
 
 /** Bộ lọc */
 interface Filters {
@@ -402,11 +361,16 @@ const getInitials = (name: string) => {
 // ─── Component chính ──────────────────────────────────────────────────────────
 
 export default function ParkingLotsPage() {
-  // ── Trạng thái ──────────────────────────────────────────────────────────────
-  const [parkingLots, setParkingLots] = useState<ParkingLot[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    parkingLots,
+    isParkingLotsLoading: loading,
+    parkingLotsError: error,
+    setParkingLots,
+    setParkingLotsLoading,
+    setParkingLotsError,
+  } = useAdminStore();
+
   const [usingMockData, setUsingMockData] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   /** Bộ lọc */
   const [filters, setFilters] = useState<Filters>({
@@ -424,41 +388,25 @@ export default function ParkingLotsPage() {
 
   const fetchParkingLots = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setParkingLotsLoading(true);
       setUsingMockData(false);
 
-      const token = localStorage.getItem("authToken") || localStorage.getItem("token");
-
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/parking-lots`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) throw new Error(`Lỗi HTTP! Mã: ${response.status}`);
-
-      const result = await response.json();
-      if (result.status === "success") {
-        setParkingLots(result.data.data || result.data);
-      } else {
-        throw new Error("Không thể tải dữ liệu");
-      }
+      const data = await adminService.getParkingLots();
+      setParkingLots(data);
     } catch (err) {
       console.error("Lỗi khi tải danh sách bãi đỗ:", err);
-      setError(err instanceof Error ? err.message : "Lỗi không xác định");
+      setParkingLotsError(err instanceof Error ? err.message : "Lỗi không xác định");
       // Dùng dữ liệu mẫu khi API chưa sẵn sàng
       setUsingMockData(true);
       setParkingLots(mockParkingLots);
-    } finally {
-      setLoading(false);
     }
   };
 
   /** Tải dữ liệu khi component được mount */
   useEffect(() => {
-    fetchParkingLots();
+    if (parkingLots.length === 0) {
+      fetchParkingLots();
+    }
   }, []);
 
   // ── Lọc & sắp xếp ──────────────────────────────────────────────────────────
@@ -519,13 +467,13 @@ export default function ParkingLotsPage() {
 
   const stats = useMemo(() => {
     const total = parkingLots.length;
-    const active = parkingLots.filter((l) => l.status === "active").length;
-    const totalSlots = parkingLots.reduce((s, l) => s + l.totalSlots, 0);
-    const totalOccupied = parkingLots.reduce((s, l) => s + l.occupiedSlots, 0);
+    const active = parkingLots.filter((l: ParkingLot) => l.status === "active").length;
+    const totalSlots = parkingLots.reduce((s: number, l: ParkingLot) => s + l.totalSlots, 0);
+    const totalOccupied = parkingLots.reduce((s: number, l: ParkingLot) => s + l.occupiedSlots, 0);
     const avgRating = parkingLots.length > 0
-      ? (parkingLots.reduce((s, l) => s + l.rating, 0) / parkingLots.filter(l => l.rating > 0).length).toFixed(1)
+      ? (parkingLots.reduce((s: number, l: ParkingLot) => s + l.rating, 0) / parkingLots.filter((l: ParkingLot) => l.rating > 0).length).toFixed(1)
       : "0";
-    const totalRevenue = parkingLots.reduce((s, l) => s + l.totalRevenue, 0);
+    const totalRevenue = parkingLots.reduce((s: number, l: ParkingLot) => s + l.totalRevenue, 0);
     return { total, active, totalSlots, totalOccupied, avgRating, totalRevenue };
   }, [parkingLots]);
 
@@ -548,11 +496,10 @@ export default function ParkingLotsPage() {
   const handleToggleStatus = async (lot: ParkingLot, newStatus: ParkingLotStatus) => {
     console.log(`Chuyển bãi ${lot._id} sang ${newStatus}`);
     // TODO: Gọi API cập nhật trạng thái
-    setParkingLots((prev) =>
-      prev.map((l) => (l._id === lot._id ? { ...l, status: newStatus } : l))
-    );
+    const updatedLots = parkingLots.map((l: ParkingLot) => (l._id === lot._id ? { ...l, status: newStatus } : l));
+    setParkingLots(updatedLots);
     if (selectedLot && selectedLot._id === lot._id) {
-      setSelectedLot((prev) => prev ? { ...prev, status: newStatus } : prev);
+      setSelectedLot({ ...selectedLot, status: newStatus });
     }
   };
 
@@ -710,7 +657,7 @@ export default function ParkingLotsPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filteredLots.map((lot) => {
-                const stConf = statusConfig[lot.status];
+                const stConf = statusConfig[lot.status] || statusConfig.active;
                 const occupancy = getOccupancyPercent(lot.occupiedSlots, lot.totalSlots);
                 const occColor = getOccupancyColor(occupancy);
 
@@ -864,7 +811,7 @@ export default function ParkingLotsPage() {
           </DialogHeader>
 
           {selectedLot && (() => {
-            const stConf = statusConfig[selectedLot.status];
+            const stConf = statusConfig[selectedLot.status] || statusConfig.active;
             const occupancy = getOccupancyPercent(selectedLot.occupiedSlots, selectedLot.totalSlots);
             const occColor = getOccupancyColor(occupancy);
 

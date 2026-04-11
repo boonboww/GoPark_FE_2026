@@ -43,44 +43,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-
-// ─── Kiểu dữ liệu ───────────────────────────────────────────────────────────
-
-/** Trạng thái giao dịch */
-type TransactionStatus = "success" | "pending" | "failed" | "refunded";
-
-/** Phương thức thanh toán */
-type PaymentMethod = "momo" | "vnpay" | "zalopay" | "bank_transfer" | "wallet" | "cash" | "credit_card";
-
-/** Loại giao dịch */
-type TransactionType = "top_up" | "withdrawal" | "booking_payment" | "subscription" | "refund" | "penalty";
-
-/** Thông tin người dùng trong giao dịch */
-interface TransactionUser {
-  _id: string;
-  userName: string;
-  email: string;
-  role: "user" | "owner";
-}
-
-/** Chi tiết giao dịch */
-interface Transaction {
-  _id: string;
-  transactionCode: string;
-  user: TransactionUser;
-  type: TransactionType;
-  status: TransactionStatus;
-  amount: number;
-  paymentMethod: PaymentMethod;
-  description: string;
-  bookingId?: string;
-  parkingLotName?: string;
-  parkingLotAddress?: string;
-  createdAt: string;
-  completedAt?: string;
-  failedReason?: string;
-  refundReason?: string;
-}
+import {
+  adminService,
+  Transaction,
+  TransactionType,
+  TransactionStatus,
+  PaymentMethod,
+} from "@/services/admin.service";
+import { useAdminStore } from "@/stores";
 
 /** Bộ lọc */
 interface Filters {
@@ -365,11 +335,16 @@ const timeAgo = (dateString: string) => {
 // ─── Component chính ──────────────────────────────────────────────────────────
 
 export default function TransactionsPage() {
-  // ── State ───────────────────────────────────────────────────────────────────
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    transactions,
+    isTransactionsLoading: loading,
+    transactionsError: error,
+    setTransactions,
+    setTransactionsLoading,
+    setTransactionsError,
+  } = useAdminStore();
+
   const [usingMockData, setUsingMockData] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<Filters>({
     search: "",
@@ -389,33 +364,24 @@ export default function TransactionsPage() {
 
   const fetchTransactions = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setTransactionsLoading(true);
       setUsingMockData(false);
 
-      const token = localStorage.getItem("authToken") || localStorage.getItem("token");
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/transactions`, {
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) throw new Error(`Lỗi HTTP! Mã: ${response.status}`);
-      const result = await response.json();
-      if (result.status === "success") {
-        setTransactions(result.data.data || result.data);
-      } else {
-        throw new Error("Không thể tải dữ liệu");
-      }
+      const data = await adminService.getTransactions();
+      setTransactions(data);
     } catch (err) {
       console.error("Lỗi khi tải giao dịch:", err);
-      setError(err instanceof Error ? err.message : "Lỗi không xác định");
+      setTransactionsError(err instanceof Error ? err.message : "Lỗi không xác định");
       setUsingMockData(true);
       setTransactions(mockTransactions);
-    } finally {
-      setLoading(false);
     }
   };
 
-  useEffect(() => { fetchTransactions(); }, []);
+  useEffect(() => {
+    if (transactions.length === 0) {
+      fetchTransactions();
+    }
+  }, []);
 
   // ── Lọc & sắp xếp ──────────────────────────────────────────────────────────
 
@@ -427,11 +393,11 @@ export default function TransactionsPage() {
       const term = filters.search.toLowerCase();
       result = result.filter(
         (t) =>
-          t.transactionCode.toLowerCase().includes(term) ||
-          t.user.userName.toLowerCase().includes(term) ||
-          t.user.email.toLowerCase().includes(term) ||
-          (t.parkingLotName && t.parkingLotName.toLowerCase().includes(term)) ||
-          t.description.toLowerCase().includes(term)
+          (t.transactionCode || "").toLowerCase().includes(term) ||
+          (t.user?.userName || "").toLowerCase().includes(term) ||
+          (t.user?.email || "").toLowerCase().includes(term) ||
+          (t.parkingLotName || "").toLowerCase().includes(term) ||
+          (t.description || "").toLowerCase().includes(term)
       );
     }
 
@@ -638,7 +604,7 @@ export default function TransactionsPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filteredTxns.map((txn) => {
-                const stConf = statusConfig[txn.status];
+                const stConf = statusConfig[txn.status] || statusConfig.success;
                 const tConf = typeConfig[txn.type];
                 const TIcon = tConf.icon;
                 const pmConf = paymentMethodConfig[txn.paymentMethod];
@@ -741,7 +707,7 @@ export default function TransactionsPage() {
           </DialogHeader>
 
           {selectedTxn && (() => {
-            const stConf = statusConfig[selectedTxn.status];
+            const stConf = statusConfig[selectedTxn.status] || statusConfig.success;
             const tConf = typeConfig[selectedTxn.type];
             const TIcon = tConf.icon;
             const pmConf = paymentMethodConfig[selectedTxn.paymentMethod];
