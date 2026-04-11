@@ -7,6 +7,7 @@ import { ParkingRules } from "@/components/features/parking-detail/ParkingRules"
 import { ReviewsList } from "@/components/features/parking-detail/ReviewsList";
 import { SuggestedParking } from "@/components/features/parking-detail/SuggestedParking";
 import ParkingProvider from "@/components/features/parking-detail/ProviderContext";
+import BreadcrumbTitle from "@/components/features/parking-detail/BreadcrumbTitle";
 
 export default function DetailParkingPage() {
   return (
@@ -16,7 +17,7 @@ export default function DetailParkingPage() {
         <div className="container max-w-7xl mx-auto px-4 space-y-6">
           {/* Breadcrumb text */}
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-             <span><Link href="/" className="hover:text-blue-500 transition-colors">Trang chủ</Link></span> &gt; <span>Bãi đỗ xe</span> &gt; <span className="text-gray-900 dark:text-white font-medium">Bãi Đỗ Xe An Tâm</span>
+             <span><Link href="/" className="hover:text-blue-500 transition-colors">Trang chủ</Link></span> &gt; <span>Bãi đỗ xe</span> &gt; <BreadcrumbTitle />
           </div>
 
           {/* Khung Thông tin chi tiết */}

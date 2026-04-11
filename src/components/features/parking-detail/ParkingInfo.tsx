@@ -58,20 +58,20 @@ export function ParkingInfo() {
           <div className="space-y-4">
             <div className="aspect-video w-full rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700">
               <img
-                src="https://images.unsplash.com/photo-1590674899484-d5640e854abe?q=80&w=800&auto=format&fit=crop"
+                src={dataLot?.image?.thumbnail || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?q=80&w=800&auto=format&fit=crop"}
                 alt="Parking"
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="flex gap-2">
               <div className="w-1/3 aspect-video rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1604063155776-081e7e45fcc3?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover" />
+                <img src={dataLot?.image?.gallery?.[0] || "https://images.unsplash.com/photo-1604063155776-081e7e45fcc3?q=80&w=300&auto=format&fit=crop"} className="w-full h-full object-cover" />
               </div>
               <div className="w-1/3 aspect-video rounded bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?q=80&w=300&auto=format&fit=crop" className="w-full h-full object-cover" />
+                <img src={dataLot?.image?.gallery?.[1] || "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?q=80&w=300&auto=format&fit=crop"} className="w-full h-full object-cover" />
               </div>
               <div className="w-1/3 aspect-video rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-gray-500 dark:text-gray-400 cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
-                +3
+                +{dataLot?.image?.gallery?.length > 2 ? dataLot?.image?.gallery?.length - 2 : 3}
               </div>
             </div>
           </div>
@@ -83,10 +83,10 @@ export function ParkingInfo() {
               <p className="font-semibold text-gray-900 dark:text-gray-200">Thông tin chủ quản lý</p>
             </div>
             <div className="space-y-3">
-              <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Công ty CP bãi đỗ An Tâm</p>
+              <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">{dataLot?.owner?.profile?.name || dataLot?.owner?.email || 'Chưa cập nhật'}</p>
               <div className="flex flex-col space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                <span className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /> 0909 123 456</span>
-                <span className="flex items-center gap-2"><Mail className="w-4 h-4 text-gray-400" /> {dataLot?.owner?.email} </span>
+                <span className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /> {dataLot?.owner?.profile?.phone || 'Chưa cập nhật'}</span>
+                <span className="flex items-center gap-2"><Mail className="w-4 h-4 text-gray-400" /> {dataLot?.owner?.email || 'Chưa cập nhật'} </span>
               </div>
             </div>
 
@@ -97,18 +97,6 @@ export function ParkingInfo() {
             >
               Đặt ngay
             </button>
-          </div>
-
-          {/* Tọa độ hiển thị */}
-          <div className="flex gap-3 justify-center items-center">
-            <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700/30 px-3 py-3 rounded-xl border border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 w-full justify-center shadow-sm transition-all hover:border-blue-300">
-              <MapPin className="w-4 h-4 text-blue-500 shrink-0" />
-              <span className="whitespace-nowrap">Lat: <span className="font-bold text-gray-700 dark:text-gray-200 text-sm">{dataLot.lat ?? '---'}</span></span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-700/30 px-3 py-3 rounded-xl border border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 w-full justify-center shadow-sm transition-all hover:border-blue-300">
-              <MapPin className="w-4 h-4 text-blue-500 shrink-0" />
-              <span className="whitespace-nowrap">Lng: <span className="font-bold text-gray-700 dark:text-gray-200 text-sm">{dataLot.lng ?? '---'}</span></span>
-            </div>
           </div>
         </div>
 
@@ -234,7 +222,7 @@ export function ParkingInfo() {
       <div className="mt-6 rounded-lg overflow-hidden h-[300px] border border-gray-200 dark:border-gray-700">
         <MapLocationPicker
           location={dataLot.lat && dataLot.lng ? { lat: Number(dataLot.lat), lng: Number(dataLot.lng) } : null}
-          onChange={(loc) => context.setDataLot((prev: any) => ({ ...prev, lat: loc.lat, lng: loc.lng }))}
+          onChange={() => {}} // Chỉ hiển thị, không cho phép cập nhật tọa độ trên FE
           className="w-full h-full border-0"
         />
       </div>

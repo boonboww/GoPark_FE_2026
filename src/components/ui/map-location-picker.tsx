@@ -73,6 +73,18 @@ export function MapLocationPicker({
     return () => geocode.cancel();
   }, [addressSearch, onChange]);
 
+  // Update map center when location explicitly changes from parent
+  useEffect(() => {
+    if (location?.lat && location?.lng) {
+      setViewState((prev) => ({
+        ...prev,
+        longitude: location.lng,
+        latitude: location.lat,
+      }));
+      mapRef.current?.flyTo({ center: [location.lng, location.lat] });
+    }
+  }, [location?.lat, location?.lng]);
+
   if (!mounted) {
     return <div className={`bg-muted animate-pulse ${className}`} />;
   }
