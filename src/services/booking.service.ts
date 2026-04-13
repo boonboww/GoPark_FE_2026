@@ -38,8 +38,8 @@ class BookingService {
         userId: item.user?.id?.toString() || "",
         userName: item.user?.profile?.name || item.user?.email || "Khách vãng lai",
         userPhone: item.user?.profile?.phone || item.user?.phoneNumber || "",
-        licensePlate: item.vehicle?.license_plate || "",
-        vehicleType: item.vehicle?.vehicle_type || "",
+        licensePlate: item.vehicle?.plate_number || "",
+        vehicleType: item.vehicle?.type || "",
         slotId: item.slot?.id?.toString() || "",
         slotCode: item.slot?.code || "",
         parkingLotId: params.lotId.toString(),
@@ -48,7 +48,7 @@ class BookingService {
         endTime: item.end_time,
         status: mappedStatus,
         createdAt: item.created_at || new Date().toISOString(),
-        totalPrice: item.invoice?.total || 0,
+        totalPrice: item.invoice?.[0]?.total || 0,
         qrCode: item.qrCode?.content,
       };
     });
