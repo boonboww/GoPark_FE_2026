@@ -4,7 +4,6 @@ export interface WalkInRequest {
   name: string;
   phoneNumber: string;
   licensePlate: string;
-  vehicleType: string;
   // Các field cho images sẽ được thêm vào payload form-data ở component nếu backend yêu cầu multipart/form-data
   // Trong trường hợp này gửi JSON thô theo yêu cầu:
 }

@@ -7,13 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Upload, Camera, Loader2 } from "lucide-react";
 import { ocrService } from "@/services/ocr.service";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { parkingService } from "@/services/parking.service";
 import { useCustomerStore } from "@/stores/customer.store";
 
@@ -21,7 +14,6 @@ export function FormAddCustomer() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [licensePlate, setLicensePlate] = useState("");
-  const [vehicleType, setVehicleType] = useState("4-5_seats");
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vehicleImages, setVehicleImages] = useState<File[]>([]);
@@ -41,7 +33,6 @@ export function FormAddCustomer() {
         name,
         phoneNumber: phone,
         licensePlate,
-        vehicleType,
       };
 
       const res = await parkingService.walkInCheckIn(lotId, payload);
@@ -118,21 +109,6 @@ export function FormAddCustomer() {
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
         />
-      </div>
-
-      {/* Loại xe */}
-      <div className="grid gap-2">
-        <Label className="text-sm font-medium">Loại xe</Label>
-        <Select value={vehicleType} onValueChange={setVehicleType}>
-          <SelectTrigger className="h-10">
-            <SelectValue placeholder="Chọn loại xe" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="4-5_seats">Xe 4-5 chỗ</SelectItem>
-            <SelectItem value="7_seats">Xe 7 chỗ</SelectItem>
-            <SelectItem value="9-16_seats">Xe 9-16 chỗ</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Biển số (Editable Input) */}
