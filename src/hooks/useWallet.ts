@@ -20,17 +20,22 @@ export function useWallet() {
   });
 }
 
-// Hook để lấy lịch sử GD
+// Hook lấy toàn bộ lịch sử giao dịch (backend chưa hỗ trợ server-side pagination)
+// FE sẽ tự phân trang từ dữ liệu trả về
 export function useWalletTransactions() {
   const user = useAuthStore((s) => s.user);
   const userId = user?.id;
 
-  return useQuery({
+  return useQuery<any[]>({
     queryKey: ["walletTransactions", userId],
     queryFn: async () => {
-      const res: any = await apiClient(`/wallets/transactions?userId=${userId}`);
+      const res: any = await apiClient(
+        `/wallets/transactions?userId=${userId}`,
+      );
+      // API trả về { statusCode, data: [...] }
       return (res?.data ?? res ?? []) as any[];
     },
     enabled: !!userId,
+    staleTime: 1000 * 30,
   });
 }

@@ -136,6 +136,10 @@ export default function ParkingLotManagementPage() {
   const [selectedTicket, setSelectedTicket] = React.useState<{
     data: TicketData | null;
     status: "occupied" | "reserved" | "available";
+    slotId?: number | null;
+    slotCode?: string;
+    floorName?: string;
+    zoneName?: string;
   }>({ data: null, status: "available" });
 
   const currentFloor = floorsData.find((f) => f.id === selectedFloor);
@@ -162,17 +166,33 @@ export default function ParkingLotManagementPage() {
   }, [availableMapData]);
 
   const handleSlotClick = (slot: ApiSlot) => {
-    // Nếu là ô đang đỗ hoặc đã đặt
+    // Tìm thông tin tầng và khu vực hiện tại để hiển thị tiêu đề
+    const floor = floorsData.find(f => f.id === selectedFloor);
+    const zone = floor?.zones.find(z => z.id === selectedZone || floor.zones.some(sz => sz.id === slot.id.toString())); 
+    // Note: Trong thực tế ApiSlot nên trả về zone info, nếu không ta dựa vào state hiện tại
+    const currentZoneName = activeZones.length === 1 ? activeZones[0].name : "Khu vực";
+
     if (slot.status === "OCCUPIED" || slot.status === "RESERVED") {
       const status = slot.status === "OCCUPIED" ? "occupied" : "reserved";
-
-      // Tạo dữ liệu vé (Mock) để hiển thị
-      // Sau này khi có API lấy booking chi tiết theo SlotID, ta sẽ gọi API tại đây
       const mockTicket = getMockTicket(slot.code, status);
 
       setSelectedTicket({
         data: mockTicket,
         status: status,
+        slotId: slot.id,
+        slotCode: slot.code,
+        floorName: currentFloor?.name,
+        zoneName: currentZoneName
+      });
+      setIsTicketOpen(true);
+    } else if (slot.status === "AVAILABLE") {
+      setSelectedTicket({
+        data: null,
+        status: "available",
+        slotId: slot.id,
+        slotCode: slot.code,
+        floorName: currentFloor?.name,
+        zoneName: currentZoneName
       });
       setIsTicketOpen(true);
     }
@@ -596,6 +616,10 @@ export default function ParkingLotManagementPage() {
           onClose={() => setIsTicketOpen(false)}
           data={selectedTicket.data}
           status={selectedTicket.status}
+          slotId={selectedTicket.slotId}
+          slotCode={selectedTicket.slotCode}
+          floorName={selectedTicket.floorName}
+          zoneName={selectedTicket.zoneName}
         />
 
         {/* MASTER CONFIG MODAL */}

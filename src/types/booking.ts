@@ -9,6 +9,7 @@ export interface Booking {
   slotCode: string;
   parkingLotId: string;
   zone: string;
+  floorNumber?: number;
   startTime: string;
   endTime: string;
   status: "ACTIVE" | "PENDING" | "COMPLETED" | "CANCELLED";

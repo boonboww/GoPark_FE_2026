@@ -44,6 +44,7 @@ class BookingService {
         slotCode: item.slot?.code || "",
         parkingLotId: params.lotId.toString(),
         zone: item.slot?.parkingZone?.zone_name || "",
+        floorNumber: item.slot?.parkingZone?.parkingFloor?.floor_number,
         startTime: item.start_time,
         endTime: item.end_time,
         status: mappedStatus,

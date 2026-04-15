@@ -3,11 +3,9 @@
 import * as React from "react";
 import {
   ColumnDef,
-  ColumnFiltersState,
   SortingState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
@@ -22,13 +20,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -128,11 +119,22 @@ export function BookingDataTable() {
     {
       accessorKey: "slotCode",
       header: "Vị trí",
-      cell: ({ row }) => (
-        <Badge className="bg-slate-900 text-white hover:bg-slate-800">
-          {row.getValue("slotCode")}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const floorNumber = row.original.floorNumber;
+        const zone = row.original.zone;
+
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge className="w-fit bg-slate-900 text-white hover:bg-slate-800 font-mono text-xs shadow-sm">
+              {row.getValue("slotCode")}
+            </Badge>
+            <span className="text-[10px] text-slate-500 font-medium tracking-tight">
+              Tầng {floorNumber !== undefined ? floorNumber : "—"} •{" "}
+              {zone || "Khu —"}
+            </span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "startTime",
@@ -159,10 +161,10 @@ export function BookingDataTable() {
       accessorKey: "totalPrice",
       header: "Thành Tiền",
       cell: ({ row }) => {
-        const amount = row.getValue("totalPrice") as number;
+        const amount = Number(row.getValue("totalPrice"));
         return (
           <div className="font-bold text-slate-900">
-            {amount > 0 ? `${amount.toLocaleString("vi-VN")}đ` : "—"}
+            {amount > 0 ? `${amount.toLocaleString("vi-VN")} đ` : "0 đ"}
           </div>
         );
       },
@@ -181,10 +183,17 @@ export function BookingDataTable() {
     },
     initialState: {
       pagination: {
-        pageSize: 10,
+        pageSize: 6,
       },
     },
   });
+
+  const currentPage = table.getState().pagination.pageIndex + 1;
+  const pageSize = table.getState().pagination.pageSize;
+  const totalRows = data.length;
+  const startRow = totalRows === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endRow = Math.min(currentPage * pageSize, totalRows);
+  const totalPages = table.getPageCount();
 
   return (
     <div className="space-y-4">
@@ -207,24 +216,6 @@ export function BookingDataTable() {
               setDate={setDateRange}
               className="h-11 [&>button]:h-11 [&>button]:rounded-xl [&>button]:border-slate-200"
             />
-          </div>
-
-          <div className="w-full xl:w-48">
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value)}
-            >
-              <SelectTrigger className="w-full h-11 border-slate-200 rounded-xl">
-                <SelectValue placeholder="Trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                <SelectItem value="ACTIVE">Đang đỗ</SelectItem>
-                <SelectItem value="PENDING">Chờ bắt đầu</SelectItem>
-                <SelectItem value="COMPLETED">Hoàn thành</SelectItem>
-                <SelectItem value="CANCELLED">Đã hủy</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {(searchText || statusFilter !== "ALL" || dateRange) && (
@@ -328,32 +319,62 @@ export function BookingDataTable() {
         </Table>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between px-2">
-        <div className="text-sm text-slate-500 font-medium">
-          Hiển thị 1 - {table.getRowModel().rows.length} trên tổng số{" "}
-          {data.length}
+      {/* Pagination Container */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-2 py-4 mt-2">
+        <div className="text-xs font-bold text-slate-500 bg-slate-100 px-4 py-2 rounded-lg border border-slate-200/50">
+          <span className="text-slate-900">{startRow}</span> –{" "}
+          <span className="text-slate-900">{endRow}</span>
+          {" / "}
+          <span className="text-slate-900">{totalRows}</span>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-1.5">
           <Button
             variant="outline"
-            size="icon"
+            size="sm"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="h-9 w-9 rounded-lg border-slate-200"
+            className="h-10 px-3 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-40 transition-all font-bold gap-1"
           >
             <IconChevronLeft className="h-4 w-4" />
+            Trước
           </Button>
-          <div className="flex items-center justify-center min-w-[32px] font-mono text-sm font-bold">
-            {table.getState().pagination.pageIndex + 1}
+
+          <div className="flex items-center gap-1 px-2">
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => {
+                if (totalPages <= 5) return true;
+                return (
+                  Math.abs(p - currentPage) <= 1 || p === 1 || p === totalPages
+                );
+              })
+              .map((p, index, array) => (
+                <React.Fragment key={p}>
+                  {index > 0 && array[index - 1] !== p - 1 && (
+                    <span className="text-slate-300 px-1">...</span>
+                  )}
+                  <button
+                    onClick={() => table.setPageIndex(p - 1)}
+                    className={`h-10 min-w-[40px] px-2 rounded-xl text-xs font-black transition-all ${
+                      p === currentPage
+                        ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20"
+                        : "bg-white text-slate-500 border border-slate-200 hover:border-slate-400 hover:text-slate-900"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                </React.Fragment>
+              ))}
           </div>
+
           <Button
             variant="outline"
-            size="icon"
+            size="sm"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="h-9 w-9 rounded-lg border-slate-200"
+            className="h-10 px-3 rounded-xl border-slate-200 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-40 transition-all font-bold gap-1"
           >
+            Sau
             <IconChevronRight className="h-4 w-4" />
           </Button>
         </div>

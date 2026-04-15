@@ -5,11 +5,8 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { BookingDataTable } from "@/components/features/bookings/BookingDataTable";
-import { useCustomerStore } from "@/stores/customer.store";
 
 export default function BookingsPage() {
-  const { lotId } = useCustomerStore();
-
   return (
     <SidebarProvider
       style={
