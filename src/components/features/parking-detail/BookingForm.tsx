@@ -295,7 +295,7 @@ export function BookingForm() {
 
             amount,
 
-            bookingId: saved?.data?.id,
+            bookingId: bookingId,
 
             customerId: currentUserId,
 
@@ -311,12 +311,13 @@ export function BookingForm() {
               fontWeight: 'bold',    // Chữ đậm cho dễ nhìn
               marginTop: '20px',     // Cách mép trên một chút cho đỡ dính
             },
-            duration: 5000,          // Hiển thị lâu hơn (5 giây) để người dùng kịp đọc
+            duration: 3000,          // Hiển thị lâu hơn (5 giây) để người dùng kịp đọc
           });
 
+          // Chỉnh sửa tại đây: Điều hướng sang trang hóa đơn thay vì profile
           setTimeout(() => {
-            router.push("/users/profile");
-          }, 1000);
+            router.push(`/users/invoice/${bookingId}`);
+          }, 50); // Giảm xuống 50ms để chuyển trang gần như tức thì
 
           return;
 
@@ -332,26 +333,26 @@ export function BookingForm() {
 
       }
 
-      if (paymentMethod === 'cash') {
-        toast.success("Đặt chỗ thành công! Vui lòng thanh toán tiền mặt khi đến bãi.", {
-          position: "top-right",
-          style: {
-            padding: '16px',
-            fontSize: '16px',
-            width: '350px',
-            fontWeight: 'bold',
-            marginTop: '20px',
-          },
-          duration: 5000,
-        });
+      // if (paymentMethod === 'cash') {
+      //   toast.success("Đặt chỗ thành công! Vui lòng thanh toán tiền mặt khi đến bãi.", {
+      //     position: "top-right",
+      //     style: {
+      //       padding: '16px',
+      //       fontSize: '16px',
+      //       width: '350px',
+      //       fontWeight: 'bold',
+      //       marginTop: '20px',
+      //     },
+      //     duration: 5000,
+      //   });
 
-        // Chuyển hướng sau 1 giây tương tự như wallet
-        setTimeout(() => {
-          router.push("/users/profile");
-        }, 1000);
+      //   // Chuyển hướng sau 1 giây tương tự như wallet
+      //   setTimeout(() => {
+      //     router.push("/users/profile");
+      //   }, 1000);
 
-        return;
-      }
+      //   return;
+      // }
 
     } catch (error) {
 
@@ -709,7 +710,7 @@ export function BookingForm() {
 
               <option value="wallet">Ví GoPark</option>
 
-              <option value="cash">Thanh toán trực tiếp</option>
+              {/* <option value="cash">Thanh toán trực tiếp</option> */}
 
             </select>
 
@@ -799,7 +800,7 @@ export function BookingForm() {
 
           <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4 px-4 leading-relaxed">
 
-            Thanh toán an toàn. Bạn không bị trừ tiền cho đến khi check-in tại bãi đỗ.
+            Thanh toán an toàn. Hệ thống sẽ giữ chỗ ngay sau khi bạn hoàn tất thanh toán.
 
           </p>
 

@@ -37,6 +37,7 @@ interface Booking {
   id: string;
   qrCode?: {
     content: string; // Chuỗi dùng để sinh QR
+    status: string;
   };
   status: string;
   vehicle: {
@@ -299,10 +300,16 @@ export default function ProfilePage() {
       const bPlate = b.vehicle?.plate_number;
       if (!bPlate) return false;
 
+      const bStatus = b.status?.toLowerCase().trim();
+      // Kiểm tra thêm trạng thái của QR Code nếu có
+      const qrStatus = b.qrCode?.status?.toLowerCase().trim();
+      
       return (
         normalizePlate(bPlate) === normalizedTarget &&
-        (b.status?.toLowerCase().trim() === "confirmed" || b.status?.toLowerCase().trim() === "pending")
-      );
+        ["confirmed","ongoing"].includes(bStatus) &&
+        // Nhưng điều kiện tiên quyết là mã QR đó chưa từng bị sử dụng để Checkout hoàn tất
+        qrStatus === "active"
+          );
     });
 
     if (vBookings.length === 0) return null;

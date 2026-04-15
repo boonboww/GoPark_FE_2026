@@ -17,6 +17,7 @@ export default function VnpayReturnPage() {
   const isSuccess = vnp_ResponseCode === '00';
   
   const [amount, setAmount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     if (vnp_Amount) {
@@ -29,6 +30,7 @@ export default function VnpayReturnPage() {
     const triggerIpnLocally = async () => {
       if (isSuccess && !calledIpn.current) {
         calledIpn.current = true;
+        setIsSyncing(true);
         try {
           // Lấy toàn bộ query params hiện tại trên URL
           const queryStr = searchParams.toString();
@@ -38,6 +40,8 @@ export default function VnpayReturnPage() {
           console.log("Đồng bộ hoàn tất!");
         } catch (error) {
           console.error("Lỗi khi đồng bộ IPN ở local:", error);
+        }finally {
+          setIsSyncing(false);
         }
       }
     };
@@ -80,7 +84,30 @@ export default function VnpayReturnPage() {
             <span className="font-medium text-right">{searchParams.get('vnp_OrderInfo')}</span>
           </div>
         </CardContent>
-        <CardFooter>
+
+        
+        <CardFooter className="flex flex-col space-y-3">
+
+          {/* Nút Xem hóa đơn chi tiết - Thiết kế đồng nhất với nút chính */}
+          {isSuccess && searchParams.get('vnp_OrderInfo')?.startsWith('PayBooking_') && (
+            <Button 
+              className="w-full" 
+              disabled={isSyncing}
+              onClick={() => {
+                const orderInfo = searchParams.get('vnp_OrderInfo') || '';
+                const parts = orderInfo.split('_');
+                const bookingId = parts[2] ?? parts[1] ?? '';
+                if (bookingId) {
+                  router.push(`/users/invoice/${bookingId}`);
+                } else {
+                  router.push('/users/profile');
+                }
+              }}
+            >
+              {isSyncing ? 'Đang khởi tạo hóa đơn...' : 'Xem hóa đơn chi tiết'}
+            </Button>
+          )}
+
           <Button 
             className="w-full"
             onClick={() => {
