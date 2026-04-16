@@ -21,6 +21,7 @@ import {
   Clock,
   X,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,8 +40,16 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { adminService, CustomerList } from "@/services/admin.service";
 import { useAdminStore } from "@/stores";
+import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,7 +59,7 @@ interface Customer {
   email: string;
   phone: string;
   avatar?: string;
-  status: "ACTIVE" | "BANNED";
+  status: "ACTIVE" | "BLOCKED";
   totalBookings: number;
   totalSpending: number;
   lastActive: string;
@@ -77,17 +86,22 @@ interface Filters {
 
 import { get } from "@/lib/api";
 
-const statusConfig = {
+export const statusConfig = {
   ACTIVE: {
     label: "Hoạt động",
     className: "bg-green-100 text-green-800 border-green-200",
     dot: "bg-green-500",
   },
-  BANNED: {
+  BLOCKED: {
     label: "Đã khóa",
     className: "bg-red-100 text-red-800 border-red-200",
     dot: "bg-red-500",
   },
+  SPENDING: {
+    label: "Chưa xác thực",
+    className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    dot: "bg-yellow-500",
+  }
 };
 
 const bookingStatusColors: Record<string, string> = {
@@ -185,6 +199,7 @@ export default function CustomerPage() {
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // Fetch customers
   const fetchCustomers = async () => {
@@ -259,7 +274,7 @@ export default function CustomerPage() {
 
     const total = customers.length;
     const active = customers.filter((c) => c.status === "ACTIVE").length;
-    const banned = customers.filter((c) => c.status === "BANNED").length;
+    const banned = customers.filter((c) => c.status === "BLOCKED").length;
     const thisMonth = customers.filter((c) => {
       const created = new Date(c.createdAt);
       const now = new Date();
@@ -283,12 +298,30 @@ export default function CustomerPage() {
   };
 
   const handleToggleStatus = async (customer: Customer) => {
-    const newStatus = customer.status === "ACTIVE" ? "BANNED" : "ACTIVE";
-    console.log(`Toggling status for ${customer.id} to ${newStatus}`);
-    // TODO: API call
-    setCustomers(
-      customers.map((c) => (c.id === customer.id ? { ...c, status: newStatus } : c as unknown as CustomerList))
-    );
+    if (togglingId) return;
+    
+    const isBlocking = customer.status === "ACTIVE";
+    const newStatus = isBlocking ? "BLOCKED" : "ACTIVE";
+    const apiStatus = isBlocking ? "BLOCKED" : "ACTIVE";
+    
+    setTogglingId(customer.id);
+    try {
+      await adminService.updateUserStatus(customer.id, apiStatus);
+      
+      setCustomers(
+        customers.map((c) => (c.id === customer.id ? { ...c, status: newStatus as "ACTIVE" | "BLOCKED" } : c))
+      );
+      
+      toast.success(`${isBlocking ? "Khóa" : "Mở khóa"} tài khoản thành công`);
+      
+      if (selectedCustomer && selectedCustomer.id === customer.id) {
+        setSelectedCustomer({ ...selectedCustomer, status: newStatus as "ACTIVE" | "BLOCKED" });
+      }
+    } catch (error: any) {
+      toast.error(error.message || `Không thể ${isBlocking ? "khóa" : "mở khóa"} tài khoản`);
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   // ─── Stat Cards ─────────────────────────────────────────────────────────────
@@ -417,35 +450,37 @@ const formatNumber = (num: number) => {
           {/* Search */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <Input
+            <Input
                 type="text"
                 placeholder="Tìm kiếm theo tên, email hoặc số điện thoại..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange("search", e.target.value)}
-                className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white text-gray-900"
+                className="pl-10 h-11 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
               />
           </div>
           {/* Status */}
-          <select
-            value={filters.status}
-            onChange={(e) => handleFilterChange("status", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[160px] text-gray-900"
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="ACTIVE">Hoạt động</option>
-            <option value="BANNED">Đã khóa</option>
-          </select>
+          <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
+            <SelectTrigger className="h-11 min-w-[160px] border-gray-200 bg-slate-50 text-slate-900">
+              <SelectValue placeholder="Tất cả trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="ACTIVE">Hoạt động</SelectItem>
+              <SelectItem value="BANNED">Đã khóa</SelectItem>
+            </SelectContent>
+          </Select>
           {/* Sort */}
-          <select
-            value={filters.sortBy}
-            onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[180px] text-gray-900"
-          >
-            <option value="newest">Mới nhất</option>
-            <option value="oldest">Cũ nhất</option>
-            <option value="most-bookings">Nhiều booking nhất</option>
-            <option value="most-spent">Chi tiêu nhiều nhất</option>
-          </select>
+          <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
+            <SelectTrigger className="h-11 min-w-[180px] border-gray-200 bg-slate-50 text-slate-900">
+              <SelectValue placeholder="Sắp xếp" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Mới nhất</SelectItem>
+              <SelectItem value="oldest">Cũ nhất</SelectItem>
+              <SelectItem value="most-bookings">Nhiều booking nhất</SelectItem>
+              <SelectItem value="most-spent">Chi tiêu nhiều nhất</SelectItem>
+            </SelectContent>
+          </Select>
           {/* Clear */}
           {(filters.search || filters.status || filters.sortBy !== "newest") && (
             <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700">
@@ -561,18 +596,16 @@ const formatNumber = (num: number) => {
                           <DropdownMenuItem
                             onClick={() => handleToggleStatus(customer)}
                             className={customer.status === "ACTIVE" ? "text-red-600" : "text-green-600"}
+                            disabled={togglingId === customer.id}
                           >
-                            {customer.status === "ACTIVE" ? (
-                              <>
-                                <Ban size={16} className="mr-2" />
-                                Khóa tài khoản
-                              </>
+                            {togglingId === customer.id ? (
+                              <Loader2 size={16} className="mr-2 animate-spin" />
+                            ) : customer.status === "ACTIVE" ? (
+                              <Ban size={16} className="mr-2 cursor-pointer" />
                             ) : (
-                              <>
-                                <CheckCircle size={16} className="mr-2" />
-                                Mở khóa
-                              </>
+                              <CheckCircle size={16} className="mr-2 cursor-pointer" />
                             )}
+                            {customer.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa"}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -719,29 +752,27 @@ const formatNumber = (num: number) => {
               )}
 
               {/* Action buttons */}
-              <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-2 border-t border-gray-100 cursor-pointer">
                 <Button variant="outline" onClick={() => setDetailOpen(false)}>
                   Đóng
                 </Button>
                 <Button
                   onClick={() => handleToggleStatus(selectedCustomer)}
+                  disabled={togglingId === selectedCustomer.id}
                   className={
                     selectedCustomer.status === "ACTIVE"
                       ? "bg-red-600 hover:bg-red-700 text-white"
                       : "bg-green-600 hover:bg-green-700 text-white"
                   }
                 >
-                  {selectedCustomer.status === "ACTIVE" ? (
-                    <>
-                      <Ban size={16} className="mr-2" />
-                      Khóa tài khoản
-                    </>
+                  {togglingId === selectedCustomer.id ? (
+                    <Loader2 size={16} className="mr-2 animate-spin" />
+                  ) : selectedCustomer.status === "ACTIVE" ? (
+                    <Ban size={16} className="mr-2 cursor-pointer" />
                   ) : (
-                    <>
-                      <CheckCircle size={16} className="mr-2" />
-                      Mở khóa tài khoản
-                    </>
+                    <CheckCircle size={16} className="mr-2 cursor-pointer" />
                   )}
+                  {selectedCustomer.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
                 </Button>
               </div>
             </div>

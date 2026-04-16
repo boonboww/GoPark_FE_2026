@@ -52,11 +52,7 @@ const sidebarItems: SidebarItem[] = [
   {
     title: "Quản lý bãi đỗ",
     icon: MapPin,
-    children: [
-      { title: "Tất cả bãi đỗ", href: "/admin/parking/parking-lots", icon: MapPin },
-      { title: "Bãi đỗ chờ duyệt", href: "/admin/parking/pending-lots", icon: MapPin, badge: "3" },
-      { title: "Phân bổ chỗ đỗ", href: "/admin/parking/parking-slots", icon: Car },
-    ]
+    href: "/admin/parking/parking-lots"
   },
   {
     title: "Thanh toán",

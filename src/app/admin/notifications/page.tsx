@@ -36,6 +36,13 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth.store";
 import { useNotificationStore, SentNotification, NotificationType, TargetType, NotificationStatus } from "@/stores/notification.store";
@@ -170,17 +177,17 @@ export default function NotificationsPage() {
       );
     }
 
-    if (filterType) {
+    if (filterType && filterType !== "all") {
       filtered = filtered.filter((n) => n.type === filterType);
     }
-    if (filterTarget) {
+    if (filterTarget && filterTarget !== "all") {
       if (filterTarget === "NULL") {
         filtered = filtered.filter((n) => !n.targetRole || n.targetRole === "NULL" || n.targetRole === "null" || n.targetType === "specific");
       } else {
         filtered = filtered.filter((n) => n.targetRole === filterTarget || n.targetType?.toLowerCase() === filterTarget.toLowerCase());
       }
     }
-    if (filterStatus) {
+    if (filterStatus && filterStatus !== "all") {
       filtered = filtered.filter((n) => n.status === filterStatus);
     }
 
@@ -377,46 +384,49 @@ export default function NotificationsPage() {
                 placeholder="Tìm kiếm theo tiêu đề, nội dung..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-10"
+                className="pl-10 h-10 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
               />
             </div>
 
             {/* Filter Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="h-10 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Tất cả loại</option>
-                <option value="PROMOTIONAL">Khuyến mãi</option>
-                <option value="ALERT">Cảnh báo</option>
-                <option value="REMINDER">Nhắc nhở</option>
-                <option value="SYSTEM">Hệ thống</option>
-              </select>
+              <Select value={filterType || "all"} onValueChange={setFilterType}>
+                <SelectTrigger className="w-full h-10 border-gray-200 bg-slate-50 text-slate-900">
+                  <SelectValue placeholder="Tất cả loại" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả loại</SelectItem>
+                  <SelectItem value="PROMOTIONAL">Khuyến mãi</SelectItem>
+                  <SelectItem value="ALERT">Cảnh báo</SelectItem>
+                  <SelectItem value="REMINDER">Nhắc nhở</SelectItem>
+                  <SelectItem value="SYSTEM">Hệ thống</SelectItem>
+                </SelectContent>
+              </Select>
 
-              <select
-                value={filterTarget}
-                onChange={(e) => setFilterTarget(e.target.value)}
-                className="h-10 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Tất cả đối tượng</option>
-                <option value="ALL">Toàn bộ</option>
-                <option value="USER">Khách hàng</option>
-                <option value="OWNER">Chủ bãi</option>
-                <option value="NULL">Khách hàng cụ thể</option>
-              </select>
+              <Select value={filterTarget || "all"} onValueChange={setFilterTarget}>
+                <SelectTrigger className="w-full h-10 border-gray-200 bg-slate-50 text-slate-900">
+                  <SelectValue placeholder="Tất cả đối tượng" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả đối tượng</SelectItem>
+                  <SelectItem value="ALL">Toàn bộ</SelectItem>
+                  <SelectItem value="USER">Khách hàng</SelectItem>
+                  <SelectItem value="OWNER">Chủ bãi</SelectItem>
+                  <SelectItem value="NULL">Khách hàng cụ thể</SelectItem>
+                </SelectContent>
+              </Select>
 
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="h-10 px-3 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Tất cả trạng thái</option>
-                <option value="Đã gửi">Đã gửi</option>
-                <option value="FAILED">Thất bại</option>
-                <option value="DRAFT">Bản nháp</option>
-              </select>
+              <Select value={filterStatus || "all"} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full h-10 border-gray-200 bg-slate-50 text-slate-900">
+                  <SelectValue placeholder="Tất cả trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="Đã gửi">Đã gửi</SelectItem>
+                  <SelectItem value="FAILED">Thất bại</SelectItem>
+                  <SelectItem value="DRAFT">Bản nháp</SelectItem>
+                </SelectContent>
+              </Select>
 
               <Button variant="outline" onClick={clearFilters} className="h-10">
                 Xóa bộ lọc
@@ -432,7 +442,7 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-5 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full" />
-              <CardTitle className="text-base font-semibold">
+              <CardTitle className="text-base font-semibold text-gray-900">
                 Thông báo đã gửi ({filteredNotifications.length})
               </CardTitle>
             </div>

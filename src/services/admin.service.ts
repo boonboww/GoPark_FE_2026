@@ -1,4 +1,4 @@
-import { get } from "@/lib/api";
+import { get, patch } from "@/lib/api";
 
 export interface AdminStats {
   totalUsers: number;
@@ -11,6 +11,13 @@ export interface AdminStats {
   revenueChangePercent: number;
   pendingApprovals: number;
   activeBookings: number;
+}
+
+export interface ParkingLotStats {
+  totalParkingLots: number;
+  activeParkingLots: number;
+  availableSpacesParkingSlot: string;
+  averageRating: string;
 }
 
 export interface AdminActivity {
@@ -54,7 +61,7 @@ export interface CustomerList {
   email: string;
   phone: string;
   avatar?: string;
-  status: "ACTIVE" | "BANNED";
+  status: "ACTIVE" | "BLOCKED";
   totalBookings: number;
   totalSpending: number;
   lastActive: string;
@@ -195,8 +202,11 @@ export interface ParkingLot {
   totalSlots: number;
   availableSlots: number;
   occupiedSlots: number;
-  pricePerHour: number;
-  pricePerDay?: number;
+  pricePerHour: {
+    zonename: string;
+    priceperhour: number;
+    priceperday: number;
+  }[];
   rating: number;
   totalReviews: number;
   totalBookings: number;
@@ -210,6 +220,46 @@ export interface ParkingLot {
   longitude?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ParkingLotItem {
+  id: number;
+  name: string;
+  location: string;
+  description: string;
+  status: "ACTIVE" | "INACTIVE" | "PENDING" | string;
+  type: string;
+  occupiedSlots: number;
+  owner: {
+    id: number;
+    name: string;
+    phone: string;
+    gender: string | null;
+    image: string | null;
+  };
+  availableSpaces: {
+    totalSlots: number;
+    availableSlots: number;
+  };
+  totalSpaces: number;
+  pricePerHour: {
+    zonename: string;
+    priceperhour: number;
+    priceperday: number;
+  }[];
+  averageRating: string;
+  totalReviews: number;
+  totalBookings: number;
+  totalRevenue: string;
+  openTime: string;
+  closeTime: string;
+  amenities: string[];
+  zones: {
+    id: number;
+    name: string;
+    totalSlots: number;
+    availableSlots: number;
+  }[];
 }
 
 /** Approval Request related types */
@@ -364,6 +414,32 @@ class AdminService {
   }
 
   /**
+   * Get parking lot stats
+   * GET /api/v1/admin/stats/parking-lots
+   */
+  async getParkingLotStats(): Promise<ParkingLotStats> {
+    const response = await get<ApiResponse<ParkingLotStats>>("/admin/stats/parking-lots");
+    return response.data;
+  }
+
+  /**
+   * Get parking lot list
+   * GET /api/v1/admin/parking-lots/list
+   */
+  async getParkingLotsList(): Promise<{ data: ParkingLotItem[]; meta: any }> {
+    const response = await get<ApiResponse<WrappedResponse<ParkingLotItem[]>> & { meta?: any }>(
+      "/admin/parking-lots/list",
+    );
+    // The structure: { statusCode, message, data: { success, message, data: [...], meta: {...} } }
+    // our 'get' helper usually returns the outer 'data' field.
+    const nestedData = response.data; // This is the WrappedResponse
+    return {
+      data: nestedData.data || [],
+      meta: (nestedData as any).meta || response.meta
+    };
+  }
+
+  /**
    * Get list of all approval requests
    * GET /api/v1/admin/stats/requests
    */
@@ -384,6 +460,30 @@ class AdminService {
       }>
     >("/admin/requests");
     return response.data.items;
+  }
+
+  /**
+   * Update user status (block/unblock)
+   * PATCH /api/v1/admin/users/:userId/status
+   */
+  async updateUserStatus(userId: string, status: "ACTIVE" | "BLOCKED"): Promise<void> {
+    await patch(`/admin/users/${userId}/status`, { status });
+  }
+
+  /**
+   * Approve an approval request
+   * PATCH /api/v1/admin/requests/:requestId/approve
+   */
+  async approveRequest(requestId: string, adminId: string, reason: string): Promise<void> {
+    await patch(`/admin/requests/${requestId}/approve`, { adminId, reason });
+  }
+
+  /**
+   * Reject an approval request
+   * PATCH /api/v1/admin/requests/:requestId/reject
+   */
+  async rejectRequest(requestId: string, adminId: string, reason: string): Promise<void> {
+    await patch(`/admin/requests/${requestId}/reject`, { adminId, reason });
   }
 }
 

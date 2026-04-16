@@ -23,6 +23,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   BarChart,
   Bar,
   XAxis,
@@ -251,15 +258,16 @@ export default function RevenueReportPage() {
         </div>
         <div className="flex items-center gap-3 mt-4 sm:mt-0">
           {/* Bộ chọn khoảng thời gian */}
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="h-10 px-4 border border-white/20 rounded-lg bg-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 backdrop-blur-sm [&>option]:text-gray-900"
-          >
-            {PERIODS.map((p) => (
-              <option key={p.value} value={p.value}>{p.label}</option>
-            ))}
-          </select>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="h-10 border-white/30 rounded-lg bg-white/20 text-white text-sm focus:ring-white/40 backdrop-blur-sm shadow-none">
+              <SelectValue placeholder="Chọn khoảng thời gian" />
+            </SelectTrigger>
+            <SelectContent className="bg-white/95 backdrop-blur-md">
+              {PERIODS.map((p) => (
+                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button onClick={fetchData} className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2">
             <RefreshCw size={16} />Làm mới
           </Button>

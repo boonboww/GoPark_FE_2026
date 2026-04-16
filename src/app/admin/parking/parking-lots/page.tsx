@@ -23,6 +23,11 @@ import {
   Navigation,
   Layers,
   Activity,
+  ParkingCircleIcon,
+  SquareParking,
+  SquareParkingIcon,
+  ParkingCircleOff,
+  ParkingCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,14 +47,22 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   adminService,
   ParkingLot,
   ParkingLotStatus,
   ParkingLotType,
-  OwnerInfoShort as OwnerInfo,
-  ParkingZone,
+  ParkingLotItem,
+  ParkingLotStats,
 } from "@/services/admin.service";
 import { useAdminStore } from "@/stores";
+import { IconCash, IconMail, IconMoneybag } from "@tabler/icons-react";
 
  
 
@@ -89,26 +102,7 @@ const statusConfig: Record<ParkingLotStatus, { label: string; className: string;
   },
 };
 
-/** Nhãn loại bãi đỗ */
-const typeLabels: Record<ParkingLotType, string> = {
-  outdoor: "Ngoài trời",
-  indoor: "Trong nhà",
-  underground: "Hầm ngầm",
-  rooftop: "Sân thượng",
-  "multi-level": "Nhiều tầng",
-};
-
-/** Nhãn tiện ích */
-const amenityLabels: Record<string, string> = {
-  covered: "Có mái che",
-  cctv: "Camera CCTV",
-  security: "Bảo vệ 24/7",
-  ev_charging: "Sạc EV",
-  car_wash: "Rửa xe",
-  disabled_access: "Lối đi người khuyết tật",
-  valet: "Dịch vụ valet",
-  lighting: "Đèn chiếu sáng",
-};
+// Labels moved to detail dialog or simplified
 
 // ─── Dữ liệu mẫu ────────────────────────────────────────────────────────────
 
@@ -124,8 +118,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 120,
     availableSlots: 45,
     occupiedSlots: 75,
-    pricePerHour: 15000,
-    pricePerDay: 100000,
+    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 15000, priceperday: 100000 }],
     rating: 4.5,
     totalReviews: 234,
     totalBookings: 1520,
@@ -152,8 +145,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 200,
     availableSlots: 82,
     occupiedSlots: 118,
-    pricePerHour: 25000,
-    pricePerDay: 180000,
+    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 25000, priceperday: 180000 }],
     rating: 4.7,
     totalReviews: 456,
     totalBookings: 3200,
@@ -180,7 +172,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 50,
     availableSlots: 50,
     occupiedSlots: 0,
-    pricePerHour: 10000,
+    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 10000, priceperday: 80000 }],
     rating: 0,
     totalReviews: 0,
     totalBookings: 0,
@@ -202,8 +194,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 300,
     availableSlots: 120,
     occupiedSlots: 180,
-    pricePerHour: 20000,
-    pricePerDay: 150000,
+    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 20000, priceperday: 150000 }],
     rating: 4.8,
     totalReviews: 623,
     totalBookings: 4500,
@@ -229,8 +220,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 150,
     availableSlots: 68,
     occupiedSlots: 82,
-    pricePerHour: 12000,
-    pricePerDay: 80000,
+    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 12000, priceperday: 80000 }],
     rating: 4.0,
     totalReviews: 189,
     totalBookings: 980,
@@ -251,7 +241,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 60,
     availableSlots: 60,
     occupiedSlots: 0,
-    pricePerHour: 8000,
+    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 8000, priceperday: 60000 }],
     rating: 3.2,
     totalReviews: 45,
     totalBookings: 120,
@@ -273,8 +263,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 250,
     availableSlots: 95,
     occupiedSlots: 155,
-    pricePerHour: 30000,
-    pricePerDay: 200000,
+    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 30000, priceperday: 200000 }],
     rating: 4.9,
     totalReviews: 789,
     totalBookings: 5600,
@@ -303,8 +292,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 300,
     availableSlots: 130,
     occupiedSlots: 170,
-    pricePerHour: 35000,
-    pricePerDay: 250000,
+    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 35000, priceperday: 250000 }],
     rating: 4.9,
     totalReviews: 1023,
     totalBookings: 6800,
@@ -363,9 +351,11 @@ const getInitials = (name: string) => {
 export default function ParkingLotsPage() {
   const {
     parkingLots,
+    parkingLotStats,
     isParkingLotsLoading: loading,
     parkingLotsError: error,
     setParkingLots,
+    setParkingLotStats,
     setParkingLotsLoading,
     setParkingLotsError,
   } = useAdminStore();
@@ -381,7 +371,7 @@ export default function ParkingLotsPage() {
   });
 
   /** Bãi đỗ đang xem chi tiết */
-  const [selectedLot, setSelectedLot] = useState<ParkingLot | null>(null);
+  const [selectedLot, setSelectedLot] = useState<ParkingLotItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   // ── Gọi API lấy danh sách bãi đỗ ───────────────────────────────────────────
@@ -391,14 +381,61 @@ export default function ParkingLotsPage() {
       setParkingLotsLoading(true);
       setUsingMockData(false);
 
-      const data = await adminService.getParkingLots();
-      setParkingLots(data);
+      const [listResult, statsResult] = await Promise.all([
+        adminService.getParkingLotsList(),
+        adminService.getParkingLotStats()
+      ]);
+
+      setParkingLots(listResult.data);
+      setParkingLotStats(statsResult);
     } catch (err) {
       console.error("Lỗi khi tải danh sách bãi đỗ:", err);
       setParkingLotsError(err instanceof Error ? err.message : "Lỗi không xác định");
       // Dùng dữ liệu mẫu khi API chưa sẵn sàng
       setUsingMockData(true);
-      setParkingLots(mockParkingLots);
+      // Map mock data to new interface for compatibility
+      const mappedMock: ParkingLotItem[] = mockParkingLots.map(lot => ({
+        id: parseInt(lot._id.replace("pl", "")),
+        name: lot.name,
+        location: lot.address,
+        description: lot.description || "",
+        status: lot.status.toUpperCase(),
+        type: lot.type,
+        occupiedSlots: lot.occupiedSlots,
+        owner: {
+          id: parseInt(lot.owner._id.replace("o", "")),
+          name: lot.owner.userName,
+          phone: lot.owner.phoneNumber,
+          gender: null,
+          image: null
+        },
+        availableSpaces: {
+          totalSlots: lot.totalSlots,
+          availableSlots: lot.availableSlots
+        },
+        totalSpaces: lot.totalSlots,
+        pricePerHour: lot.pricePerHour,
+        averageRating: lot.rating.toString(),
+        totalReviews: lot.totalReviews,
+        totalBookings: lot.totalBookings,
+        totalRevenue: formatCompactCurrency(lot.totalRevenue),
+        openTime: lot.openTime,
+        closeTime: lot.closeTime,
+        amenities: lot.amenities,
+        zones: (lot.zones || []).map((z, i) => ({
+          id: i + 1,
+          name: z.name,
+          totalSlots: z.totalSlots,
+          availableSlots: z.availableSlots
+        }))
+      }));
+      setParkingLots(mappedMock);
+      setParkingLotStats({
+        totalParkingLots: mockParkingLots.length,
+        activeParkingLots: mockParkingLots.filter(l => l.status === "active").length,
+        availableSpacesParkingSlot: `${mockParkingLots.reduce((s, l) => s + l.availableSlots, 0)}/${mockParkingLots.reduce((s, l) => s + l.totalSlots, 0)}`,
+        averageRating: (mockParkingLots.reduce((s, l) => s + l.rating, 0) / mockParkingLots.length).toFixed(1)
+      });
     }
   };
 
@@ -420,43 +457,37 @@ export default function ParkingLotsPage() {
       result = result.filter(
         (lot) =>
           lot.name.toLowerCase().includes(term) ||
-          lot.address.toLowerCase().includes(term) ||
-          lot.owner.userName.toLowerCase().includes(term)
+          lot.location.toLowerCase().includes(term) ||
+          lot.owner.name.toLowerCase().includes(term)
       );
     }
 
     // Lọc theo trạng thái
     if (filters.status) {
-      result = result.filter((lot) => lot.status === filters.status);
-    }
-
-    // Lọc theo loại
-    if (filters.type) {
-      result = result.filter((lot) => lot.type === filters.type);
+      result = result.filter((lot) => lot.status === filters.status.toUpperCase());
     }
 
     // Sắp xếp
     switch (filters.sortBy) {
       case "rating":
-        result.sort((a, b) => b.rating - a.rating);
+        result.sort((a, b) => parseFloat(b.averageRating) - parseFloat(a.averageRating));
         break;
       case "most-slots":
-        result.sort((a, b) => b.totalSlots - a.totalSlots);
-        break;
-      case "most-bookings":
-        result.sort((a, b) => b.totalBookings - a.totalBookings);
-        break;
-      case "most-revenue":
-        result.sort((a, b) => b.totalRevenue - a.totalRevenue);
-        break;
-      case "newest":
-        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        result.sort((a, b) => b.totalSpaces - a.totalSpaces);
         break;
       case "price-low":
-        result.sort((a, b) => a.pricePerHour - b.pricePerHour);
+        result.sort((a, b) => {
+          const minA = Math.min(...(a.pricePerHour || []).map(p => p.priceperhour), Infinity);
+          const minB = Math.min(...(b.pricePerHour || []).map(p => p.priceperhour), Infinity);
+          return minA - minB;
+        });
         break;
       case "price-high":
-        result.sort((a, b) => b.pricePerHour - a.pricePerHour);
+        result.sort((a, b) => {
+          const minA = Math.min(...(a.pricePerHour || []).map(p => p.priceperhour), -1);
+          const minB = Math.min(...(b.pricePerHour || []).map(p => p.priceperhour), -1);
+          return minB - minA;
+        });
         break;
     }
 
@@ -465,17 +496,7 @@ export default function ParkingLotsPage() {
 
   // ── Thống kê ────────────────────────────────────────────────────────────────
 
-  const stats = useMemo(() => {
-    const total = parkingLots.length;
-    const active = parkingLots.filter((l: ParkingLot) => l.status === "active").length;
-    const totalSlots = parkingLots.reduce((s: number, l: ParkingLot) => s + l.totalSlots, 0);
-    const totalOccupied = parkingLots.reduce((s: number, l: ParkingLot) => s + l.occupiedSlots, 0);
-    const avgRating = parkingLots.length > 0
-      ? (parkingLots.reduce((s: number, l: ParkingLot) => s + l.rating, 0) / parkingLots.filter((l: ParkingLot) => l.rating > 0).length).toFixed(1)
-      : "0";
-    const totalRevenue = parkingLots.reduce((s: number, l: ParkingLot) => s + l.totalRevenue, 0);
-    return { total, active, totalSlots, totalOccupied, avgRating, totalRevenue };
-  }, [parkingLots]);
+  // Stats are now fetched directly from the API
 
   // ── Xử lý sự kiện ──────────────────────────────────────────────────────────
 
@@ -487,29 +508,26 @@ export default function ParkingLotsPage() {
     setFilters({ search: "", status: "", type: "", sortBy: "rating" });
   };
 
-  const openDetail = (lot: ParkingLot) => {
+  const openDetail = (lot: ParkingLotItem) => {
     setSelectedLot(lot);
     setDetailOpen(true);
   };
 
   /** Chuyển trạng thái bãi đỗ */
-  const handleToggleStatus = async (lot: ParkingLot, newStatus: ParkingLotStatus) => {
-    console.log(`Chuyển bãi ${lot._id} sang ${newStatus}`);
+  const handleToggleStatus = async (lot: ParkingLotItem, newStatus: string) => {
+    console.log(`Chuyển bãi ${lot.id} sang ${newStatus}`);
     // TODO: Gọi API cập nhật trạng thái
-    const updatedLots = parkingLots.map((l: ParkingLot) => (l._id === lot._id ? { ...l, status: newStatus } : l));
+    const updatedLots = parkingLots.map((l: ParkingLotItem) => (l.id === lot.id ? { ...l, status: newStatus } : l));
     setParkingLots(updatedLots);
-    if (selectedLot && selectedLot._id === lot._id) {
-      setSelectedLot({ ...selectedLot, status: newStatus });
-    }
   };
 
   // ── Thẻ thống kê ───────────────────────────────────────────────────────────
 
   const statCards = [
-    { title: "Tổng bãi đỗ", value: stats.total.toString(), icon: ParkingSquare, color: "bg-blue-500" },
-    { title: "Đang hoạt động", value: stats.active.toString(), icon: Activity, color: "bg-green-500" },
-    { title: "Tổng chỗ đỗ", value: formatNumber(stats.totalSlots), icon: Car, color: "bg-violet-500" },
-    { title: "Đánh giá TB", value: `${stats.avgRating} ⭐`, icon: Star, color: "bg-amber-500" },
+    { title: "Tổng bãi đỗ", value: parkingLotStats?.totalParkingLots.toString() || "0", icon: ParkingSquare, color: "bg-blue-600", light: "bg-blue-50" },
+    { title: "Đang hoạt động", value: parkingLotStats?.activeParkingLots.toString() || "0", icon: Activity, color: "bg-emerald-600", light: "bg-emerald-50" },
+    { title: "Chỗ trống / Tổng chỗ đỗ", value: parkingLotStats?.availableSpacesParkingSlot || "0/0", icon: ParkingCircle, color: "bg-violet-600", light: "bg-violet-50" },
+    { title: "Đánh giá TB", value: `${parkingLotStats?.averageRating || "0.0"}`, icon: Star, color: "bg-amber-500", light: "bg-amber-50" },
   ];
 
   // ── Loading ─────────────────────────────────────────────────────────────────
@@ -560,14 +578,14 @@ export default function ParkingLotsPage() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <Card key={card.title} className="hover:shadow-md transition-shadow border-0 shadow-sm">
+            <Card key={card.title} className={`hover:shadow-md transition-shadow border-0 shadow-sm ${card.light}`}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">{card.title}</p>
+                    <p className={`text-sm font-medium ${card.color.replace('bg-', 'text-').replace('600', '700')}`}>{card.title}</p>
                     <p className="text-3xl font-bold text-gray-900 mt-1">{card.value}</p>
                   </div>
-                  <div className={`w-12 h-12 rounded-xl ${card.color} flex items-center justify-center shadow-lg`}>
+                  <div className={`w-12 h-12 rounded-xl ${card.color} flex items-center justify-center shadow-lg shadow-${card.color.split('-')[1]}-200`}>
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                 </div>
@@ -588,48 +606,33 @@ export default function ParkingLotsPage() {
               placeholder="Tìm theo tên bãi đỗ, địa chỉ, chủ bãi..."
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white"
+              className="pl-10 h-11 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
             />
           </div>
           {/* Lọc trạng thái */}
-          <select
-            value={filters.status}
-            onChange={(e) => handleFilterChange("status", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[160px]"
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="active">Hoạt động</option>
-            <option value="pending">Chờ duyệt</option>
-            <option value="suspended">Tạm ngưng</option>
-            <option value="closed">Đã đóng</option>
-          </select>
-          {/* Lọc loại bãi */}
-          <select
-            value={filters.type}
-            onChange={(e) => handleFilterChange("type", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[160px]"
-          >
-            <option value="">Tất cả loại</option>
-            <option value="outdoor">Ngoài trời</option>
-            <option value="indoor">Trong nhà</option>
-            <option value="underground">Hầm ngầm</option>
-            <option value="rooftop">Sân thượng</option>
-            <option value="multi-level">Nhiều tầng</option>
-          </select>
+          <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
+            <SelectTrigger className="h-11 min-w-[160px] border-gray-200 bg-slate-50 text-slate-900">
+              <SelectValue placeholder="Tất cả trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="active">Hoạt động</SelectItem>
+              <SelectItem value="inactive">Tạm ngưng</SelectItem>
+            </SelectContent>
+          </Select>
+
           {/* Sắp xếp */}
-          <select
-            value={filters.sortBy}
-            onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[180px]"
-          >
-            <option value="rating">Đánh giá cao nhất</option>
-            <option value="most-slots">Nhiều chỗ nhất</option>
-            <option value="most-bookings">Nhiều booking nhất</option>
-            <option value="most-revenue">Doanh thu cao nhất</option>
-            <option value="newest">Mới nhất</option>
-            <option value="price-low">Giá thấp → cao</option>
-            <option value="price-high">Giá cao → thấp</option>
-          </select>
+          <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
+            <SelectTrigger className="h-11 min-w-[180px] border-gray-200 bg-slate-50 text-slate-900">
+              <SelectValue placeholder="Sắp xếp" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rating">Đánh giá cao nhất</SelectItem>
+              <SelectItem value="most-slots">Nhiều chỗ nhất</SelectItem>
+              <SelectItem value="price-low">Giá thấp → cao</SelectItem>
+              <SelectItem value="price-high">Giá cao → thấp</SelectItem>
+            </SelectContent>
+          </Select>
           {/* Xóa lọc */}
           {(filters.search || filters.status || filters.type || filters.sortBy !== "rating") && (
             <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700">
@@ -657,13 +660,14 @@ export default function ParkingLotsPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filteredLots.map((lot) => {
-                const stConf = statusConfig[lot.status] || statusConfig.active;
-                const occupancy = getOccupancyPercent(lot.occupiedSlots, lot.totalSlots);
+                const currentStatus = lot.status.toLowerCase() as ParkingLotStatus;
+                const stConf = statusConfig[currentStatus] || statusConfig.active;
+                const occupancy = getOccupancyPercent(lot.availableSpaces.totalSlots - lot.availableSpaces.availableSlots, lot.availableSpaces.totalSlots);
                 const occColor = getOccupancyColor(occupancy);
 
                 return (
                   <tr
-                    key={lot._id}
+                    key={lot.id}
                     className="hover:bg-blue-50/40 transition-colors cursor-pointer"
                     onClick={() => openDetail(lot)}
                   >
@@ -678,11 +682,8 @@ export default function ParkingLotsPage() {
                           <p className="text-sm font-semibold text-gray-900 truncate max-w-[220px]">{lot.name}</p>
                           <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                             <MapPin size={10} className="flex-shrink-0" />
-                            <span className="truncate max-w-[200px]">{lot.address}</span>
+                            <span className="truncate max-w-[200px]">{lot.location}</span>
                           </p>
-                          <Badge variant="outline" className="text-[10px] mt-1 px-1.5 py-0 h-4">
-                            {typeLabels[lot.type]}
-                          </Badge>
                         </div>
                       </div>
                     </td>
@@ -691,9 +692,9 @@ export default function ParkingLotsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                          <span className="text-white text-[10px] font-bold">{getInitials(lot.owner.userName)}</span>
+                          <span className="text-white text-[10px] font-bold">{getInitials(lot.owner.name)}</span>
                         </div>
-                        <span className="text-sm text-gray-700 truncate max-w-[120px]">{lot.owner.userName}</span>
+                        <span className="text-sm text-gray-700 truncate max-w-[120px]">{lot.owner.name}</span>
                       </div>
                     </td>
 
@@ -701,7 +702,7 @@ export default function ParkingLotsPage() {
                     <td className="px-6 py-4">
                       <div className="w-32">
                         <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-gray-500">{lot.occupiedSlots}/{lot.totalSlots}</span>
+                          <span className="text-gray-500">{lot.availableSpaces.totalSlots - lot.availableSpaces.availableSlots}/{lot.availableSpaces.totalSlots}</span>
                           <span className="font-semibold text-gray-700">{occupancy}%</span>
                         </div>
                         {/* Thanh tiến trình công suất */}
@@ -711,23 +712,29 @@ export default function ParkingLotsPage() {
                       </div>
                     </td>
 
-                    {/* Giá */}
                     <td className="px-6 py-4">
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(lot.pricePerHour)}</p>
-                      {lot.pricePerDay && (
-                        <p className="text-xs text-gray-400">{formatCurrency(lot.pricePerDay)}/ngày</p>
+                      {lot.pricePerHour && lot.pricePerHour.length > 0 ? (
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {formatCurrency(Math.min(...lot.pricePerHour.map(p => p.priceperhour)))}
+                          </p>
+                          {lot.pricePerHour.length > 1 && (
+                            <p className="text-[10px] text-gray-400">Từ {lot.pricePerHour.length} mức giá</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-400 italic">Chưa có giá</p>
                       )}
                     </td>
 
                     {/* Đánh giá */}
                     <td className="px-6 py-4">
-                      {lot.rating > 0 ? (
+                      {parseFloat(lot.averageRating) > 0 ? (
                         <div className="flex items-center gap-1.5">
                           <div className="flex items-center gap-0.5 bg-amber-50 px-2 py-1 rounded-lg">
                             <Star size={14} className="fill-amber-400 text-amber-400" />
-                            <span className="text-sm font-bold text-amber-700">{lot.rating}</span>
+                            <span className="text-sm font-bold text-amber-700">{lot.averageRating}</span>
                           </div>
-                          <span className="text-xs text-gray-400">({lot.totalReviews})</span>
                         </div>
                       ) : (
                         <span className="text-xs text-gray-400">Chưa có</span>
@@ -755,31 +762,6 @@ export default function ParkingLotsPage() {
                             <Eye size={16} className="mr-2" />
                             Xem chi tiết
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {lot.status === "active" && (
-                            <DropdownMenuItem onClick={() => handleToggleStatus(lot, "suspended")} className="text-orange-600">
-                              <Ban size={16} className="mr-2" />
-                              Tạm ngưng
-                            </DropdownMenuItem>
-                          )}
-                          {lot.status === "suspended" && (
-                            <DropdownMenuItem onClick={() => handleToggleStatus(lot, "active")} className="text-green-600">
-                              <CheckCircle size={16} className="mr-2" />
-                              Kích hoạt lại
-                            </DropdownMenuItem>
-                          )}
-                          {lot.status === "pending" && (
-                            <>
-                              <DropdownMenuItem onClick={() => handleToggleStatus(lot, "active")} className="text-green-600">
-                                <CheckCircle size={16} className="mr-2" />
-                                Duyệt
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleToggleStatus(lot, "closed")} className="text-red-600">
-                                <Ban size={16} className="mr-2" />
-                                Từ chối
-                              </DropdownMenuItem>
-                            </>
-                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -810,9 +792,10 @@ export default function ParkingLotsPage() {
             <DialogTitle className="text-xl">Chi tiết bãi đỗ xe</DialogTitle>
           </DialogHeader>
 
-          {selectedLot && (() => {
-            const stConf = statusConfig[selectedLot.status] || statusConfig.active;
-            const occupancy = getOccupancyPercent(selectedLot.occupiedSlots, selectedLot.totalSlots);
+          {selectedLot && ((lot: ParkingLotItem) => {
+            const currentStatus = lot.status.toLowerCase() as ParkingLotStatus;
+            const stConf = statusConfig[currentStatus] || statusConfig.active;
+            const occupancy = getOccupancyPercent(lot.availableSpaces.totalSlots - lot.availableSpaces.availableSlots, lot.availableSpaces.totalSlots);
             const occColor = getOccupancyColor(occupancy);
 
             return (
@@ -825,48 +808,54 @@ export default function ParkingLotsPage() {
                       <ParkingSquare className="w-7 h-7 text-blue-600" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900">{selectedLot.name}</h3>
+                      <h3 className="text-xl font-bold text-gray-900">{lot.name}</h3>
                       <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                        <MapPin size={14} className="flex-shrink-0" />{selectedLot.address}
+                        <MapPin size={14} className="flex-shrink-0" />{lot.location}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <Badge variant="outline" className={`text-xs font-medium ${stConf.className}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${stConf.dot} mr-1.5 inline-block`} />
                           {stConf.label}
                         </Badge>
-                        <Badge variant="outline" className="text-xs">{typeLabels[selectedLot.type]}</Badge>
-                        <Badge variant="outline" className="text-xs">
-                          <Clock size={10} className="mr-1" />{selectedLot.openTime} - {selectedLot.closeTime}
+                        <Badge variant="secondary" className="text-xs font-medium bg-indigo-100 text-indigo-700 border-indigo-200">
+                          <Layers size={12} className="mr-1" />
+                          {lot.type}
                         </Badge>
                       </div>
                     </div>
                   </div>
-                  {selectedLot.description && (
-                    <p className="text-sm text-gray-600 mt-3 ml-[72px]">{selectedLot.description}</p>
-                  )}
                 </div>
 
                 {/* Thống kê nhanh */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                   <div className="text-center p-4 bg-blue-50 rounded-xl">
                     <Car className="w-5 h-5 text-blue-600 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-blue-700">{selectedLot.totalSlots}</p>
-                    <p className="text-xs text-blue-500">Tổng chỗ đỗ</p>
+                    <p className="text-2xl font-bold text-blue-700">{lot.totalSpaces}</p>
+                    <p className="text-[10px] text-blue-500 uppercase font-bold tracking-wider">Tổng chỗ đỗ</p>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-xl">
-                    <TrendingUp className="w-5 h-5 text-green-600 mx-auto mb-1" />
-                    <p className="text-lg font-bold text-green-700">{formatCompactCurrency(selectedLot.totalRevenue)}</p>
-                    <p className="text-xs text-green-500">Doanh thu</p>
-                  </div>
-                  <div className="text-center p-4 bg-violet-50 rounded-xl">
-                    <Users className="w-5 h-5 text-violet-600 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-violet-700">{formatNumber(selectedLot.totalBookings)}</p>
-                    <p className="text-xs text-violet-500">Tổng booking</p>
+                    <IconCash className="w-5 h-5 text-green-600 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-green-700">
+                      {lot.pricePerHour && lot.pricePerHour.length > 0 
+                        ? formatCurrency(Math.min(...lot.pricePerHour.map(p => p.priceperhour)))
+                        : "—"}
+                    </p>
+                    <p className="text-[10px] text-green-500 uppercase font-bold tracking-wider">Giá thấp nhất</p>
                   </div>
                   <div className="text-center p-4 bg-amber-50 rounded-xl">
                     <Star className="w-5 h-5 text-amber-600 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-amber-700">{selectedLot.rating > 0 ? selectedLot.rating : "—"}</p>
-                    <p className="text-xs text-amber-500">{selectedLot.totalReviews} đánh giá</p>
+                    <p className="text-2xl font-bold text-amber-700">{parseFloat(lot.averageRating) > 0 ? lot.averageRating : "—"}</p>
+                    <p className="text-[10px] text-amber-500 uppercase font-bold tracking-wider">Đánh giá TB</p>
+                  </div>
+                  <div className="text-center p-4 bg-emerald-50 rounded-xl">
+                    <TrendingUp className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-emerald-700">{lot.totalRevenue}</p>
+                    <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-wider">Tổng doanh thu</p>
+                  </div>
+                  <div className="text-center p-4 bg-indigo-50 rounded-xl">
+                    <Car className="w-5 h-5 text-indigo-600 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-indigo-700">{formatNumber(lot.totalBookings)}</p>
+                    <p className="text-[10px] text-indigo-500 uppercase font-bold tracking-wider">Tổng đơn đặt</p>
                   </div>
                 </div>
 
@@ -880,117 +869,143 @@ export default function ParkingLotsPage() {
                     <div className={`h-full rounded-full ${occColor} transition-all`} style={{ width: `${occupancy}%` }} />
                   </div>
                   <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                    <span>Đang dùng: <strong className="text-gray-700">{selectedLot.occupiedSlots}</strong></span>
-                    <span>Còn trống: <strong className="text-green-600">{selectedLot.availableSlots}</strong></span>
-                    <span>Tổng: <strong className="text-gray-700">{selectedLot.totalSlots}</strong></span>
+                    <span>Đang dùng: <strong className="text-gray-700">{lot.occupiedSlots}</strong></span>
+                    <span>Còn trống: <strong className="text-green-600">{lot.availableSpaces.availableSlots}</strong></span>
+                    <span>Tổng: <strong className="text-gray-700">{lot.totalSpaces}</strong></span>
                   </div>
                 </div>
 
-                {/* Khu vực đỗ xe (nếu có) */}
-                {selectedLot.zones && selectedLot.zones.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Phân bổ theo khu vực</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {selectedLot.zones.map((zone) => {
-                        const zoneOcc = getOccupancyPercent(zone.totalSlots - zone.availableSlots, zone.totalSlots);
-                        const zoneColor = getOccupancyColor(zoneOcc);
-                        return (
-                          <div key={zone.name} className="p-3 bg-white border border-gray-100 rounded-lg">
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-sm font-semibold text-gray-800">Khu {zone.name}</span>
-                              <span className="text-xs text-gray-500">{zoneOcc}%</span>
-                            </div>
-                            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full ${zoneColor}`} style={{ width: `${zoneOcc}%` }} />
-                            </div>
-                            <p className="text-xs text-gray-400 mt-1">
-                              {zone.availableSlots}/{zone.totalSlots} trống
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
 
-                {/* Giá cả */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="p-3 bg-emerald-50 rounded-lg">
-                    <p className="text-xs text-emerald-400 mb-1">Giá theo giờ</p>
-                    <p className="text-xl font-bold text-emerald-700">{formatCurrency(selectedLot.pricePerHour)}</p>
+                {/* Phân bổ theo khu vực */}
+                <div className="border border-gray-100 rounded-xl p-5">
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Phân bổ theo khu vực ({lot.zones.length})</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {lot.zones.map((zone) => (
+                      <div key={zone.id} className="p-3 bg-white border border-gray-100 rounded-lg shadow-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-semibold text-gray-800">{zone.name}</span>
+                          <span className="text-xs font-bold text-blue-600">{zone.availableSlots}/{zone.totalSlots} chỗ</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
+                          <div
+                            className="h-full bg-blue-500 rounded-full"
+                            style={{ width: `${getOccupancyPercent(zone.totalSlots - zone.availableSlots, zone.totalSlots)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  {selectedLot.pricePerDay && (
-                    <div className="p-3 bg-sky-50 rounded-lg">
-                      <p className="text-xs text-sky-400 mb-1">Giá theo ngày</p>
-                      <p className="text-xl font-bold text-sky-700">{formatCurrency(selectedLot.pricePerDay)}</p>
-                    </div>
-                  )}
                 </div>
 
-                {/* Tiện ích */}
-                {selectedLot.amenities.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Tiện ích</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedLot.amenities.map((amenity) => (
-                        <Badge key={amenity} variant="outline" className="text-xs bg-gray-50">
-                          {amenityLabels[amenity] || amenity}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
-                {/* Thông tin chủ bãi */}
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Chủ bãi đỗ</h4>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
-                      <span className="text-white text-sm font-semibold">{getInitials(selectedLot.owner.userName)}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{selectedLot.owner.userName}</p>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-gray-500">
-                        <span className="flex items-center gap-1"><Mail size={12} />{selectedLot.owner.email}</span>
-                        <span className="flex items-center gap-1"><Phone size={12} />{selectedLot.owner.phoneNumber}</span>
+                {/* Bảng giá theo khu vực */}
+                <div className="border border-gray-100 rounded-xl p-5">
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Bảng giá tham khảo ({lot.pricePerHour.length})</h4>
+                  <div className="overflow-hidden border border-gray-100 rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left font-semibold text-gray-600">Khu vực</th>
+                          <th className="px-4 py-2 text-right font-semibold text-gray-600">Theo giờ</th>
+                          <th className="px-4 py-2 text-right font-semibold text-gray-600">Theo ngày</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {lot.pricePerHour.map((price, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50/50">
+                            <td className="px-4 py-2 text-gray-700 font-medium">{price.zonename}</td>
+                            <td className="px-4 py-2 text-right text-blue-600 font-semibold">{formatCurrency(price.priceperhour)}</td>
+                            <td className="px-4 py-2 text-right text-indigo-600 font-semibold">{formatCurrency(price.priceperday)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+
+                {/* Mô tả & Thông tin vận hành */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Mô tả</h4>
+                    <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
+                      "{lot.description || "Không có mô tả"}"
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Thông tin vận hành</h4>
+                    <div className="bg-slate-50 p-3 rounded-lg border border-gray-100 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={12} /> Giờ mở cửa</span>
+                        <span className="text-sm font-semibold text-slate-700">{lot.openTime}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={12} /> Giờ đóng cửa</span>
+                        <span className="text-sm font-semibold text-slate-700">{lot.closeTime}</span>
+                      </div>
+                      <div className="pt-1 border-t border-slate-200 flex justify-between items-center">
+                        <span className="text-xs text-gray-500 flex items-center gap-1"><Navigation size={12} /> Loại hình</span>
+                        <span className="text-sm font-semibold text-slate-700">{lot.type}</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Thời gian */}
-                <div className="flex items-center justify-between text-xs text-gray-400 px-1">
-                  <span>Đăng ký: {formatDate(selectedLot.createdAt)}</span>
-                  <span>Cập nhật: {formatDate(selectedLot.updatedAt)}</span>
+                
+
+                {/* Tiện ích */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Tiện ích</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {lot.amenities.map((item) => (
+                      <Badge key={item} variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100">
+                        {item}
+                      </Badge>
+                    ))}
+                    {lot.amenities.length === 0 && <span className="text-xs text-gray-400 italic">Chưa cập nhật tiện ích</span>}
+                  </div>
+                </div>
+
+               
+
+                {/* Thông tin chủ bãi */}
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Chủ bãi đỗ</h4>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
+                        <span className="text-white text-sm font-semibold">{getInitials(lot.owner.name)}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{lot.owner.name}</p>
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                          <Phone size={12} /> {lot.owner.phone}
+                        </p>
+                      </div>
+                    </div>
+                    {lot.owner.gender && (
+                      <Badge variant="outline" className="text-[10px] uppercase">{lot.owner.gender}</Badge>
+                    )}
+                  </div>
                 </div>
 
                 {/* Nút hành động */}
                 <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
                   <Button variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>
-                  {selectedLot.status === "active" && (
-                    <Button className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => handleToggleStatus(selectedLot, "suspended")}>
+                  {lot.status === "ACTIVE" && (
+                    <Button className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => handleToggleStatus(lot, "INACTIVE")}>
                       <Ban size={16} className="mr-2" />Tạm ngưng
                     </Button>
                   )}
-                  {selectedLot.status === "suspended" && (
-                    <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleToggleStatus(selectedLot, "active")}>
+                  {lot.status === "INACTIVE" && (
+                    <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleToggleStatus(lot, "ACTIVE")}>
                       <CheckCircle size={16} className="mr-2" />Kích hoạt lại
                     </Button>
-                  )}
-                  {selectedLot.status === "pending" && (
-                    <>
-                      <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleToggleStatus(selectedLot, "closed")}>
-                        <Ban size={16} className="mr-2" />Từ chối
-                      </Button>
-                      <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleToggleStatus(selectedLot, "active")}>
-                        <CheckCircle size={16} className="mr-2" />Duyệt
-                      </Button>
-                    </>
                   )}
                 </div>
               </div>
             );
-          })()}
+          })(selectedLot)}
         </DialogContent>
       </Dialog>
     </div>

@@ -44,6 +44,13 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   adminService,
   Transaction,
   TransactionType,
@@ -530,55 +537,74 @@ export default function TransactionsPage() {
             placeholder="Tìm theo mã giao dịch, tên người dùng, bãi đỗ, email..."
             value={filters.search}
             onChange={(e) => handleFilterChange("search", e.target.value)}
-            className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white"
+            className="pl-10 h-11 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
           />
         </div>
         {/* Dòng 2: Bộ lọc */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
           {/* Trạng thái */}
-          <select value={filters.status} onChange={(e) => handleFilterChange("status", e.target.value)}
-            className="h-10 px-3 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-            <option value="">Trạng thái</option>
-            <option value="success">Thành công</option>
-            <option value="pending">Đang xử lý</option>
-            <option value="failed">Thất bại</option>
-            <option value="refunded">Đã hoàn tiền</option>
-          </select>
+          <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
+            <SelectTrigger className="h-10 border-gray-200 bg-slate-50 text-slate-900 text-sm">
+              <SelectValue placeholder="Trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Trạng thái</SelectItem>
+              <SelectItem value="success">Thành công</SelectItem>
+              <SelectItem value="pending">Đang xử lý</SelectItem>
+              <SelectItem value="failed">Thất bại</SelectItem>
+              <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
+            </SelectContent>
+          </Select>
+
           {/* Loại giao dịch */}
-          <select value={filters.type} onChange={(e) => handleFilterChange("type", e.target.value)}
-            className="h-10 px-3 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-            <option value="">Loại GD</option>
-            <option value="top_up">Nộp tiền vào ví</option>
-            <option value="withdrawal">Rút tiền từ ví</option>
-            <option value="booking_payment">Thanh toán đặt chỗ</option>
-            <option value="subscription">Gói dịch vụ</option>
-            <option value="refund">Hoàn tiền</option>
-            <option value="penalty">Phạt đỗ quá giờ</option>
-          </select>
+          <Select value={filters.type || "all"} onValueChange={(val) => handleFilterChange("type", val === "all" ? "" : val)}>
+            <SelectTrigger className="h-10 border-gray-200 bg-slate-50 text-slate-900 text-sm">
+              <SelectValue placeholder="Loại GD" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Loại GD</SelectItem>
+              <SelectItem value="top_up">Nộp tiền vào ví</SelectItem>
+              <SelectItem value="withdrawal">Rút tiền từ ví</SelectItem>
+              <SelectItem value="booking_payment">Thanh toán đặt chỗ</SelectItem>
+              <SelectItem value="subscription">Gói dịch vụ</SelectItem>
+              <SelectItem value="refund">Hoàn tiền</SelectItem>
+              <SelectItem value="penalty">Phạt đỗ quá giờ</SelectItem>
+            </SelectContent>
+          </Select>
+
           {/* Phương thức */}
-          <select value={filters.paymentMethod} onChange={(e) => handleFilterChange("paymentMethod", e.target.value)}
-            className="h-10 px-3 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-            <option value="">Phương thức</option>
-            <option value="momo">MoMo</option>
-            <option value="vnpay">VNPay</option>
-            <option value="zalopay">ZaloPay</option>
-            <option value="bank_transfer">Chuyển khoản</option>
-            <option value="wallet">Ví GoPark</option>
-            <option value="cash">Tiền mặt</option>
-            <option value="credit_card">Thẻ tín dụng</option>
-          </select>
+          <Select value={filters.paymentMethod || "all"} onValueChange={(val) => handleFilterChange("paymentMethod", val === "all" ? "" : val)}>
+            <SelectTrigger className="h-10 border-gray-200 bg-slate-50 text-slate-900 text-sm">
+              <SelectValue placeholder="Phương thức" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Phương thức</SelectItem>
+              <SelectItem value="momo">MoMo</SelectItem>
+              <SelectItem value="vnpay">VNPay</SelectItem>
+              <SelectItem value="zalopay">ZaloPay</SelectItem>
+              <SelectItem value="bank_transfer">Chuyển khoản</SelectItem>
+              <SelectItem value="wallet">Ví GoPark</SelectItem>
+              <SelectItem value="cash">Tiền mặt</SelectItem>
+              <SelectItem value="credit_card">Thẻ tín dụng</SelectItem>
+            </SelectContent>
+          </Select>
+
           {/* Từ ngày */}
-          <Input type="date" value={filters.dateFrom} onChange={(e) => handleFilterChange("dateFrom", e.target.value)} className="h-10" />
+          <Input type="date" value={filters.dateFrom} onChange={(e) => handleFilterChange("dateFrom", e.target.value)} className="h-10 px-2" />
           {/* Đến ngày */}
-          <Input type="date" value={filters.dateTo} onChange={(e) => handleFilterChange("dateTo", e.target.value)} className="h-10" />
+          <Input type="date" value={filters.dateTo} onChange={(e) => handleFilterChange("dateTo", e.target.value)} className="h-10 px-2" />
           {/* Sắp xếp */}
-          <select value={filters.sortBy} onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-            className="h-10 px-3 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-            <option value="newest">Mới nhất</option>
-            <option value="oldest">Cũ nhất</option>
-            <option value="amount-high">Số tiền ↓</option>
-            <option value="amount-low">Số tiền ↑</option>
-          </select>
+          <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
+            <SelectTrigger className="h-10 border-gray-200 bg-slate-50 text-slate-900 text-sm">
+              <SelectValue placeholder="Sắp xếp" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Mới nhất</SelectItem>
+              <SelectItem value="oldest">Cũ nhất</SelectItem>
+              <SelectItem value="amount-high">Số tiền ↓</SelectItem>
+              <SelectItem value="amount-low">Số tiền ↑</SelectItem>
+            </SelectContent>
+          </Select>
           {/* Xóa lọc */}
           <Button variant="ghost" onClick={clearFilters} className="h-10 text-gray-500 hover:text-gray-700">
             <X size={16} className="mr-1" />Xóa lọc

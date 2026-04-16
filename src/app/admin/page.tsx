@@ -32,6 +32,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Search, X } from "lucide-react";
 
 import { adminService, type AdminStats, type AdminActivity, type SystemStatus } from "@/services/admin.service";
@@ -294,7 +301,7 @@ export default function AdminDashboard() {
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                     <Input
                       placeholder="Tìm kiếm..."
-                      className="h-9 pl-9 text-sm w-[180px] md:w-[240px] border-slate-200 dark:border-slate-700 focus-visible:ring-blue-500/30 bg-white dark:bg-slate-800"
+                      className="h-9 pl-9 text-sm w-[180px] md:w-[240px] border-slate-200 dark:border-slate-700 focus-visible:ring-blue-500/30 bg-slate-50 dark:bg-slate-800 text-slate-900"
                       value={searchTerm}
                       onChange={(e) => {
                         setSearchTerm(e.target.value);
@@ -443,18 +450,22 @@ export default function AdminDashboard() {
                   <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden md:block" />
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-400 uppercase">Dòng mỗi trang:</span>
-                    <select
-                      className="text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 outline-none text-slate-600 dark:text-slate-400"
-                      value={itemsPerPage}
-                      onChange={(e) => {
-                        setItemsPerPage(Number(e.target.value));
+                    <Select
+                      value={itemsPerPage.toString()}
+                      onValueChange={(val) => {
+                        setItemsPerPage(Number(val));
                         setCurrentPage(1);
                       }}
                     >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                    </select>
+                      <SelectTrigger className="h-8 w-[70px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold px-2 text-slate-900 shadow-none">
+                        <SelectValue placeholder="5" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5</SelectItem>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 

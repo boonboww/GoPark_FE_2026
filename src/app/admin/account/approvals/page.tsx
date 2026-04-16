@@ -47,13 +47,22 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   adminService,
   ApprovalRequest,
   RequestType,
   RequestStatus,
   Requester,
 } from "@/services/admin.service";
-import { useAdminStore } from "@/stores";
+import { useAdminStore, useAuthStore } from "@/stores";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
  
 
@@ -234,6 +243,13 @@ export default function ApprovalsPage() {
   /** Ghi chú admin khi duyệt/từ chối */
   const [adminNote, setAdminNote] = useState("");
 
+  /** ID của đơn đang được xử lý (để hiện loading) */
+  const [actingRequestId, setActingRequestId] = useState<string | null>(null);
+
+  /** Lấy thông tin user hiện tại (admin) */
+  const { user } = useAuthStore();
+  const adminId = user?.id || "";
+
   // ── Gọi API lấy danh sách đơn yêu cầu ─────────────────────────────────────
 
   const fetchRequests = async () => {
@@ -334,27 +350,59 @@ export default function ApprovalsPage() {
 
   /** Duyệt đơn yêu cầu */
   const handleApprove = async (request: ApprovalRequest) => {
-    console.log(`Duyệt đơn ${request.id} với ghi chú: ${adminNote}`);
-    // TODO: Gọi API duyệt đơn
-    const updatedRequests = requests.map((r: ApprovalRequest) =>
-      r.id === request.id ? { ...r, status: "APPROVED" as RequestStatus, adminNote, updatedAt: new Date().toISOString() } : r
-    );
-    setRequests(updatedRequests);
-    if (selectedRequest && selectedRequest.id === request.id) {
-      setSelectedRequest({ ...selectedRequest, status: "APPROVED", adminNote, updatedAt: new Date().toISOString() });
+    if (actingRequestId) return;
+    
+    setActingRequestId(request.id);
+    try {
+      console.log(`Duyệt đơn ${request.id} với ghi chú: ${adminNote}`);
+      
+      // Gọi API duyệt đơn
+      await adminService.approveRequest(request.id, adminId, adminNote);
+      
+      const updatedRequests = requests.map((r: ApprovalRequest) =>
+        r.id === request.id ? { ...r, status: "APPROVED" as RequestStatus, adminNote, updatedAt: new Date().toISOString() } : r
+      );
+      setRequests(updatedRequests);
+      
+      if (selectedRequest && selectedRequest.id === request.id) {
+        setSelectedRequest({ ...selectedRequest, status: "APPROVED", adminNote, updatedAt: new Date().toISOString() });
+      }
+
+      toast.success("Duyệt đơn yêu cầu thành công");
+    } catch (err: any) {
+      console.error("Lỗi khi duyệt đơn:", err);
+      toast.error(err.message || "Không thể duyệt đơn yêu cầu");
+    } finally {
+      setActingRequestId(null);
     }
   };
 
   /** Từ chối đơn yêu cầu */
   const handleReject = async (request: ApprovalRequest) => {
-    console.log(`Từ chối đơn ${request.id} với ghi chú: ${adminNote}`);
-    // TODO: Gọi API từ chối đơn
-    const updatedRequests = requests.map((r: ApprovalRequest) =>
-      r.id === request.id ? { ...r, status: "REJECTED" as RequestStatus, adminNote, updatedAt: new Date().toISOString() } : r
-    );
-    setRequests(updatedRequests);
-    if (selectedRequest && selectedRequest.id === request.id) {
-      setSelectedRequest({ ...selectedRequest, status: "REJECTED", adminNote, updatedAt: new Date().toISOString() });
+    if (actingRequestId) return;
+
+    setActingRequestId(request.id);
+    try {
+      console.log(`Từ chối đơn ${request.id} với ghi chú: ${adminNote}`);
+      
+      // Gọi API từ chối đơn
+      await adminService.rejectRequest(request.id, adminId, adminNote);
+      
+      const updatedRequests = requests.map((r: ApprovalRequest) =>
+        r.id === request.id ? { ...r, status: "REJECTED" as RequestStatus, adminNote, updatedAt: new Date().toISOString() } : r
+      );
+      setRequests(updatedRequests);
+      
+      if (selectedRequest && selectedRequest.id === request.id) {
+        setSelectedRequest({ ...selectedRequest, status: "REJECTED", adminNote, updatedAt: new Date().toISOString() });
+      }
+
+      toast.success("Đã từ chối đơn yêu cầu");
+    } catch (err: any) {
+      console.error("Lỗi khi từ chối đơn:", err);
+      toast.error(err.message || "Không thể từ chối đơn yêu cầu");
+    } finally {
+      setActingRequestId(null);
     }
   };
 
@@ -488,45 +536,50 @@ export default function ApprovalsPage() {
               placeholder="Tìm theo tên người gửi, tiêu đề, email..."
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white text-slate-900 placeholder:text-slate-400"
+              className="pl-10 h-11 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
             />
           </div>
           {/* Lọc trạng thái */}
-          <select
-            value={filters.status}
-            onChange={(e) => handleFilterChange("status", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[160px] text-slate-900"
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="PENDING">Chờ xử lý</option>
-            <option value="PROCESSING">Đang xử lý</option>
-            <option value="APPROVED">Đã duyệt</option>
-            <option value="REJECTED">Đã từ chối</option>
-          </select>
+          <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
+            <SelectTrigger className="h-11 min-w-[160px] border-gray-200 bg-slate-50 text-slate-900">
+              <SelectValue placeholder="Tất cả trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="PENDING">Chờ xử lý</SelectItem>
+              <SelectItem value="PROCESSING">Đang xử lý</SelectItem>
+              <SelectItem value="APPROVED">Đã duyệt</SelectItem>
+              <SelectItem value="REJECTED">Đã từ chối</SelectItem>
+            </SelectContent>
+          </Select>
+
           {/* Lọc loại đơn */}
-          <select
-            value={filters.type}
-            onChange={(e) => handleFilterChange("type", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[180px] text-slate-900"
-          >
-            <option value="">Tất cả loại đơn</option>
-            <option value="UPDATE_PARKING_LOT">Cập nhật bãi đỗ</option>
-            <option value="PAYMENT">Thanh toán</option>
-            <option value="BECOME_OWNER">Nâng cấp tài khoản</option>
-            <option value="WITHDRAW_FUND">Rút tiền</option>
-            <option value="REFUND">Hoàn tiền</option>
-            <option value="NEW_PARKING_LOT">Bãi đỗ mới</option>
-            <option value="OTHER">Yêu cầu khác</option>
-          </select>
+          <Select value={filters.type || "all"} onValueChange={(val) => handleFilterChange("type", val === "all" ? "" : val)}>
+            <SelectTrigger className="h-11 min-w-[180px] border-gray-200 bg-slate-50 text-slate-900">
+              <SelectValue placeholder="Tất cả loại đơn" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả loại đơn</SelectItem>
+              <SelectItem value="UPDATE_PARKING_LOT">Cập nhật bãi đỗ</SelectItem>
+              <SelectItem value="PAYMENT">Thanh toán</SelectItem>
+              <SelectItem value="BECOME_OWNER">Nâng cấp tài khoản</SelectItem>
+              <SelectItem value="WITHDRAW_FUND">Rút tiền</SelectItem>
+              <SelectItem value="REFUND">Hoàn tiền</SelectItem>
+              <SelectItem value="NEW_PARKING_LOT">Bãi đỗ mới</SelectItem>
+              <SelectItem value="OTHER">Yêu cầu khác</SelectItem>
+            </SelectContent>
+          </Select>
+
           {/* Sắp xếp */}
-          <select
-            value={filters.sortBy}
-            onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[140px] text-slate-900"
-          >
-            <option value="newest">Mới nhất</option>
-            <option value="oldest">Cũ nhất</option>
-          </select>
+          <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
+            <SelectTrigger className="h-11 min-w-[140px] border-gray-200 bg-slate-50 text-slate-900">
+              <SelectValue placeholder="Sắp xếp" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Mới nhất</SelectItem>
+              <SelectItem value="oldest">Cũ nhất</SelectItem>
+            </SelectContent>
+          </Select>
           {/* Nút xóa bộ lọc */}
           {(filters.search || filters.status || filters.type || filters.sortBy !== "newest") && (
             <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700">
@@ -639,12 +692,28 @@ export default function ApprovalsPage() {
                               Đánh dấu đang xử lý
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem onClick={() => { openDetail(request); }} className="text-green-600">
-                            <CheckCircle size={16} className="mr-2" />
+                          <DropdownMenuItem 
+                            onClick={() => { handleApprove(request); }} 
+                            className="text-green-600"
+                            disabled={actingRequestId === request.id}
+                          >
+                            {actingRequestId === request.id ? (
+                              <Loader2 size={16} className="mr-2 animate-spin" />
+                            ) : (
+                              <CheckCircle size={16} className="mr-2" />
+                            )}
                             Duyệt đơn
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => { openDetail(request); }} className="text-red-600">
-                            <XCircle size={16} className="mr-2" />
+                          <DropdownMenuItem 
+                            onClick={() => { handleReject(request); }} 
+                            className="text-red-600"
+                            disabled={actingRequestId === request.id}
+                          >
+                            {actingRequestId === request.id ? (
+                              <Loader2 size={16} className="mr-2 animate-spin" />
+                            ) : (
+                              <XCircle size={16} className="mr-2" />
+                            )}
                             Từ chối
                           </DropdownMenuItem>
                         </>
@@ -847,8 +916,13 @@ export default function ApprovalsPage() {
                       <Button
                         className="bg-red-600 hover:bg-red-700 text-white"
                         onClick={() => handleReject(selectedRequest)}
+                        disabled={actingRequestId === selectedRequest.id}
                       >
-                        <XCircle size={16} className="mr-2" />
+                        {actingRequestId === selectedRequest.id ? (
+                          <Loader2 size={16} className="mr-2 animate-spin" />
+                        ) : (
+                          <XCircle size={16} className="mr-2" />
+                        )}
                         Từ chối
                       </Button>
 
@@ -856,8 +930,13 @@ export default function ApprovalsPage() {
                       <Button
                         className="bg-green-600 hover:bg-green-700 text-white"
                         onClick={() => handleApprove(selectedRequest)}
+                        disabled={actingRequestId === selectedRequest.id}
                       >
-                        <CheckCircle size={16} className="mr-2" />
+                        {actingRequestId === selectedRequest.id ? (
+                          <Loader2 size={16} className="mr-2 animate-spin" />
+                        ) : (
+                          <CheckCircle size={16} className="mr-2" />
+                        )}
                         Duyệt đơn
                       </Button>
                     </>

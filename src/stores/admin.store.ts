@@ -14,6 +14,8 @@ import {
   DailyRevenue,
   RecentTransaction,
   ParkingLot,
+  ParkingLotItem,
+  ParkingLotStats,
   ApprovalRequest
 } from "@/services/admin.service";
 
@@ -48,7 +50,8 @@ interface AdminState {
   topParkingLots: ParkingLotRevenue[];
   revenueSources: RevenueSource[];
   recentTransactions: RecentTransaction[];
-  parkingLots: ParkingLot[];
+  parkingLots: ParkingLotItem[];
+  parkingLotStats: ParkingLotStats | null;
   approvalRequests: ApprovalRequest[];
   isReportsLoading: boolean;
   isParkingLotsLoading: boolean;
@@ -86,7 +89,8 @@ interface AdminState {
   setReportsLoading: (loading: boolean) => void;
   setReportsError: (error: string | null) => void;
 
-  setParkingLots: (parkingLots: ParkingLot[]) => void;
+  setParkingLots: (parkingLots: ParkingLotItem[]) => void;
+  setParkingLotStats: (stats: ParkingLotStats) => void;
   setParkingLotsLoading: (loading: boolean) => void;
   setParkingLotsError: (error: string | null) => void;
 
@@ -127,7 +131,9 @@ export const useAdminStore = create<AdminState>((set) => ({
   revenueSources: [],
   recentTransactions: [],
   parkingLots: [],
+  parkingLotStats: null,
   approvalRequests: [],
+  statsRequest: null,
   isReportsLoading: false,
   isParkingLotsLoading: false,
   isApprovalsLoading: false,
@@ -161,13 +167,14 @@ export const useAdminStore = create<AdminState>((set) => ({
   setReportsError: (reportsError) => set({ reportsError, isReportsLoading: false }),
 
   setParkingLots: (parkingLots) => set({ parkingLots, isParkingLotsLoading: false }),
+  setParkingLotStats: (parkingLotStats) => set({ parkingLotStats }),
   setParkingLotsLoading: (isParkingLotsLoading) => set({ isParkingLotsLoading }),
   setParkingLotsError: (parkingLotsError) => set({ parkingLotsError, isParkingLotsLoading: false }),
 
   setApprovalRequests: (approvalRequests) => set({ approvalRequests, isApprovalsLoading: false }),
   setApprovalsLoading: (isApprovalsLoading) => set({ isApprovalsLoading }),
   setApprovalsError: (approvalsError) => set({ approvalsError, isApprovalsLoading: false }),
-
+  
   setCustomerData: (customers, customerStats) => 
     set({ customers, customerStats, isCustomersLoading: false, customersError: null }),
     
