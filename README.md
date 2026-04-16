@@ -21,6 +21,21 @@
 | Next.js 15  | NestJS   | PostgreSQL |
 | TailwindCSS | JWT Auth | Redis      |
 
+## Cấu hình Supabase Storage (ảnh đại diện)
+
+Tạo file `.env.local` trong thư mục frontend và thêm:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+NEXT_PUBLIC_SUPABASE_BUCKET=img_GoPark2026
+NEXT_PUBLIC_SUPABASE_AVATAR_FOLDER=avatars
+```
+
+Luồng hiện tại:
+- Khi đổi ảnh đại diện ở trang profile, ảnh sẽ upload lên Supabase Storage vào đường dẫn `avatars/<userId>/...`.
+- FE chỉ lưu URL ảnh về backend qua API `PATCH /users/me/profile` (field `image`).
+
 ## Cấu trúc thư mục
 
 ```
