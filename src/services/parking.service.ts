@@ -4,7 +4,6 @@ export interface WalkInRequest {
   name: string;
   phoneNumber: string;
   licensePlate: string;
-  vehicleType: string;
   // Các field cho images sẽ được thêm vào payload form-data ở component nếu backend yêu cầu multipart/form-data
   // Trong trường hợp này gửi JSON thô theo yêu cầu:
 }
@@ -18,13 +17,36 @@ export interface WalkInResponse {
   };
 }
 
+export interface ManualBookingRequest {
+  slotId: number;
+  name: string;
+  phoneNumber: string;
+  licensePlate: string;
+  startTime: string; // ISO format
+}
+
+export interface ManualBookingResponse {
+  bookingId: string;
+  slotCode: string;
+  zoneName: string;
+  floorName: string;
+  startTime: string;
+  customerName: string;
+  phoneNumber: string;
+  licensePlate: string;
+  pricing: {
+    pricePerHour: number;
+    pricePerDay: number;
+  };
+}
+
 class ParkingService {
   /**
    * Lấy tất cả bãi đỗ xe
    * GET /parking-lots/all
    */
   async getAllParkingLots() {
-    return get<any>('/parking-lots/all');
+    return get<any>("/parking-lots/all");
   }
 
   /**
@@ -43,6 +65,26 @@ class ParkingService {
       return response;
     } catch (error) {
       console.error("Error in walkInCheckIn:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Đặt chỗ thủ công (Manual Booking)
+   * POST /parking-lots/:id/manual-booking
+   */
+  async manualBooking(
+    lotId: number,
+    payload: ManualBookingRequest,
+  ): Promise<ManualBookingResponse> {
+    try {
+      const response = await post<ManualBookingResponse>(
+        `/parking-lots/${lotId}/manual-booking`,
+        payload,
+      );
+      return response;
+    } catch (error) {
+      console.error("Error in manualBooking:", error);
       throw error;
     }
   }
@@ -146,6 +188,14 @@ class ParkingService {
   }
 
   /**
+   * Lấy dữ liệu bản đồ/sơ đồ bãi đỗ
+   * GET /parking-lots/map/:id
+   */
+  async getParkingLotMap(lotId: number) {
+    return get<any>(`/parking-lots/map/${lotId}`);
+  }
+
+  /**
    * Thiết lập giá tiền cho khu vực
    * POST /payment/pricing-rule
    */
@@ -220,6 +270,24 @@ class ParkingService {
       `/parking-lots/${lotId}/floors/${floorId}/zones/${zoneId}/generate-slots`,
       {},
     );
+  }
+
+  /**
+   * Lấy bản đồ chỗ trống trong khoảng thời gian
+   * GET /parking-lots/:id/available-map?start_time=...&end_time=...
+   */
+  async getAvailableMap(lotId: number, startTime: string, endTime: string) {
+    return get<any>(
+      `/parking-lots/${lotId}/available-map?start_time=${startTime}&end_time=${endTime}`,
+    );
+  }
+
+  /**
+   * Lấy lịch trình trống của 1 slot trong ngày
+   * GET /parking-lots/slots/:slotId/availability?date=YYYY-MM-DD
+   */
+  async getSlotAvailability(slotId: number, date: string) {
+    return get<any>(`/parking-lots/slots/${slotId}/availability?date=${date}`);
   }
 }
 

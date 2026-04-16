@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";   
 import { Loader } from "@/components/ui/loader";
 import { apiClient } from "@/lib/api";
+import { uploadAvatarToSupabase } from "@/services/storage.service";
 import { useWallet } from "@/hooks/useWallet";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -37,6 +38,7 @@ interface Booking {
   id: string;
   qrCode?: {
     content: string; // Chuỗi dùng để sinh QR
+    status: string;
   };
   status: string;
   vehicle: {
@@ -81,6 +83,7 @@ export default function ProfilePage() {
   
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingVehicle, setIsSavingVehicle] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
 
@@ -121,8 +124,8 @@ export default function ProfilePage() {
   //     // Lấy phần tử đầu tiên sau khi sắp xếp mới nhất lên đầu
   // };
   
-  // -- BASE 64 UPLOAD --
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, isProfile: boolean) => {
+  // -- IMAGE UPLOAD --
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, isProfile: boolean) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -132,14 +135,24 @@ export default function ProfilePage() {
       return;
     }
 
+    if (isProfile) {
+      try {
+        setIsUploadingAvatar(true);
+        const imageUrl = await uploadAvatarToSupabase(file, authUser?.id);
+        setPForm((prev) => ({ ...prev, image: imageUrl }));
+        toast.success("Đã tải ảnh đại diện lên Supabase");
+      } catch (error: any) {
+        toast.error(error?.message || "Không thể tải ảnh đại diện lên Supabase");
+      } finally {
+        setIsUploadingAvatar(false);
+      }
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;
-      if (isProfile) {
-        setPForm((prev) => ({ ...prev, image: base64 }));
-      } else {
-        setVForm((prev) => ({ ...prev, image: base64 }));
-      }
+      setVForm((prev) => ({ ...prev, image: base64 }));
     };
     reader.readAsDataURL(file);
   };
@@ -299,10 +312,16 @@ export default function ProfilePage() {
       const bPlate = b.vehicle?.plate_number;
       if (!bPlate) return false;
 
+      const bStatus = b.status?.toLowerCase().trim();
+      // Kiểm tra thêm trạng thái của QR Code nếu có
+      const qrStatus = b.qrCode?.status?.toLowerCase().trim();
+      
       return (
         normalizePlate(bPlate) === normalizedTarget &&
-        b.status?.toLowerCase().trim() === "confirmed"
-      );
+        ["confirmed","ongoing"].includes(bStatus) &&
+        // Nhưng điều kiện tiên quyết là mã QR đó chưa từng bị sử dụng để Checkout hoàn tất
+        qrStatus === "active"
+          );
     });
 
     if (vBookings.length === 0) return null;
@@ -596,7 +615,9 @@ export default function ProfilePage() {
           </div>
           <DialogFooter>
              <Button variant="outline" onClick={() => setIsProfileDialogOpen(false)}>Hủy</Button>
-             <Button onClick={handleProfileSave}>Lưu hồ sơ</Button>
+             <Button onClick={handleProfileSave} disabled={isUploadingAvatar}>
+               {isUploadingAvatar ? "Đang tải ảnh..." : "Lưu hồ sơ"}
+             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

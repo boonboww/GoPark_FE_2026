@@ -39,50 +39,21 @@ import {
   LineChart,
   Line,
 } from "recharts";
+import {
+  MonthlyRevenue,
+  ParkingLotRevenue,
+  RevenueSource,
+  DailyRevenue,
+  RecentTransaction,
+} from "@/services/admin.service";
+import { useAdminStore } from "@/stores";
 
 // ─── Kiểu dữ liệu ───────────────────────────────────────────────────────────
-
-/** Dữ liệu doanh thu theo tháng */
-interface MonthlyRevenue {
-  month: string;           // Tên tháng (vd: "T1", "T2", ...)
-  bookingRevenue: number;  // Doanh thu từ đặt chỗ
-  subscriptionRevenue: number; // Doanh thu từ gói dịch vụ
-  penaltyRevenue: number;  // Doanh thu từ phạt
-  totalRevenue: number;    // Tổng doanh thu
-  refunds: number;         // Hoàn tiền
-  netRevenue: number;      // Doanh thu ròng
-}
-
-/** Doanh thu theo bãi đỗ */
-interface ParkingLotRevenue {
-  name: string;
-  revenue: number;
-  bookings: number;
-  percentage: number;
-}
-
-/** Phân bổ doanh thu theo nguồn */
-interface RevenueSource {
-  name: string;
-  value: number;
-  color: string;
-}
-
-/** Doanh thu theo ngày (7 ngày gần nhất) */
-interface DailyRevenue {
-  date: string;
-  revenue: number;
-  bookings: number;
-}
+ 
+ 
 
 /** Giao dịch gần đây */
-interface RecentTransaction {
-  _id: string;
-  description: string;
-  amount: number;
-  type: "income" | "expense";
-  time: string;
-}
+
 
 // ─── Hằng số ──────────────────────────────────────────────────────────────────
 
@@ -190,36 +161,45 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // ─── Component chính ──────────────────────────────────────────────────────────
 
 export default function RevenueReportPage() {
-  // ── State ───────────────────────────────────────────────────────────────────
-  const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState("this_year");
+  const {
+    monthlyRevenue,
+    dailyRevenue,
+    topParkingLots,
+    revenueSources,
+    recentTransactions,
+    isReportsLoading: loading,
+    setReportsData,
+    setReportsLoading,
+    setReportsError,
+  } = useAdminStore();
 
-  const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
-  const [dailyRevenue, setDailyRevenue] = useState<DailyRevenue[]>([]);
-  const [topParkingLots, setTopParkingLots] = useState<ParkingLotRevenue[]>([]);
-  const [revenueSources, setRevenueSources] = useState<RevenueSource[]>([]);
-  const [recentTransactions, setRecentTransactions] = useState<RecentTransaction[]>([]);
+  const [period, setPeriod] = useState("this_year");
 
   // ── Tải dữ liệu ────────────────────────────────────────────────────────────
 
   const fetchData = async () => {
-    setLoading(true);
+    setReportsLoading(true);
     try {
       // TODO: Gọi API thực tế
       await new Promise((res) => setTimeout(res, 600));
-      setMonthlyRevenue(mockMonthlyRevenue);
-      setDailyRevenue(mockDailyRevenue);
-      setTopParkingLots(mockTopParkingLots);
-      setRevenueSources(mockRevenueSources);
-      setRecentTransactions(mockRecentTransactions);
+      setReportsData(
+        mockMonthlyRevenue,
+        mockDailyRevenue,
+        mockTopParkingLots,
+        mockRevenueSources,
+        mockRecentTransactions
+      );
     } catch (err) {
       console.error("Lỗi khi tải dữ liệu báo cáo:", err);
-    } finally {
-      setLoading(false);
+      setReportsError(err instanceof Error ? err.message : "Lỗi không xác định");
     }
   };
 
-  useEffect(() => { fetchData(); }, [period]);
+  useEffect(() => {
+    if (monthlyRevenue.length === 0) {
+      fetchData();
+    }
+  }, [period]);
 
   // ── Tính toán thống kê ──────────────────────────────────────────────────────
 

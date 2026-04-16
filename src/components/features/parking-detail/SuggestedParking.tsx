@@ -9,29 +9,29 @@ import { error } from "console";
 import { ParkingContext } from "./ParkingContext";
 
 
-export function SuggestedParking() {
-  const [nearLots,setNearLots] = useState([]);
-  const param = useParams();
-  const nearbyParkingLot = param.id;
+  export function SuggestedParking() {
+    const [nearLots,setNearLots] = useState([]);
+    const param = useParams();
+    const nearbyParkingLot = param.id;
 
-  const context = useContext(ParkingContext);
-  if(!context) return null
-  const {dataLot}= context;
+    const context = useContext(ParkingContext);
+    if(!context) return null
+    const {dataLot}= context;
 
-  useEffect(()=>{
-    // CHỈ GỌI API KHI CÓ ĐỦ DỮ LIỆU
-    if (nearbyParkingLot && dataLot?.lat && dataLot?.lng) {
-    const { lat, lng } = dataLot;
-    console.log(lat,lng)
-    get(`/parking-lots/nearby/${nearbyParkingLot}?lat=${lat}&lng=${lng}`)
-    .then((res : any)=>{
-      console.log(res);
-      setNearLots(res.data);
-    }).catch((error : any)=>{
-      console.log(error);
-    })
-  }
-  },[nearbyParkingLot,dataLot])
+    useEffect(()=>{
+      // CHỈ GỌI API KHI CÓ ĐỦ DỮ LIỆU
+      if (nearbyParkingLot && dataLot?.lat && dataLot?.lng) {
+      const { lat, lng } = dataLot;
+      console.log(lat,lng)
+      get(`/parking-lots/nearby/${nearbyParkingLot}?lat=${lat}&lng=${lng}`)
+      .then((res : any)=>{
+        console.log(res);
+        setNearLots(res.data);
+      }).catch((error : any)=>{
+        console.log(error);
+      })
+    }
+    },[nearbyParkingLot,dataLot])
   //console.log(nearLots)
   return (
     <div className="mt-12">

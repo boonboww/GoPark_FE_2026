@@ -13,7 +13,7 @@ export function ParkingInfo() {
   //console.log("ParkingInfo Component - Data from Context:", dataLot, "Loading:", loadingLot);
 
   const [selectedAreaIndex, setSelectedAreaIndex] = useState(0);
-  const pricingRules = Array.isArray(dataLot?.pricingRule) ? dataLot.pricingRule : [];
+  const pricingRules = Array.isArray(dataLot?.pricingRules) ? dataLot.pricingRules : [];
   const validIndex = selectedAreaIndex < pricingRules.length ? selectedAreaIndex : 0;
   const selectedRule = pricingRules[validIndex] || null;
   const router = useRouter();
@@ -147,8 +147,11 @@ export function ParkingInfo() {
                     onChange={(e) => setSelectedAreaIndex(Number(e.target.value))}
                   >
                     {pricingRules.map((rule: any, idx: number) => {
-                      const zoneName = rule.parkingZone.zone_name
-                      return <option key={rule.id} value={idx}>{zoneName}</option>;
+                      return(
+                     <option key={rule.id} value={idx}>
+                        {rule.floor_name}-{rule.zone_name}
+                      </option>
+                      );
                     })}
                   </select>
                 </div>

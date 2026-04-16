@@ -85,20 +85,28 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentTransactions.map((tx) => (
-                  <TableRow key={tx.id}>
-                    <TableCell className="font-medium">{tx.parkingLotName}</TableCell>
-                    <TableCell>{tx.licensePlate}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {format(new Date(tx.time), 'dd MMM, HH:mm')}
-                    </TableCell>
-                    <TableCell>{formatCurrency(tx.amount)}</TableCell>
-                    <TableCell>{getStatusBadge(tx.status)}</TableCell>
-                    <TableCell className="text-right font-medium text-muted-foreground">
-                      {tx.method}
+                {recentTransactions.length > 0 ? (
+                  recentTransactions.map((tx) => (
+                    <TableRow key={tx.id}>
+                      <TableCell className="font-medium">{tx.parkingLotName}</TableCell>
+                      <TableCell>{tx.licensePlate}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {format(new Date(tx.time), 'dd MMM, HH:mm')}
+                      </TableCell>
+                      <TableCell>{formatCurrency(tx.amount)}</TableCell>
+                      <TableCell>{getStatusBadge(tx.status)}</TableCell>
+                      <TableCell className="text-right font-medium text-muted-foreground">
+                        {tx.method}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                      Chưa có dữ liệu giao dịch gần đây.
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </div>
@@ -124,25 +132,33 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {topParkingLots.map((lot) => (
-                  <TableRow key={lot.id}>
-                    <TableCell className="font-medium">{lot.name}</TableCell>
-                    <TableCell className="text-emerald-600 font-medium">
-                      {formatCurrency(lot.totalRevenue)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <span className="text-sm font-medium">{lot.occupancyRate}%</span>
-                        <div className="w-12 bg-secondary h-1.5 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${lot.occupancyRate > 90 ? 'bg-rose-500' : lot.occupancyRate > 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} 
-                            style={{ width: `${lot.occupancyRate}%` }} 
-                          />
+                {topParkingLots.length > 0 ? (
+                  topParkingLots.map((lot) => (
+                    <TableRow key={lot.id}>
+                      <TableCell className="font-medium">{lot.name}</TableCell>
+                      <TableCell className="text-emerald-600 font-medium">
+                        {formatCurrency(lot.totalRevenue)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-sm font-medium">{lot.occupancyRate}%</span>
+                          <div className="w-12 bg-secondary h-1.5 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${lot.occupancyRate > 90 ? 'bg-rose-500' : lot.occupancyRate > 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} 
+                              style={{ width: `${lot.occupancyRate}%` }} 
+                            />
+                          </div>
                         </div>
-                      </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center">
+                      Chưa có dữ liệu bãi đỗ.
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </div>

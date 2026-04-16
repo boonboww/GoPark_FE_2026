@@ -31,6 +31,7 @@ import {
 interface RevenueData {
   date: string;
   amount: number;
+  bookingCount?: number;
 }
 
 interface PaymentMethodData {
@@ -195,19 +196,19 @@ export function AnalyticsCharts({
         </CardContent>
       </Card>
 
-      {/* Traffic Bar Chart */}
+      {/* Bookings Bar Chart */}
       <Card className="col-span-full">
         <CardHeader>
-          <CardTitle>Lưu lượng xe theo giờ</CardTitle>
+          <CardTitle>Lượt đặt chỗ theo tháng</CardTitle>
           <CardDescription>
-            Xác định giờ cao điểm xe vào và ra.
+            Số lượng đơn đặt chỗ thành công trong năm.
           </CardDescription>
         </CardHeader>
         <CardContent className="pl-0 pb-4">
           <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={trafficData}
+                data={revenueData}
                 margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
               >
                 <CartesianGrid
@@ -216,7 +217,7 @@ export function AnalyticsCharts({
                   stroke="hsl(var(--border))"
                 />
                 <XAxis
-                  dataKey="hour"
+                  dataKey="date"
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                   tickLine={false}
@@ -236,18 +237,11 @@ export function AnalyticsCharts({
                 />
                 <Legend verticalAlign="top" height={36} iconType="circle" />
                 <Bar
-                  dataKey="in"
-                  name="Lượt vào"
+                  dataKey="bookingCount"
+                  name="Số lượt đặt chỗ"
                   fill="#10b981"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={40}
-                />
-                <Bar
-                  dataKey="out"
-                  name="Lượt ra"
-                  fill="#f43f5e"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={40}
+                  maxBarSize={60}
                 />
               </BarChart>
             </ResponsiveContainer>

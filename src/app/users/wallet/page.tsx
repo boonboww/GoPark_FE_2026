@@ -126,8 +126,18 @@ export default function WalletDashboardPage() {
                 <p className="text-xs text-emerald-100 mt-3 max-w-xs">Nhấn kích hoạt để sử dụng ví thanh toán phí đỗ xe GoPark miễn phí.</p>
               </div>
             ) : (
-              <div className="text-sm text-emerald-100 mt-auto">
-                {user ? user?.profile?.name || user.email : 'Khách hàng'}       
+              <div className="mt-auto flex justify-between items-center">
+                <div className="text-sm text-emerald-100">
+                  {user ? user?.profile?.name || user.email : 'Khách hàng'}       
+                </div>
+                <Button 
+                  onClick={() => router.push('/users/wallet/withdraw')} 
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white shrink-0"
+                  size="sm"
+                >
+                  <ArrowDownToLine className="mr-2 h-4 w-4" />
+                  Rút tiền
+                </Button>
               </div>
             )}
           </CardContent>

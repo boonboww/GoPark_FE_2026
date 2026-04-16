@@ -34,6 +34,8 @@ interface ZoneSlotGridProps {
   zoneIndex: number;
   size?: "small" | "normal";
   onSlotClick?: (slot: ApiSlot) => void;
+  overrideSlots?: ApiSlot[];
+  isPreviewMode?: boolean;
 }
 
 // ──────────────────────────────────────────────────────────
@@ -64,6 +66,8 @@ export function ZoneSlotGrid({
   zoneIndex,
   size = "normal",
   onSlotClick,
+  overrideSlots,
+  isPreviewMode = false,
 }: ZoneSlotGridProps) {
   const queryClient = useQueryClient();
   const queryKey = ["zoneSlots", lotId, floorId, zoneId];
@@ -79,12 +83,16 @@ export function ZoneSlotGrid({
           Number(zoneId),
           false, // Ẩn DISABLED trên trang chính
         ),
-      refetchInterval: 30_000,
-      staleTime: 20_000,
-      enabled: !!lotId && !!floorId && !!zoneId,
+      refetchInterval: isPreviewMode ? false : 30_000,
+      staleTime: isPreviewMode ? Infinity : 20_000,
+      enabled: !!lotId && !!floorId && !!zoneId && !isPreviewMode,
     });
 
-  const slots: ApiSlot[] = Array.isArray(data) ? data : (data?.data ?? []);
+  const slots: ApiSlot[] = isPreviewMode
+    ? overrideSlots || []
+    : Array.isArray(data)
+      ? data
+      : (data?.data ?? []);
 
   const lastUpdated = dataUpdatedAt
     ? format(new Date(dataUpdatedAt), "HH:mm:ss")
@@ -236,21 +244,28 @@ export function ZoneSlotGrid({
 
           {/* Last updated + refresh */}
           <div className="flex items-center gap-1.5">
-            {lastUpdated && (
+            {isPreviewMode ? (
+              <span className="text-[10px] text-amber-600 font-bold bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
+                MÔ PHỎNG
+              </span>
+            ) : lastUpdated ? (
               <span className="text-[10px] text-slate-400 font-mono hidden lg:inline bg-slate-100 px-1.5 py-0.5 rounded-md">
                 {lastUpdated}
               </span>
+            ) : null}
+            {!isPreviewMode && (
+              <button
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors disabled:opacity-50"
+                title="Refresh slots"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`}
+                />
+              </button>
             )}
-            <button
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors disabled:opacity-50"
-              title="Refresh slots"
-            >
-              <RefreshCw
-                className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`}
-              />
-            </button>
           </div>
         </div>
       </div>

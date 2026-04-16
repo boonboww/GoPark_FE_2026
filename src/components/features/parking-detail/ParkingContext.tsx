@@ -5,7 +5,7 @@ import { createContext } from "react";
 export interface SelectedSpotContext {
   slot: any;
   zoneName: string;
-  floorNumber: number;
+  floorName: string;
 }
 
 interface ParkingContextType {

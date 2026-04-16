@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Map, MapControls, useMap, MapMarker, MarkerContent, MapRoute, MarkerLabel, MapRef } from "@/components/ui/map";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, Mountain, LocateFixed, Layers, Route, Clock, Loader2, MapPin } from 'lucide-react';
@@ -130,7 +130,7 @@ function MapController({
             <select
               value={mapStyle}
               onChange={(e) => onStyleChange(e.target.value as StyleKey)}
-              className="bg-transparent border-none text-sm focus:ring-0 cursor-pointer p-1 py-1.5 min-w-[120px] max-w-full outline-none text-foreground dark:bg-zinc-900"
+              className="bg-transparent border-none text-sm focus:ring-0 cursor-pointer p-1 py-1.5 min-w-30 max-w-full outline-none text-foreground dark:bg-zinc-900"
             >
               <option value="default" className="bg-background text-foreground">GoPark (Mặc định)</option>
               <option value="openstreetmap" className="bg-background text-foreground">GoPark Map</option>
@@ -149,14 +149,16 @@ export function ParkingMap({
   selectedParkingLot,
   setSelectedParkingLot,
   directionRoute,
-  isNavigating
+  isNavigating,
+  compact = false,
 }: { 
   destination?: {lng: number, lat: number, name: string} | null,
   parkingLots?: any[],
   selectedParkingLot?: any | null,
   setSelectedParkingLot?: (lot: any) => void,
   directionRoute?: {coordinates: [number, number][]} | null,
-  isNavigating?: boolean
+  isNavigating?: boolean,
+  compact?: boolean
 }) {
   const mapRef = useRef<MapRef>(null);
   const [mapStyle, setMapStyle] = useState<StyleKey>("default");
@@ -167,6 +169,18 @@ export function ParkingMap({
   const [routes, setRoutes] = useState<RouteData[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+  const initialCenter: [number, number] = useMemo(() => {
+    if (selectedParkingLot?.lng && selectedParkingLot?.lat) {
+      return [Number(selectedParkingLot.lng), Number(selectedParkingLot.lat)];
+    }
+
+    const firstLotWithCoordinates = parkingLots.find((lot) => lot?.lng !== undefined && lot?.lat !== undefined);
+    if (firstLotWithCoordinates) {
+      return [Number(firstLotWithCoordinates.lng), Number(firstLotWithCoordinates.lat)];
+    }
+
+    return [108.2022, 16.0544];
+  }, [parkingLots, selectedParkingLot]);
 
   // Automatically zoom to selected parking lot
   useEffect(() => {
@@ -180,13 +194,15 @@ export function ParkingMap({
   }, [selectedParkingLot]);
 
   useEffect(() => {
+    if (compact) return;
     if (mapRef.current && is3D) {
       mapRef.current.easeTo({ pitch: 60, duration: 500 });
     }
-  }, [is3D]);
+  }, [is3D, compact]);
 
   // Automatically zoom to fit the direction route
   useEffect(() => {
+    if (compact) return;
     if (directionRoute && mapRef.current) {
       if (isNavigating) return; // When navigating, camera is handled by navigation effect
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -197,10 +213,11 @@ export function ParkingMap({
         mapRef.current.fitBounds(bounds, { padding: 50, duration: 1500 });
       }
     }
-  }, [directionRoute, isNavigating]);
+  }, [directionRoute, isNavigating, compact]);
 
   // Handle Navigation mode
   useEffect(() => {
+    if (compact) return;
     let watchId: number | null = null;
 
     if (isNavigating && navigator.geolocation) {
@@ -237,9 +254,10 @@ export function ParkingMap({
     return () => {
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
     };
-  }, [isNavigating]);
+  }, [isNavigating, compact]);
 
   useEffect(() => {
+    if (compact) return;
     if (!myLocation || !destination) {
       setRoutes([]);
       return;
@@ -284,7 +302,7 @@ export function ParkingMap({
     }
 
     fetchRoutes();
-  }, [myLocation, destination]);
+  }, [myLocation, destination, compact]);
 
   const sortedRoutes = routes
     .map((route, index) => ({ route, index }))
@@ -295,20 +313,23 @@ export function ParkingMap({
     });
 
   return (
-    <div className="flex-1 relative h-full bg-slate-100 flex flex-col border-l overflow-hidden">
+    <div className={`relative h-full bg-slate-100 overflow-hidden ${compact ? "w-full" : "flex-1 flex flex-col border-l"}`}>
       <Map
         ref={mapRef}
-        center={[108.2022, 16.0544]}
-        zoom={14}
+        center={initialCenter}
+        zoom={compact ? 16 : 14}
         className="w-full h-full"
         styles={selectedStyleUrl ? { light: selectedStyleUrl, dark: selectedStyleUrl } : undefined}
       >
-        <MapController mapStyle={mapStyle} onStyleChange={setMapStyle} myLocation={myLocation} setMyLocation={setMyLocation} />
-        
-        <MapControls />
+        {!compact && (
+          <>
+            <MapController mapStyle={mapStyle} onStyleChange={setMapStyle} myLocation={myLocation} setMyLocation={setMyLocation} />
+            <MapControls />
+          </>
+        )}
 
         {/* Marker vị trí của tôi */}
-        {myLocation && (
+        {!compact && myLocation && (
           <MapMarker longitude={myLocation[0]} latitude={myLocation[1]}>
             <MarkerContent>
               <div className="relative flex items-center justify-center">
@@ -320,7 +341,7 @@ export function ParkingMap({
         )}
 
         {/* Marker đích đến (kết quả tìm kiếm) */}
-        {destination && (
+        {!compact && destination && (
           <MapMarker longitude={destination.lng} latitude={destination.lat}>
             <MarkerContent>
               <div className="size-5 rounded-full bg-red-500 border-2 border-white shadow-lg" />
@@ -335,7 +356,7 @@ export function ParkingMap({
             key={lot.id} 
             longitude={Number(lot.lng)} 
             latitude={Number(lot.lat)}
-            onClick={(e) => {
+            onClick={compact ? undefined : (e) => {
               (e as any).originalEvent?.stopPropagation(); e.stopPropagation?.();
               setSelectedParkingLot?.(lot);
             }}
@@ -352,7 +373,7 @@ export function ParkingMap({
         ))}
 
         {/* Đường dẫn */}
-        {!directionRoute && sortedRoutes.map(({ route, index }) => {
+        {!compact && !directionRoute && sortedRoutes.map(({ route, index }) => {
           const isSelected = index === selectedIndex;
           return (
             <MapRoute
@@ -366,7 +387,7 @@ export function ParkingMap({
           );
         })}
 
-        {directionRoute && (
+        {!compact && directionRoute && (
           <MapRoute
             coordinates={directionRoute.coordinates}
             color="#10b981" // emerald-500
@@ -377,8 +398,8 @@ export function ParkingMap({
       </Map>
 
       {/* Hiển thị Card Popup khi click vào Marker */}
-      {selectedParkingLot && (
-        <div className="absolute top-[80px] lg:top-4 right-1/2 transform translate-x-1/2 lg:translate-x-0 lg:right-4 z-50 pointer-events-auto bg-background shadow-2xl rounded-2xl p-4 w-11/12 max-w-sm border backdrop-blur-sm animate-in fade-in zoom-in duration-200">
+      {!compact && selectedParkingLot && (
+        <div className="absolute top-20 lg:top-4 right-1/2 transform translate-x-1/2 lg:translate-x-0 lg:right-4 z-50 pointer-events-auto bg-background shadow-2xl rounded-2xl p-4 w-11/12 max-w-sm border backdrop-blur-sm animate-in fade-in zoom-in duration-200">
           <div className="flex justify-between items-start mb-2">
             <h3 className="font-bold text-lg text-primary truncate max-w-[80%]">{selectedParkingLot.name}</h3>
             <button onClick={() => setSelectedParkingLot?.(null)} className="text-muted-foreground hover:bg-muted p-1 rounded-full bg-secondary transition-colors">
@@ -417,8 +438,8 @@ export function ParkingMap({
       )}
 
       {/* Box hiển thị tuỳ chọn đường đi dưới góc trái, responsive */}
-      {!directionRoute && routes.length > 0 && (
-        <div className="absolute top-[80px] lg:top-auto sm:bottom-8 right-3 flex flex-col gap-2 z-10 bg-background/90 p-2 rounded-xl border shadow-lg backdrop-blur transition-all w-fit pointer-events-auto">
+      {!compact && !directionRoute && routes.length > 0 && (
+        <div className="absolute top-20 lg:top-auto sm:bottom-8 right-3 flex flex-col gap-2 z-10 bg-background/90 p-2 rounded-xl border shadow-lg backdrop-blur transition-all w-fit pointer-events-auto">
           {routes.map((route, index) => {
             const isActive = index === selectedIndex;
             const isFastest = index === 0;

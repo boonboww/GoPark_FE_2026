@@ -18,26 +18,6 @@ function ParkingProvider({children} : {children : React.ReactNode}) {
         get(`/parking-lots/map/${parkingLotId}`)
         .then((res : any) => {
             console.log(res.data);
-            // const lotdata = {
-            //     id: res.data.id,
-            //     name: res.data.name,
-            //     address: res.data.address,
-            //     image: res.data.image,
-            //     lat : res.data.lat,
-            //     lng : res.data.lng,
-            //     totalSlots: res.data.totalSlots,
-            //     description: res.data.description,
-            //     owner : res.data.owner,
-            //     status : res.data.status,
-            //     open_time:res.data.open_time,
-            //     close_time:res.data.close_time,
-            //     operating_days:res.data.operating_days,
-            //     userVehicles: res.data.userVehicles, 
-            //     pricingRule: res.data.pricingRule, 
-            //     parkingFloor:res.data.parkingFloor,
-            // };
-
-            console.log("Processed Lot Data:", res.data);
             setDataLot(res.data);
         }).catch((error : any)=>{
             console.log(error);

@@ -103,9 +103,9 @@ export function NavUser({
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/owner/billing">
+                <Link href="/owner/wallet">
                   <IconCreditCard />
-                  Thanh toán
+                  Ví tiền
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>

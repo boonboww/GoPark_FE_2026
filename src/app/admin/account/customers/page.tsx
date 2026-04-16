@@ -39,18 +39,20 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { adminService, CustomerList } from "@/services/admin.service";
+import { useAdminStore } from "@/stores";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Customer {
-  _id: string;
-  userName: string;
+  id: string;
+  name: string;
   email: string;
-  phoneNumber: string;
+  phone: string;
   avatar?: string;
-  status: "active" | "banned";
+  status: "ACTIVE" | "BANNED";
   totalBookings: number;
-  totalSpent: number;
+  totalSpending: number;
   lastActive: string;
   createdAt: string;
   address?: string;
@@ -58,7 +60,7 @@ interface Customer {
 }
 
 interface RecentBooking {
-  _id: string;
+  id: string;
   parkingLotName: string;
   date: string;
   status: "completed" | "cancelled" | "confirmed" | "pending";
@@ -73,15 +75,15 @@ interface Filters {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { get } from "@/lib/api";
 
 const statusConfig = {
-  active: {
+  ACTIVE: {
     label: "Hoạt động",
     className: "bg-green-100 text-green-800 border-green-200",
     dot: "bg-green-500",
   },
-  banned: {
+  BANNED: {
     label: "Đã khóa",
     className: "bg-red-100 text-red-800 border-red-200",
     dot: "bg-red-500",
@@ -102,101 +104,6 @@ const bookingStatusLabels: Record<string, string> = {
   cancelled: "Đã hủy",
 };
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const mockCustomers: Customer[] = [
-  {
-    _id: "c1",
-    userName: "Nguyễn Văn Anh",
-    email: "nguyenvananh@gmail.com",
-    phoneNumber: "0901 234 567",
-    status: "active",
-    totalBookings: 24,
-    totalSpent: 3600000,
-    lastActive: "2026-03-13T10:30:00Z",
-    createdAt: "2025-06-15T08:00:00Z",
-    address: "123 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh",
-    recentBookings: [
-      { _id: "b1", parkingLotName: "Bãi đỗ xe Times City", date: "2026-03-12T08:00:00Z", status: "completed", amount: 150000 },
-      { _id: "b2", parkingLotName: "Bãi đỗ xe Vincom Đồng Khởi", date: "2026-03-10T14:00:00Z", status: "completed", amount: 200000 },
-      { _id: "b3", parkingLotName: "Bãi đỗ xe Landmark 81", date: "2026-03-08T09:00:00Z", status: "cancelled", amount: 180000 },
-    ],
-  },
-  {
-    _id: "c2",
-    userName: "Trần Thị Bình",
-    email: "tranthibinh@gmail.com",
-    phoneNumber: "0907 654 321",
-    status: "active",
-    totalBookings: 12,
-    totalSpent: 1800000,
-    lastActive: "2026-03-12T15:45:00Z",
-    createdAt: "2025-09-20T10:30:00Z",
-    address: "45 Lê Lợi, Quận 3, TP. Hồ Chí Minh",
-    recentBookings: [
-      { _id: "b4", parkingLotName: "Bãi đỗ xe Royal City", date: "2026-03-11T10:00:00Z", status: "confirmed", amount: 120000 },
-    ],
-  },
-  {
-    _id: "c3",
-    userName: "Phạm Minh Châu",
-    email: "phamminhchau@yahoo.com",
-    phoneNumber: "0912 345 678",
-    status: "banned",
-    totalBookings: 5,
-    totalSpent: 750000,
-    lastActive: "2026-02-28T12:00:00Z",
-    createdAt: "2025-11-01T09:00:00Z",
-    address: "78 Trần Hưng Đạo, Quận 5, TP. Hồ Chí Minh",
-    recentBookings: [],
-  },
-  {
-    _id: "c4",
-    userName: "Lê Hoàng Dũng",
-    email: "lehoangdung@outlook.com",
-    phoneNumber: "0938 765 432",
-    status: "active",
-    totalBookings: 36,
-    totalSpent: 5400000,
-    lastActive: "2026-03-13T08:15:00Z",
-    createdAt: "2025-03-10T14:00:00Z",
-    address: "156 Điện Biên Phủ, Quận Bình Thạnh, TP. Hồ Chí Minh",
-    recentBookings: [
-      { _id: "b5", parkingLotName: "Bãi đỗ xe Saigon Centre", date: "2026-03-13T07:00:00Z", status: "confirmed", amount: 250000 },
-      { _id: "b6", parkingLotName: "Bãi đỗ xe Times City", date: "2026-03-11T16:00:00Z", status: "completed", amount: 150000 },
-    ],
-  },
-  {
-    _id: "c5",
-    userName: "Vũ Thị Thu Hảo",
-    email: "vuthithuhao@gmail.com",
-    phoneNumber: "0976 543 210",
-    status: "active",
-    totalBookings: 8,
-    totalSpent: 1200000,
-    lastActive: "2026-03-11T20:00:00Z",
-    createdAt: "2025-12-25T16:00:00Z",
-    address: "200 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh",
-    recentBookings: [
-      { _id: "b7", parkingLotName: "Bãi đỗ xe Vạn Hạnh Mall", date: "2026-03-10T11:00:00Z", status: "pending", amount: 100000 },
-    ],
-  },
-  {
-    _id: "c6",
-    userName: "Đỗ Quang Khải",
-    email: "doquangkhai@gmail.com",
-    phoneNumber: "0889 123 456",
-    status: "active",
-    totalBookings: 18,
-    totalSpent: 2700000,
-    lastActive: "2026-03-13T12:00:00Z",
-    createdAt: "2025-07-04T11:30:00Z",
-    address: "89 Nguyễn Thị Minh Khai, Quận 1, TP. Hồ Chí Minh",
-    recentBookings: [
-      { _id: "b8", parkingLotName: "Bãi đỗ xe Bitexco", date: "2026-03-12T09:00:00Z", status: "completed", amount: 300000 },
-    ],
-  },
-];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -259,10 +166,16 @@ const timeAgo = (dateString: string) => {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CustomerPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [usingMockData, setUsingMockData] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { 
+    customers, 
+    customerStats: apiStats, 
+    isCustomersLoading: loading, 
+    customersError: error,
+    setCustomerData,
+    setCustomersLoading,
+    setCustomersError,
+    setCustomers
+  } = useAdminStore();
 
   const [filters, setFilters] = useState<Filters>({
     search: "",
@@ -276,39 +189,26 @@ export default function CustomerPage() {
   // Fetch customers
   const fetchCustomers = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      setUsingMockData(false);
+      setCustomersLoading(true);
 
-      const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+      const [statsData, customerListData] = await Promise.all([
+        adminService.getUserStats(),
+        adminService.getCustomers()
+      ]);
 
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/users?role=customer`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-      const result = await response.json();
-      if (result.status === "success") {
-        setCustomers(result.data.data || result.data);
-      } else {
-        throw new Error("Không thể tải dữ liệu");
+      if (customerListData && statsData) {
+        setCustomerData(customerListData, statsData);
       }
     } catch (err) {
       console.error("Error fetching customers:", err);
-      setError(err instanceof Error ? err.message : "Lỗi không xác định");
-      setUsingMockData(true);
-      setCustomers(mockCustomers);
-    } finally {
-      setLoading(false);
+      setCustomersError(err instanceof Error ? err.message : "Lỗi không xác định");
     }
   };
 
   useEffect(() => {
-    fetchCustomers();
+    if (customers.length === 0) {
+      fetchCustomers();
+    }
   }, []);
 
   // Filter & sort
@@ -320,9 +220,9 @@ export default function CustomerPage() {
       const term = filters.search.toLowerCase();
       result = result.filter(
         (c) =>
-          c.userName.toLowerCase().includes(term) ||
-          c.email.toLowerCase().includes(term) ||
-          c.phoneNumber.replace(/\s/g, "").includes(term.replace(/\s/g, ""))
+          (c.name || "").toLowerCase().includes(term) ||
+          (c.email || "").toLowerCase().includes(term) ||
+          (c.phone || "").replace(/\s/g, "").includes(term.replace(/\s/g, ""))
       );
     }
 
@@ -339,7 +239,7 @@ export default function CustomerPage() {
     } else if (filters.sortBy === "most-bookings") {
       result.sort((a, b) => b.totalBookings - a.totalBookings);
     } else if (filters.sortBy === "most-spent") {
-      result.sort((a, b) => b.totalSpent - a.totalSpent);
+      result.sort((a, b) => b.totalSpending - a.totalSpending);
     }
 
     return result;
@@ -347,16 +247,27 @@ export default function CustomerPage() {
 
   // Stats
   const stats = useMemo(() => {
+    if (apiStats) {
+      return {
+        total: apiStats.totalUsers,
+        active: apiStats.activeUsers,
+        banned: apiStats.blockedUsers,
+        thisMonth: apiStats.newUsersLastMonth,
+      };
+    }
+    
+
     const total = customers.length;
-    const active = customers.filter((c) => c.status === "active").length;
-    const banned = customers.filter((c) => c.status === "banned").length;
+    const active = customers.filter((c) => c.status === "ACTIVE").length;
+    const banned = customers.filter((c) => c.status === "BANNED").length;
     const thisMonth = customers.filter((c) => {
       const created = new Date(c.createdAt);
       const now = new Date();
       return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
     }).length;
     return { total, active, banned, thisMonth };
-  }, [customers]);
+  }, [customers, apiStats]);
+
 
   const handleFilterChange = (key: keyof Filters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -372,49 +283,53 @@ export default function CustomerPage() {
   };
 
   const handleToggleStatus = async (customer: Customer) => {
-    const newStatus = customer.status === "active" ? "banned" : "active";
-    console.log(`Toggling status for ${customer._id} to ${newStatus}`);
+    const newStatus = customer.status === "ACTIVE" ? "BANNED" : "ACTIVE";
+    console.log(`Toggling status for ${customer.id} to ${newStatus}`);
     // TODO: API call
-    setCustomers((prev) =>
-      prev.map((c) => (c._id === customer._id ? { ...c, status: newStatus } : c))
+    setCustomers(
+      customers.map((c) => (c.id === customer.id ? { ...c, status: newStatus } : c as unknown as CustomerList))
     );
   };
 
   // ─── Stat Cards ─────────────────────────────────────────────────────────────
 
+const formatNumber = (num: number) => {
+    return new Intl.NumberFormat("vi-VN").format(num);
+  };
+
   const statCards = [
     {
       title: "Tổng khách hàng",
-      value: stats.total,
+      value: formatNumber(stats.total),
       icon: Users,
-      color: "bg-blue-500",
-      lightColor: "bg-blue-50",
-      textColor: "text-blue-700",
+      gradient: "from-blue-500 to-indigo-600",
+      bgTint: "from-blue-50 to-indigo-50",
+      border: "border-blue-100",
     },
     {
       title: "Khách hàng mới",
-      value: stats.thisMonth,
-      subtitle: "Trong tháng này",
+      value: formatNumber(stats.thisMonth),
+      subtitle: apiStats ? "Trong 7 ngày qua" : "Trong tháng này",
       icon: UserPlus,
-      color: "bg-emerald-500",
-      lightColor: "bg-emerald-50",
-      textColor: "text-emerald-700",
+      gradient: "from-emerald-500 to-teal-600",
+      bgTint: "from-emerald-50 to-teal-50",
+      border: "border-emerald-100",
     },
     {
       title: "Đang hoạt động",
-      value: stats.active,
+      value: formatNumber(stats.active),
       icon: UserCheck,
-      color: "bg-violet-500",
-      lightColor: "bg-violet-50",
-      textColor: "text-violet-700",
+      gradient: "from-violet-500 to-purple-600",
+      bgTint: "from-violet-50 to-purple-50",
+      border: "border-violet-100",
     },
     {
       title: "Đã khóa",
-      value: stats.banned,
+      value: formatNumber(stats.banned),
       icon: ShieldBan,
-      color: "bg-red-500",
-      lightColor: "bg-red-50",
-      textColor: "text-red-700",
+      gradient: "from-red-500 to-rose-600",
+      bgTint: "from-red-50 to-rose-50",
+      border: "border-red-100",
     },
   ];
 
@@ -443,10 +358,7 @@ export default function CustomerPage() {
             Quản lý Khách hàng
           </h1>
           <p className="text-blue-200/70 mt-1 text-sm">
-            Tìm thấy {filteredCustomers.length} khách hàng
-            {usingMockData && (
-              <span className="ml-2 text-orange-300 text-xs">(Dữ liệu mẫu)</span>
-            )}
+            Tìm thấy {stats.total} khách hàng
           </p>
           {error && <p className="text-red-300 text-xs mt-1">Lỗi kết nối: {error}</p>}
         </div>
@@ -464,21 +376,33 @@ export default function CustomerPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => {
+        {statCards.map((card, i) => {
           const Icon = card.icon;
           return (
-            <Card key={card.title} className="hover:shadow-md transition-shadow border-0 shadow-sm">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
+            <Card
+              key={i}
+              className={`bg-gradient-to-br ${card.bgTint} ${card.border} border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden relative shadow-sm`}
+            >
+              <div
+                className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${card.gradient} opacity-[0.04] rounded-full -translate-y-10 translate-x-10`}
+              />
+              <CardContent className="p-5 relative">
+                <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">{card.title}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{card.value}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      {card.title}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {card.value}
+                    </p>
                     {card.subtitle && (
                       <p className="text-xs text-gray-400 mt-1">{card.subtitle}</p>
                     )}
                   </div>
-                  <div className={`w-12 h-12 rounded-xl ${card.color} flex items-center justify-center shadow-lg`}>
-                    <Icon className="w-6 h-6 text-white" />
+                  <div
+                    className={`w-11 h-11 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-lg shadow-black/10`}
+                  >
+                    <Icon className="w-5 h-5 text-white" />
                   </div>
                 </div>
               </CardContent>
@@ -493,29 +417,29 @@ export default function CustomerPage() {
           {/* Search */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <Input
-              type="text"
-              placeholder="Tìm kiếm theo tên, email hoặc số điện thoại..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white"
-            />
+              <Input
+                type="text"
+                placeholder="Tìm kiếm theo tên, email hoặc số điện thoại..."
+                value={filters.search}
+                onChange={(e) => handleFilterChange("search", e.target.value)}
+                className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white text-gray-900"
+              />
           </div>
           {/* Status */}
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange("status", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[160px]"
+            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[160px] text-gray-900"
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="active">Hoạt động</option>
-            <option value="banned">Đã khóa</option>
+            <option value="ACTIVE">Hoạt động</option>
+            <option value="BANNED">Đã khóa</option>
           </select>
           {/* Sort */}
           <select
             value={filters.sortBy}
             onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[180px]"
+            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[180px] text-gray-900"
           >
             <option value="newest">Mới nhất</option>
             <option value="oldest">Cũ nhất</option>
@@ -553,33 +477,32 @@ export default function CustomerPage() {
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Trạng thái
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Hoạt động
-                </th>
+               
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-12" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {filteredCustomers.map((customer) => {
-                const config = statusConfig[customer.status];
+                const statusKey = (customer.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig;
+                const config = statusConfig[statusKey] || statusConfig.ACTIVE;
                 return (
                   <tr
-                    key={customer._id}
-                    className="hover:bg-blue-50/40 transition-colors cursor-pointer"
+                    key={customer.id}
+                    className="hover:bg-blue-50/30 transition-colors cursor-pointer"
                     onClick={() => openDetail(customer)}
                   >
                     {/* Customer info */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div
-                          className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(customer._id)} flex items-center justify-center flex-shrink-0 shadow-sm`}
+                          className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(customer.id)} flex items-center justify-center flex-shrink-0 shadow-sm`}
                         >
                           <span className="text-white text-sm font-semibold">
-                            {getInitials(customer.userName)}
+                            {getInitials(customer.name)}
                           </span>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">{customer.userName}</p>
+                          <p className="text-sm font-semibold text-gray-900">{customer.name}</p>
                           <p className="text-xs text-gray-400">
                             Tham gia {formatDate(customer.createdAt)}
                           </p>
@@ -595,7 +518,7 @@ export default function CustomerPage() {
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Phone size={14} className="text-gray-400 flex-shrink-0" />
-                          {customer.phoneNumber}
+                          {customer.phone}
                         </div>
                       </div>
                     </td>
@@ -611,7 +534,7 @@ export default function CustomerPage() {
                     {/* Total spent */}
                     <td className="px-6 py-4">
                       <p className="text-sm font-semibold text-gray-900">
-                        {formatCurrency(customer.totalSpent)}
+                        {formatCurrency(customer.totalSpending)}
                       </p>
                     </td>
                     {/* Status */}
@@ -621,16 +544,12 @@ export default function CustomerPage() {
                         {config.label}
                       </Badge>
                     </td>
-                    {/* Last active */}
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-gray-600">{timeAgo(customer.lastActive)}</p>
-                    </td>
                     {/* Actions */}
                     <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical size={16} />
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 ">
+                            <MoreVertical size={16} className="text-slate-600" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
@@ -641,9 +560,9 @@ export default function CustomerPage() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleToggleStatus(customer)}
-                            className={customer.status === "active" ? "text-red-600" : "text-green-600"}
+                            className={customer.status === "ACTIVE" ? "text-red-600" : "text-green-600"}
                           >
-                            {customer.status === "active" ? (
+                            {customer.status === "ACTIVE" ? (
                               <>
                                 <Ban size={16} className="mr-2" />
                                 Khóa tài khoản
@@ -694,23 +613,23 @@ export default function CustomerPage() {
               {/* Profile header */}
               <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
                 <div
-                  className={`w-16 h-16 rounded-full bg-gradient-to-br ${getAvatarColor(selectedCustomer._id)} flex items-center justify-center shadow-md`}
+                  className={`w-16 h-16 rounded-full bg-gradient-to-br ${getAvatarColor(selectedCustomer.id)} flex items-center justify-center shadow-md`}
                 >
                   <span className="text-white text-xl font-bold">
-                    {getInitials(selectedCustomer.userName)}
+                    {getInitials(selectedCustomer.name)}
                   </span>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900">{selectedCustomer.userName}</h3>
+                  <h3 className="text-xl font-bold text-gray-900">{selectedCustomer.name}</h3>
                   <p className="text-sm text-gray-500">
                     Tham gia từ {formatDate(selectedCustomer.createdAt)}
                   </p>
                   <Badge
                     variant="outline"
-                    className={`mt-2 ${statusConfig[selectedCustomer.status].className}`}
+                    className={`mt-2 ${(statusConfig[(selectedCustomer.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig] || statusConfig.ACTIVE).className}`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[selectedCustomer.status].dot} mr-1.5 inline-block`} />
-                    {statusConfig[selectedCustomer.status].label}
+                    <span className={`w-1.5 h-1.5 rounded-full ${(statusConfig[(selectedCustomer.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig] || statusConfig.ACTIVE).dot} mr-1.5 inline-block`} />
+                    {(statusConfig[(selectedCustomer.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig] || statusConfig.ACTIVE).label}
                   </Badge>
                 </div>
               </div>
@@ -728,7 +647,7 @@ export default function CustomerPage() {
                   <Phone size={18} className="text-green-500" />
                   <div>
                     <p className="text-xs text-gray-400">Số điện thoại</p>
-                    <p className="text-sm font-medium text-gray-900">{selectedCustomer.phoneNumber}</p>
+                    <p className="text-sm font-medium text-gray-900">{selectedCustomer.phone}</p>
                   </div>
                 </div>
                 {selectedCustomer.address && (
@@ -743,7 +662,7 @@ export default function CustomerPage() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="text-center p-4 bg-blue-50 rounded-xl">
                   <Car className="w-5 h-5 text-blue-600 mx-auto mb-1" />
                   <p className="text-2xl font-bold text-blue-700">{selectedCustomer.totalBookings}</p>
@@ -751,14 +670,14 @@ export default function CustomerPage() {
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-xl">
                   <TrendingUp className="w-5 h-5 text-green-600 mx-auto mb-1" />
-                  <p className="text-2xl font-bold text-green-700">{formatCurrency(selectedCustomer.totalSpent)}</p>
+                  <p className="text-2xl font-bold text-green-700">{formatCurrency(selectedCustomer.totalSpending)}</p>
                   <p className="text-xs text-green-500">Đã chi tiêu</p>
                 </div>
-                <div className="text-center p-4 bg-purple-50 rounded-xl">
+                {/* <div className="text-center p-4 bg-purple-50 rounded-xl">
                   <Clock className="w-5 h-5 text-purple-600 mx-auto mb-1" />
                   <p className="text-sm font-bold text-purple-700 mt-1">{timeAgo(selectedCustomer.lastActive)}</p>
                   <p className="text-xs text-purple-500">Hoạt động cuối</p>
-                </div>
+                </div> */}
               </div>
 
               {/* Recent bookings */}
@@ -770,7 +689,7 @@ export default function CustomerPage() {
                   <div className="space-y-2">
                     {selectedCustomer.recentBookings.map((booking) => (
                       <div
-                        key={booking._id}
+                        key={booking.id}
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                       >
                         <div className="flex items-center gap-3">
@@ -807,12 +726,12 @@ export default function CustomerPage() {
                 <Button
                   onClick={() => handleToggleStatus(selectedCustomer)}
                   className={
-                    selectedCustomer.status === "active"
+                    selectedCustomer.status === "ACTIVE"
                       ? "bg-red-600 hover:bg-red-700 text-white"
                       : "bg-green-600 hover:bg-green-700 text-white"
                   }
                 >
-                  {selectedCustomer.status === "active" ? (
+                  {selectedCustomer.status === "ACTIVE" ? (
                     <>
                       <Ban size={16} className="mr-2" />
                       Khóa tài khoản

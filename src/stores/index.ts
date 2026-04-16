@@ -2,3 +2,4 @@
 export { useAuthStore } from "./auth.store";
 export { useOwnerStore } from "./owner.store";
 export { useCustomerStore } from "./customer.store";
+export { useAdminStore } from "./admin.store";

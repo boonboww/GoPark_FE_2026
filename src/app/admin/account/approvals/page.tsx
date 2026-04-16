@@ -27,6 +27,7 @@ import {
   ClipboardList,
   MessageSquare,
   Send,
+  Delete,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,53 +46,16 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  adminService,
+  ApprovalRequest,
+  RequestType,
+  RequestStatus,
+  Requester,
+} from "@/services/admin.service";
+import { useAdminStore } from "@/stores";
 
-// ─── Kiểu dữ liệu ───────────────────────────────────────────────────────────
-
-/** Các loại đơn yêu cầu */
-type RequestType =
-  | "upgrade_to_owner"      // Nâng cấp tài khoản user lên owner
-  | "cancel_parking_lot"    // Hủy bãi đỗ xe
-  | "rename_parking_lot"    // Đổi tên bãi đỗ xe
-  | "update_parking_info"   // Cập nhật thông tin bãi đỗ
-  | "refund_request"        // Yêu cầu hoàn tiền
-  | "report_issue"          // Báo cáo sự cố
-  | "other";                // Yêu cầu khác
-
-/** Trạng thái xử lý đơn */
-type RequestStatus = "pending" | "approved" | "rejected" | "processing";
-
-/** Thông tin người gửi đơn */
-interface Requester {
-  _id: string;
-  userName: string;
-  email: string;
-  phoneNumber: string;
-  role: "user" | "owner";
-}
-
-/** Chi tiết đơn yêu cầu */
-interface ApprovalRequest {
-  _id: string;
-  requester: Requester;
-  type: RequestType;
-  status: RequestStatus;
-  title: string;
-  description: string;
-  attachments?: string[];
-  adminNote?: string;
-  // Thông tin bổ sung cho các loại đơn cụ thể
-  relatedParkingLot?: {
-    _id: string;
-    name: string;
-    address: string;
-  };
-  newValue?: string;       // Giá trị mới (vd: tên mới của bãi đỗ)
-  oldValue?: string;       // Giá trị cũ
-  amount?: number;         // Số tiền (cho hoàn tiền)
-  createdAt: string;
-  updatedAt: string;
-}
+ 
 
 /** Bộ lọc hiển thị */
 interface Filters {
@@ -101,49 +65,48 @@ interface Filters {
   sortBy: string;
 }
 
-// ─── Hằng số cấu hình ────────────────────────────────────────────────────────
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
 /** Cấu hình hiển thị cho từng loại đơn */
-const requestTypeConfig: Record<RequestType, { label: string; icon: typeof FileText; color: string; bgColor: string }> = {
-  upgrade_to_owner: {
-    label: "Nâng cấp tài khoản",
-    icon: ArrowUpCircle,
-    color: "text-blue-600",
-    bgColor: "bg-blue-100",
-  },
-  cancel_parking_lot: {
-    label: "Hủy bãi đỗ xe",
-    icon: Trash2,
-    color: "text-red-600",
-    bgColor: "bg-red-100",
-  },
-  rename_parking_lot: {
-    label: "Đổi tên bãi đỗ",
+const requestTypeConfig: Record<
+  RequestType,
+  { label: string; icon: typeof FileText; color: string; bgColor: string }
+> = {
+  UPDATE_PARKING_LOT: {
+    label: "Cập nhật bãi đỗ",
     icon: Edit3,
-    color: "text-orange-600",
-    bgColor: "bg-orange-100",
-  },
-  update_parking_info: {
-    label: "Cập nhật thông tin",
-    icon: Building2,
     color: "text-violet-600",
     bgColor: "bg-violet-100",
   },
-  refund_request: {
+  PAYMENT: {
+    label: "Thanh toán",
+    icon: Send,
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
+  },
+  BECOME_OWNER: {
+    label: "Nâng cấp tài khoản",
+    icon: ArrowUpCircle,
+    color: "text-emerald-600",
+    bgColor: "bg-emerald-100",
+  },
+  WITHDRAW_FUND: {
+    label: "Rút tiền",
+    icon: Download,
+    color: "text-orange-600",
+    bgColor: "bg-orange-100",
+  },
+  REFUND: {
     label: "Hoàn tiền",
     icon: AlertTriangle,
     color: "text-amber-600",
     bgColor: "bg-amber-100",
   },
-  report_issue: {
-    label: "Báo cáo sự cố",
-    icon: AlertTriangle,
-    color: "text-pink-600",
-    bgColor: "bg-pink-100",
+  NEW_PARKING_LOT: {
+    label: "Bãi đỗ mới",
+    icon: Building2,
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-100",
   },
-  other: {
+  OTHER: {
     label: "Yêu cầu khác",
     icon: FileText,
     color: "text-gray-600",
@@ -153,22 +116,22 @@ const requestTypeConfig: Record<RequestType, { label: string; icon: typeof FileT
 
 /** Cấu hình trạng thái đơn */
 const statusConfig: Record<RequestStatus, { label: string; className: string; dot: string }> = {
-  pending: {
+  PENDING: {
     label: "Chờ xử lý",
     className: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    dot: "bg-yellow-500",
+    dot: "bg-yellow-50",
   },
-  processing: {
+  PROCESSING: {
     label: "Đang xử lý",
     className: "bg-blue-100 text-blue-800 border-blue-200",
     dot: "bg-blue-500",
   },
-  approved: {
+  APPROVED: {
     label: "Đã duyệt",
     className: "bg-green-100 text-green-800 border-green-200",
     dot: "bg-green-500",
   },
-  rejected: {
+  REJECTED: {
     label: "Đã từ chối",
     className: "bg-red-100 text-red-800 border-red-200",
     dot: "bg-red-500",
@@ -180,105 +143,6 @@ const roleLabels: Record<string, string> = {
   user: "Khách hàng",
   owner: "Chủ bãi đỗ",
 };
-
-// ─── Dữ liệu mẫu (mock data) ────────────────────────────────────────────────
-
-const mockRequests: ApprovalRequest[] = [
-  {
-    _id: "req1",
-    requester: { _id: "u1", userName: "Nguyễn Văn Anh", email: "nguyenvananh@gmail.com", phoneNumber: "0901 234 567", role: "user" },
-    type: "upgrade_to_owner",
-    status: "pending",
-    title: "Đăng ký trở thành chủ bãi đỗ",
-    description: "Tôi muốn đăng ký trở thành chủ bãi đỗ xe. Tôi hiện có 1 bãi đỗ tại địa chỉ 123 Nguyễn Huệ, Quận 1, TP.HCM với sức chứa khoảng 50 xe. Tôi đã chuẩn bị đầy đủ giấy phép kinh doanh và giấy tờ liên quan.",
-    createdAt: "2026-03-13T08:30:00Z",
-    updatedAt: "2026-03-13T08:30:00Z",
-  },
-  {
-    _id: "req2",
-    requester: { _id: "o1", userName: "Trần Quốc Bảo", email: "tranquocbao@gmail.com", phoneNumber: "0901 111 222", role: "owner" },
-    type: "cancel_parking_lot",
-    status: "pending",
-    title: "Yêu cầu hủy bãi đỗ xe Thảo Điền",
-    description: "Do hợp đồng thuê mặt bằng đã hết hạn và không được gia hạn, tôi muốn xin hủy bãi đỗ xe 'Bãi đỗ xe Thảo Điền' tại 12 Quốc Hương, Q2. Hiện tại bãi xe này không còn hoạt động.",
-    relatedParkingLot: { _id: "pl3", name: "Bãi đỗ xe Thảo Điền", address: "12 Quốc Hương, Q2" },
-    createdAt: "2026-03-12T14:00:00Z",
-    updatedAt: "2026-03-12T14:00:00Z",
-  },
-  {
-    _id: "req3",
-    requester: { _id: "o2", userName: "Nguyễn Thị Hương", email: "nguyenthihuong@gmail.com", phoneNumber: "0938 333 444", role: "owner" },
-    type: "rename_parking_lot",
-    status: "processing",
-    title: "Đổi tên bãi đỗ xe",
-    description: "Tôi muốn đổi tên bãi đỗ từ 'Bãi đỗ xe Lotte Mart' thành 'Bãi đỗ xe Lotte Premium Q7' để phù hợp với thương hiệu mới sau khi nâng cấp dịch vụ.",
-    relatedParkingLot: { _id: "pl5", name: "Bãi đỗ xe Lotte Mart", address: "469 Nguyễn Hữu Thọ, Q7" },
-    oldValue: "Bãi đỗ xe Lotte Mart",
-    newValue: "Bãi đỗ xe Lotte Premium Q7",
-    createdAt: "2026-03-11T10:15:00Z",
-    updatedAt: "2026-03-12T09:00:00Z",
-  },
-  {
-    _id: "req4",
-    requester: { _id: "u3", userName: "Phạm Minh Châu", email: "phamminhchau@yahoo.com", phoneNumber: "0912 345 678", role: "user" },
-    type: "refund_request",
-    status: "pending",
-    title: "Yêu cầu hoàn tiền booking #BK20260310",
-    description: "Tôi đã đặt chỗ tại bãi đỗ xe Quận 10 nhưng khi đến nơi thì bãi xe đã đóng cửa. Tôi muốn được hoàn lại 150.000đ cho lần đặt chỗ này.",
-    relatedParkingLot: { _id: "pl6", name: "Bãi đỗ xe Quận 10", address: "200 CMT8, Q10" },
-    amount: 150000,
-    createdAt: "2026-03-10T16:45:00Z",
-    updatedAt: "2026-03-10T16:45:00Z",
-  },
-  {
-    _id: "req5",
-    requester: { _id: "o4", userName: "Phạm Đức Duy", email: "phamducduy@gmail.com", phoneNumber: "0976 777 888", role: "owner" },
-    type: "update_parking_info",
-    status: "approved",
-    title: "Cập nhật số chỗ đỗ ParkSmart Bình Thạnh",
-    description: "Sau khi mở rộng khu vực đỗ xe tầng 3, tổng số chỗ đỗ tăng từ 75 lên 120 chỗ. Xin cập nhật thông tin trên hệ thống.",
-    relatedParkingLot: { _id: "pl11", name: "ParkSmart Bình Thạnh", address: "300 Xô Viết Nghệ Tĩnh, BT" },
-    oldValue: "75 chỗ",
-    newValue: "120 chỗ",
-    adminNote: "Đã xác minh và cập nhật số chỗ đỗ trên hệ thống.",
-    createdAt: "2026-03-08T11:20:00Z",
-    updatedAt: "2026-03-09T14:30:00Z",
-  },
-  {
-    _id: "req6",
-    requester: { _id: "u5", userName: "Vũ Thị Thu Hảo", email: "vuthithuhao@gmail.com", phoneNumber: "0976 543 210", role: "user" },
-    type: "report_issue",
-    status: "rejected",
-    title: "Phản ánh bãi đỗ xe không đúng mô tả",
-    description: "Bãi đỗ xe Vạn Hạnh Mall ghi có mái che nhưng thực tế khu vực B không có mái che, xe tôi bị nắng nóng suốt 4 tiếng.",
-    relatedParkingLot: { _id: "pl13", name: "Bãi đỗ xe Vạn Hạnh Mall", address: "11 Sư Vạn Hạnh, Q10" },
-    adminNote: "Đã liên hệ chủ bãi và xác nhận khu vực B đang trong quá trình lắp mái che. Vấn đề sẽ được khắc phục trong 2 tuần.",
-    createdAt: "2026-03-07T09:00:00Z",
-    updatedAt: "2026-03-08T10:00:00Z",
-  },
-  {
-    _id: "req7",
-    requester: { _id: "u6", userName: "Đỗ Quang Khải", email: "doquangkhai@gmail.com", phoneNumber: "0889 123 456", role: "user" },
-    type: "upgrade_to_owner",
-    status: "approved",
-    title: "Đăng ký làm chủ bãi đỗ xe",
-    description: "Tôi có mặt bằng 500m2 tại đường Nguyễn Thị Minh Khai, Q1 và muốn đăng ký làm chủ bãi đỗ xe trên nền tảng GoPark.",
-    adminNote: "Đã xác minh giấy phép kinh doanh và mặt bằng. Chấp thuận.",
-    createdAt: "2026-03-05T13:00:00Z",
-    updatedAt: "2026-03-06T16:00:00Z",
-  },
-  {
-    _id: "req8",
-    requester: { _id: "o5", userName: "Hoàng Minh Tuấn", email: "hoangminhtuan@outlook.com", phoneNumber: "0889 999 000", role: "owner" },
-    type: "other",
-    status: "pending",
-    title: "Yêu cầu hiển thị ưu tiên trên app",
-    description: "Tôi muốn đăng ký gói quảng cáo để bãi đỗ xe Bitexco được hiển thị ưu tiên trên ứng dụng GoPark trong tháng 4/2026.",
-    relatedParkingLot: { _id: "pl12", name: "Bãi đỗ xe Bitexco", address: "2 Hải Triều, Q1" },
-    createdAt: "2026-03-13T07:00:00Z",
-    updatedAt: "2026-03-13T07:00:00Z",
-  },
-];
 
 // ─── Hàm tiện ích ─────────────────────────────────────────────────────────────
 
@@ -346,11 +210,14 @@ const timeAgo = (dateString: string) => {
 // ─── Component chính ──────────────────────────────────────────────────────────
 
 export default function ApprovalsPage() {
-  // ── Trạng thái (state) ──────────────────────────────────────────────────────
-  const [requests, setRequests] = useState<ApprovalRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [usingMockData, setUsingMockData] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    approvalRequests: requests,
+    isApprovalsLoading: loading,
+    approvalsError: error,
+    setApprovalRequests: setRequests,
+    setApprovalsLoading,
+    setApprovalsError,
+  } = useAdminStore();
 
   /** Bộ lọc */
   const [filters, setFilters] = useState<Filters>({
@@ -371,68 +238,56 @@ export default function ApprovalsPage() {
 
   const fetchRequests = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      setUsingMockData(false);
+      setApprovalsLoading(true);
 
-      const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+      const [statsRequest , requests] = await Promise.all([
+        adminService.getStatsApprovalRequests(),
+        adminService.getApprovalRequests()
+      ])
 
-      const response = await fetch(`${API_BASE_URL}/api/v1/admin/approvals`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) throw new Error(`Lỗi HTTP! Mã: ${response.status}`);
-
-      const result = await response.json();
-      if (result.status === "success") {
-        setRequests(result.data.data || result.data);
-      } else {
-        throw new Error("Không thể tải dữ liệu");
-      }
+      
+        setRequests(requests);
     } catch (err) {
       console.error("Lỗi khi tải danh sách đơn:", err);
-      setError(err instanceof Error ? err.message : "Lỗi không xác định");
-      // Dùng dữ liệu mẫu khi API chưa sẵn sàng
-      setUsingMockData(true);
-      setRequests(mockRequests);
+      setApprovalsError(err instanceof Error ? err.message : "Lỗi không xác định");
     } finally {
-      setLoading(false);
+      setApprovalsLoading(false);
     }
   };
 
   /** Tải dữ liệu khi component được mount */
   useEffect(() => {
-    fetchRequests();
+    if (Array.isArray(requests) && requests.length === 0) {
+      fetchRequests();
+    }
   }, []);
 
   // ── Lọc & sắp xếp danh sách ────────────────────────────────────────────────
 
   const filteredRequests = useMemo(() => {
+    if (!Array.isArray(requests)) return [];
     let result = [...requests];
 
     // Tìm kiếm theo tên người gửi, tiêu đề, mô tả
     if (filters.search) {
       const term = filters.search.toLowerCase();
       result = result.filter(
-        (r) =>
-          r.requester.userName.toLowerCase().includes(term) ||
-          r.title.toLowerCase().includes(term) ||
-          r.description.toLowerCase().includes(term) ||
-          r.requester.email.toLowerCase().includes(term)
+        (r: ApprovalRequest) =>
+          (r.requester?.name || "").toLowerCase().includes(term) ||
+          (r.title || "").toLowerCase().includes(term) ||
+          (r.description || "").toLowerCase().includes(term) ||
+          (r.requester?.email || "").toLowerCase().includes(term)
       );
     }
 
     // Lọc theo trạng thái
     if (filters.status) {
-      result = result.filter((r) => r.status === filters.status);
+      result = result.filter((r: ApprovalRequest) => r.status === filters.status);
     }
 
     // Lọc theo loại đơn
     if (filters.type) {
-      result = result.filter((r) => r.type === filters.type);
+      result = result.filter((r: ApprovalRequest) => r.type === filters.type);
     }
 
     // Sắp xếp
@@ -452,11 +307,10 @@ export default function ApprovalsPage() {
 
   const stats = useMemo(() => {
     const total = requests.length;
-    const pending = requests.filter((r) => r.status === "pending").length;
-    const processing = requests.filter((r) => r.status === "processing").length;
-    const approved = requests.filter((r) => r.status === "approved").length;
-    const rejected = requests.filter((r) => r.status === "rejected").length;
-    return { total, pending, processing, approved, rejected };
+    const pending = requests.filter((r: ApprovalRequest) => r.status === "PENDING").length;
+    const approved = requests.filter((r: ApprovalRequest) => r.status === "APPROVED").length;
+    const rejected = requests.filter((r: ApprovalRequest) => r.status === "REJECTED").length;
+    return { total, pending, approved, rejected };
   }, [requests]);
 
   // ── Xử lý sự kiện ──────────────────────────────────────────────────────────
@@ -480,43 +334,40 @@ export default function ApprovalsPage() {
 
   /** Duyệt đơn yêu cầu */
   const handleApprove = async (request: ApprovalRequest) => {
-    console.log(`Duyệt đơn ${request._id} với ghi chú: ${adminNote}`);
+    console.log(`Duyệt đơn ${request.id} với ghi chú: ${adminNote}`);
     // TODO: Gọi API duyệt đơn
-    setRequests((prev) =>
-      prev.map((r) =>
-        r._id === request._id ? { ...r, status: "approved" as RequestStatus, adminNote, updatedAt: new Date().toISOString() } : r
-      )
+    const updatedRequests = requests.map((r: ApprovalRequest) =>
+      r.id === request.id ? { ...r, status: "APPROVED" as RequestStatus, adminNote, updatedAt: new Date().toISOString() } : r
     );
-    if (selectedRequest && selectedRequest._id === request._id) {
-      setSelectedRequest((prev) => prev ? { ...prev, status: "approved", adminNote, updatedAt: new Date().toISOString() } : prev);
+    setRequests(updatedRequests);
+    if (selectedRequest && selectedRequest.id === request.id) {
+      setSelectedRequest({ ...selectedRequest, status: "APPROVED", adminNote, updatedAt: new Date().toISOString() });
     }
   };
 
   /** Từ chối đơn yêu cầu */
   const handleReject = async (request: ApprovalRequest) => {
-    console.log(`Từ chối đơn ${request._id} với ghi chú: ${adminNote}`);
+    console.log(`Từ chối đơn ${request.id} với ghi chú: ${adminNote}`);
     // TODO: Gọi API từ chối đơn
-    setRequests((prev) =>
-      prev.map((r) =>
-        r._id === request._id ? { ...r, status: "rejected" as RequestStatus, adminNote, updatedAt: new Date().toISOString() } : r
-      )
+    const updatedRequests = requests.map((r: ApprovalRequest) =>
+      r.id === request.id ? { ...r, status: "REJECTED" as RequestStatus, adminNote, updatedAt: new Date().toISOString() } : r
     );
-    if (selectedRequest && selectedRequest._id === request._id) {
-      setSelectedRequest((prev) => prev ? { ...prev, status: "rejected", adminNote, updatedAt: new Date().toISOString() } : prev);
+    setRequests(updatedRequests);
+    if (selectedRequest && selectedRequest.id === request.id) {
+      setSelectedRequest({ ...selectedRequest, status: "REJECTED", adminNote, updatedAt: new Date().toISOString() });
     }
   };
 
   /** Chuyển đơn sang trạng thái "đang xử lý" */
   const handleMarkProcessing = async (request: ApprovalRequest) => {
-    console.log(`Chuyển đơn ${request._id} sang đang xử lý`);
+    console.log(`Chuyển đơn ${request.id} sang đang xử lý`);
     // TODO: Gọi API cập nhật trạng thái
-    setRequests((prev) =>
-      prev.map((r) =>
-        r._id === request._id ? { ...r, status: "processing" as RequestStatus, updatedAt: new Date().toISOString() } : r
-      )
+    const updatedRequests = requests.map((r: ApprovalRequest) =>
+      r.id === request.id ? { ...r, status: "PROCESSING" as RequestStatus, updatedAt: new Date().toISOString() } : r
     );
-    if (selectedRequest && selectedRequest._id === request._id) {
-      setSelectedRequest((prev) => prev ? { ...prev, status: "processing", updatedAt: new Date().toISOString() } : prev);
+    setRequests(updatedRequests);
+    if (selectedRequest && selectedRequest.id === request.id) {
+      setSelectedRequest({ ...selectedRequest, status: "PROCESSING", updatedAt: new Date().toISOString() });
     }
   };
 
@@ -527,25 +378,33 @@ export default function ApprovalsPage() {
       title: "Tổng đơn",
       value: stats.total,
       icon: ClipboardList,
-      color: "bg-blue-500",
+      gradient: "from-blue-500 to-indigo-600",
+      bgTint: "from-blue-50 to-indigo-50",
+      border: "border-blue-100",
     },
     {
       title: "Chờ xử lý",
       value: stats.pending,
       icon: Clock,
-      color: "bg-yellow-500",
+      gradient: "from-yellow-500 to-orange-500",
+      bgTint: "from-yellow-50 to-orange-50",
+      border: "border-yellow-100",
     },
     {
-      title: "Đang xử lý",
-      value: stats.processing,
-      icon: RefreshCw,
-      color: "bg-indigo-500",
+      title: "Từ chối",
+      value: stats.rejected,
+      icon: X,
+      gradient: "from-red-500 to-rose-600",
+      bgTint: "from-red-50 to-rose-50",
+      border: "border-red-100",
     },
     {
       title: "Đã duyệt",
       value: stats.approved,
       icon: CheckCircle,
-      color: "bg-green-500",
+      gradient: "from-emerald-500 to-teal-600",
+      bgTint: "from-emerald-50 to-teal-50",
+      border: "border-emerald-100",
     },
   ];
 
@@ -576,9 +435,6 @@ export default function ApprovalsPage() {
           </h1>
           <p className="text-blue-200/70 mt-1 text-sm">
             Tiếp nhận và xử lý đơn từ người dùng & chủ bãi đỗ
-            {usingMockData && (
-              <span className="ml-2 text-orange-300 text-xs">(Dữ liệu mẫu)</span>
-            )}
           </p>
           {error && <p className="text-red-300 text-xs mt-1">Lỗi kết nối: {error}</p>}
         </div>
@@ -594,20 +450,25 @@ export default function ApprovalsPage() {
         </div>
       </div>
 
-      {/* ── Thẻ thống kê ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => {
+        {statCards.map((card, i) => {
           const Icon = card.icon;
           return (
-            <Card key={card.title} className="hover:shadow-md transition-shadow border-0 shadow-sm">
-              <CardContent className="p-5">
+            <Card 
+              key={i} 
+              className={`bg-gradient-to-br ${card.bgTint} ${card.border} border hover:shadow-md transition-all duration-300 overflow-hidden relative shadow-sm`}
+            >
+              <div
+                className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${card.gradient} opacity-[0.04] rounded-full -translate-y-10 translate-x-10`}
+              />
+              <CardContent className="p-5 relative">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">{card.title}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{card.value}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{card.title}</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{card.value}</p>
                   </div>
-                  <div className={`w-12 h-12 rounded-xl ${card.color} flex items-center justify-center shadow-lg`}>
-                    <Icon className="w-6 h-6 text-white" />
+                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-lg shadow-black/10`}>
+                    <Icon className="w-5 h-5 text-white" />
                   </div>
                 </div>
               </CardContent>
@@ -627,41 +488,41 @@ export default function ApprovalsPage() {
               placeholder="Tìm theo tên người gửi, tiêu đề, email..."
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white"
+              className="pl-10 h-11 bg-gray-50 border-gray-200 focus:bg-white text-slate-900 placeholder:text-slate-400"
             />
           </div>
           {/* Lọc trạng thái */}
           <select
             value={filters.status}
             onChange={(e) => handleFilterChange("status", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[160px]"
+            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[160px] text-slate-900"
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="pending">Chờ xử lý</option>
-            <option value="processing">Đang xử lý</option>
-            <option value="approved">Đã duyệt</option>
-            <option value="rejected">Đã từ chối</option>
+            <option value="PENDING">Chờ xử lý</option>
+            <option value="PROCESSING">Đang xử lý</option>
+            <option value="APPROVED">Đã duyệt</option>
+            <option value="REJECTED">Đã từ chối</option>
           </select>
           {/* Lọc loại đơn */}
           <select
             value={filters.type}
             onChange={(e) => handleFilterChange("type", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[180px]"
+            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[180px] text-slate-900"
           >
             <option value="">Tất cả loại đơn</option>
-            <option value="upgrade_to_owner">Nâng cấp tài khoản</option>
-            <option value="cancel_parking_lot">Hủy bãi đỗ xe</option>
-            <option value="rename_parking_lot">Đổi tên bãi đỗ</option>
-            <option value="update_parking_info">Cập nhật thông tin</option>
-            <option value="refund_request">Hoàn tiền</option>
-            <option value="report_issue">Báo cáo sự cố</option>
-            <option value="other">Yêu cầu khác</option>
+            <option value="UPDATE_PARKING_LOT">Cập nhật bãi đỗ</option>
+            <option value="PAYMENT">Thanh toán</option>
+            <option value="BECOME_OWNER">Nâng cấp tài khoản</option>
+            <option value="WITHDRAW_FUND">Rút tiền</option>
+            <option value="REFUND">Hoàn tiền</option>
+            <option value="NEW_PARKING_LOT">Bãi đỗ mới</option>
+            <option value="OTHER">Yêu cầu khác</option>
           </select>
           {/* Sắp xếp */}
           <select
             value={filters.sortBy}
             onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[140px]"
+            className="h-11 px-4 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm min-w-[140px] text-slate-900"
           >
             <option value="newest">Mới nhất</option>
             <option value="oldest">Cũ nhất</option>
@@ -685,7 +546,7 @@ export default function ApprovalsPage() {
 
           return (
             <div
-              key={request._id}
+              key={request.id}
               onClick={() => openDetail(request)}
               className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group"
             >
@@ -723,12 +584,12 @@ export default function ApprovalsPage() {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
                     {/* Người gửi */}
                     <span className="flex items-center gap-1">
-                      <div className={`w-5 h-5 rounded-full bg-gradient-to-br ${getAvatarColor(request.requester._id)} flex items-center justify-center`}>
-                        <span className="text-white text-[8px] font-bold">{getInitials(request.requester.userName)}</span>
+                      <div className={`w-5 h-5 rounded-full bg-gradient-to-br ${getAvatarColor(request.requester.id)} flex items-center justify-center`}>
+                        <span className="text-white text-[8px] font-bold">{getInitials(request.requester.name || request.requester.email)}</span>
                       </div>
-                      <span className="font-medium text-gray-600">{request.requester.userName}</span>
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
-                        {roleLabels[request.requester.role]}
+                      <span className="font-medium text-gray-600 truncate max-w-[120px]">{request.requester.name || request.requester.email}</span>
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0">
+                        {request.requester.role ? roleLabels[request.requester.role] : "Người dùng"}
                       </Badge>
                     </span>
 
@@ -768,11 +629,11 @@ export default function ApprovalsPage() {
                         <Eye size={16} className="mr-2" />
                         Xem chi tiết
                       </DropdownMenuItem>
-                      {/* Chỉ hiện các nút hành động khi đơn chưa xử lý xong */}
-                      {(request.status === "pending" || request.status === "processing") && (
+                       {/* Chỉ hiện các nút hành động khi đơn chưa xử lý xong */}
+                      {(request.status === "PENDING" || request.status === "PROCESSING") && (
                         <>
                           <DropdownMenuSeparator />
-                          {request.status === "pending" && (
+                          {request.status === "PENDING" && (
                             <DropdownMenuItem onClick={() => handleMarkProcessing(request)} className="text-blue-600">
                               <RefreshCw size={16} className="mr-2" />
                               Đánh dấu đang xử lý
@@ -824,7 +685,7 @@ export default function ApprovalsPage() {
             const typeConf = requestTypeConfig[selectedRequest.type];
             const statusConf = statusConfig[selectedRequest.status];
             const TypeIcon = typeConf.icon;
-            const canAction = selectedRequest.status === "pending" || selectedRequest.status === "processing";
+            const canAction = selectedRequest.status === "PENDING" || selectedRequest.status === "PROCESSING";
 
             return (
               <div className="space-y-5 mt-2">
@@ -848,21 +709,20 @@ export default function ApprovalsPage() {
                   </div>
                 </div>
 
-                {/* Thông tin người gửi */}
-                <div className="p-4 bg-gray-50 rounded-xl">
+                 <div className="p-4 bg-gray-50 rounded-xl">
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Người gửi đơn</h4>
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(selectedRequest.requester._id)} flex items-center justify-center shadow-sm`}>
-                      <span className="text-white text-sm font-semibold">{getInitials(selectedRequest.requester.userName)}</span>
+                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(selectedRequest.requester.id)} flex items-center justify-center shadow-sm`}>
+                      <span className="text-white text-sm font-semibold">{getInitials(selectedRequest.requester.name || selectedRequest.requester.email)}</span>
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-gray-900">{selectedRequest.requester.userName}</p>
-                        <Badge variant="outline" className="text-xs">{roleLabels[selectedRequest.requester.role]}</Badge>
+                        <p className="text-sm font-semibold text-gray-900">{selectedRequest.requester.name || selectedRequest.requester.email}</p>
+                        <Badge variant="outline" className="text-xs">{selectedRequest.requester.role ? roleLabels[selectedRequest.requester.role] : "Người dùng"}</Badge>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-gray-500">
                         <span className="flex items-center gap-1"><Mail size={12} />{selectedRequest.requester.email}</span>
-                        <span className="flex items-center gap-1"><Phone size={12} />{selectedRequest.requester.phoneNumber}</span>
+                        {selectedRequest.requester.phone && <span className="flex items-center gap-1"><Phone size={12} />{selectedRequest.requester.phone}</span>}
                       </div>
                     </div>
                   </div>
@@ -972,7 +832,7 @@ export default function ApprovalsPage() {
                   {canAction && (
                     <>
                       {/* Nút đánh dấu đang xử lý */}
-                      {selectedRequest.status === "pending" && (
+                      {selectedRequest.status === "PENDING" && (
                         <Button
                           variant="outline"
                           className="border-blue-200 text-blue-600 hover:bg-blue-50"

@@ -59,12 +59,6 @@ const sidebarItems: SidebarItem[] = [
     ]
   },
   {
-    title: "Quản lý đặt chỗ",
-    href: "/admin/booking", 
-    icon: Receipt,
-    badge: "12"
-  },
-  {
     title: "Thanh toán",
     icon: CreditCard,
     children: [
