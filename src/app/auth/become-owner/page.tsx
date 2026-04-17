@@ -110,10 +110,17 @@ export default function BecomeOwnerPage() {
         return;
       }
       for (let i = 0; i < floorsNum; i++) {
-        const slots = Number(formData.floorSlots[i]);
-        if (!slots || slots <= 0) {
-          toast.error(`Số chỗ đỗ cho Tầng ${i + 1} phải lớn hơn 0`);
+        const floorObj: any = formData.floorSlots[i];
+        if (!floorObj || !floorObj.zones || floorObj.zones.length === 0) {
+          toast.error(`Tầng ${i + 1} phải có ít nhất 1 khu vực`);
           return;
+        }
+        for (let j = 0; j < floorObj.zones.length; j++) {
+           const slots = Number(floorObj.zones[j].capacity);
+           if (!slots || slots <= 0) {
+             toast.error(`Số chỗ đỗ cho Khu ${j + 1} - Tầng ${i + 1} phải lớn hơn 0`);
+             return;
+           }
         }
       }
     }
@@ -143,10 +150,12 @@ export default function BecomeOwnerPage() {
     try {
       setLoading(true);
 
-      const slots = formData.floorSlots.map((s, i) => ({
-        floorNumber: i + 1,
-        capacity: Number(s),
-      }));
+      const slots = formData.floorSlots.map((floorObj: any, i: number) => {
+        if (typeof floorObj === 'string' || typeof floorObj === 'number') {
+          return { floorNumber: i + 1, capacity: Number(floorObj) };
+        }
+        return floorObj;
+      });
 
       // In real implementation, upload images first -> URLs
       const payload = {
@@ -504,26 +513,61 @@ function Step2Parking({ data, onChange }: any) {
     
     const newFloors = parseInt(val);
     if (!isNaN(newFloors) && newFloors > 0) {
-      const newFloorSlots = [...data.floorSlots];
+      let newFloorSlots = [...data.floorSlots];
+      
+      // Upgrade migrating arrays of strings to objects if needed
+      newFloorSlots = newFloorSlots.map((floor, idx) => {
+        if (typeof floor === 'string' || typeof floor === 'number') {
+           return { floorNumber: idx + 1, zones: [{ zoneNumber: 1, capacity: floor }] };
+        }
+        return floor;
+      });
+
       if (newFloors > newFloorSlots.length) {
-        // pad with empty strings for new inputs
         while (newFloorSlots.length < newFloors) {
-          newFloorSlots.push("");
+          newFloorSlots.push({ floorNumber: newFloorSlots.length + 1, zones: [{ zoneNumber: 1, capacity: "" }] });
         }
       } else if (newFloors < newFloorSlots.length) {
-        // truncate
         newFloorSlots.length = newFloors;
       }
       onChange("floorSlots", newFloorSlots);
     }
   };
 
-  const handleSlotChange = (index: number, val: string) => {
+  const handleAddZone = (floorIndex: number) => {
     const newFloorSlots = [...data.floorSlots];
-    newFloorSlots[index] = val;
+    newFloorSlots[floorIndex] = {
+      ...newFloorSlots[floorIndex],
+      zones: [
+        ...newFloorSlots[floorIndex].zones,
+        { zoneNumber: newFloorSlots[floorIndex].zones.length + 1, capacity: "" }
+      ]
+    };
     onChange("floorSlots", newFloorSlots);
   };
 
+  const handleRemoveZone = (floorIndex: number, zoneIndex: number) => {
+    const newFloorSlots = [...data.floorSlots];
+    const newZones = [...newFloorSlots[floorIndex].zones];
+    newZones.splice(zoneIndex, 1);
+    
+    // update zone numbers sequentially
+    newZones.forEach((z, i) => z.zoneNumber = i + 1);
+
+    newFloorSlots[floorIndex] = {
+      ...newFloorSlots[floorIndex],
+      zones: newZones
+    };
+    onChange("floorSlots", newFloorSlots);
+  };
+
+  const handleZoneSlotChange = (floorIndex: number, zoneIndex: number, val: string) => {
+    const newFloorSlots = [...data.floorSlots];
+    const newZones = [...newFloorSlots[floorIndex].zones];
+    newZones[zoneIndex] = { ...newZones[zoneIndex], capacity: val };
+    newFloorSlots[floorIndex] = { ...newFloorSlots[floorIndex], zones: newZones };
+    onChange("floorSlots", newFloorSlots);
+  };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
@@ -656,7 +700,7 @@ function Step2Parking({ data, onChange }: any) {
               Cấu trúc Bãi Đỗ Xe
             </h3>
             <div className="space-y-2 sm:w-1/2">
-              <Label htmlFor="floors" className="flex items-center gap-2"><Layers className="w-4 h-4 text-muted-foreground" />Số tầng / khu vực <span className="text-red-500">*</span></Label>
+                <Label htmlFor="floors" className="flex items-center gap-2"><Layers className="w-4 h-4 text-muted-foreground" />Số tầng <span className="text-red-500">*</span></Label>
               <Input
                 id="floors"
                 type="number"
@@ -667,26 +711,59 @@ function Step2Parking({ data, onChange }: any) {
               />
             </div>
 
-            {Number(data.floors) > 0 && (
-              <div className="space-y-3 pt-4">
-                <Label className="flex items-center gap-2">Cấu hình sức chứa theo tầng <span className="text-red-500">*</span></Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {Array.from({ length: Number(data.floors) }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center space-x-3 bg-background p-2 rounded-md border text-sm"
-                    >
-                      <span className="font-medium whitespace-nowrap min-w-[60px]">
-                        Tầng {index + 1}
-                      </span>
-                      <Input
-                        type="number"
-                        min="1"
-                        placeholder="Số chỗ đỗ"
-                        className="h-8"
-                        value={data.floorSlots[index] ?? ""}
-                        onChange={(e) => handleSlotChange(index, e.target.value)}
-                      />
+            {Number(data.floors) > 0 && data.floorSlots && data.floorSlots.length > 0 && (
+              <div className="space-y-4 pt-4">
+                <Label className="flex items-center gap-2">Cấu hình sức chứa theo tầng và khu vực <span className="text-red-500">*</span></Label>
+                <div className="space-y-3">
+                  {data.floorSlots.map((floor: any, floorIndex: number) => (
+                    <div key={`floor-${floorIndex}`} className="bg-backgroundp-4 rounded-md border p-3">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="font-bold text-primary">
+                          Tầng {floorIndex + 1}
+                        </span>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 text-xs"
+                          onClick={() => handleAddZone(floorIndex)}
+                        >
+                          + Thêm Khu
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {floor.zones && floor.zones.map((zone: any, zoneIndex: number) => (
+                          <div
+                            key={`zone-${floorIndex}-${zoneIndex}`}
+                            className="flex items-center space-x-2 bg-muted/30 p-2 rounded-md border text-sm relative group"
+                          >
+                            <span className="font-medium whitespace-nowrap text-muted-foreground w-14">
+                              Khu {zoneIndex + 1}
+                            </span>
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="Số chỗ đỗ"
+                              className="h-8 bg-background"
+                              value={zone.capacity ?? ""}
+                              onChange={(e) => handleZoneSlotChange(floorIndex, zoneIndex, e.target.value)}
+                            />
+                            {floor.zones.length > 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                onClick={() => handleRemoveZone(floorIndex, zoneIndex)}
+                                title="Xóa khu này"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -751,10 +828,18 @@ function Step3Review({ user, data, onChange }: any) {
     };
   }, [data.businessLicenses, data.images]);
 
-  const totalSlots = data.floorSlots.reduce(
-    (acc: number, curr: number | string) => acc + (Number(curr) || 0),
-    0,
-  );
+  const totalZones = data.floorSlots.reduce((acc: number, floor: any) => {
+    if (typeof floor === 'string' || typeof floor === 'number') return acc + 1;
+    return acc + (floor.zones?.length || 0);
+  }, 0);
+
+  const totalSlots = data.floorSlots.reduce((acc: number, floor: any) => {
+    if (typeof floor === 'string' || typeof floor === 'number') {
+      return acc + (Number(floor) || 0);
+    }
+    const zoneSlots = floor.zones?.reduce((zAcc: number, zone: any) => zAcc + (Number(zone.capacity) || 0), 0) || 0;
+    return acc + zoneSlots;
+  }, 0);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
@@ -841,24 +926,35 @@ function Step3Review({ user, data, onChange }: any) {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-3 gap-4 mt-4">
               <div className="bg-muted/30 p-4 rounded-lg border text-center">
                 <div className="text-3xl font-bold text-primary mb-1">{data.floors || 0}</div>
-                <div className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Tầng/Khu vực</div>
+                <div className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Tầng</div>
+              </div>
+              <div className="bg-muted/30 p-4 rounded-lg border text-center">
+                <div className="text-3xl font-bold text-primary mb-1">{totalZones}</div>
+                <div className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Khu</div>
               </div>
               <div className="bg-muted/30 p-4 rounded-lg border text-center">
                 <div className="text-3xl font-bold text-primary mb-1">{totalSlots}</div>
-                <div className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Tổng sức chứa</div>
+                <div className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">Chỗ đỗ</div>
               </div>
             </div>
             
             {Number(data.floors) > 0 && (
-              <div className="bg-muted/20 p-3 rounded-md border flex flex-wrap gap-2">
+              <div className="bg-muted/20 p-3 rounded-md border flex flex-col gap-2">
                 <span className="w-full text-muted-foreground mb-1 block">Chi tiết theo tầng:</span>
-                {data.floorSlots.map((slot: any, idx: number) => (
-                  <div key={idx} className="bg-background border rounded px-3 py-1 text-center">
-                    <span className="text-muted-foreground text-xs block">Tầng {idx + 1}</span>
-                    <span className="font-bold">{slot || 0}</span>
+                {data.floorSlots.map((floorObj: any, floorIdx: number) => (
+                  <div key={floorIdx} className="bg-background rounded-md p-2 border">
+                    <span className="font-semibold text-sm mb-2 block">Tầng {floorIdx + 1}</span>
+                    <div className="flex flex-wrap gap-2">
+                      {floorObj.zones && floorObj.zones.map((zone: any, zoneIdx: number) => (
+                        <div key={zoneIdx} className="bg-muted/30 border rounded px-3 py-1 text-center">
+                          <span className="text-muted-foreground text-[10px] block">Khu {zoneIdx + 1}</span>
+                          <span className="font-bold text-sm">{zone.capacity || 0} chỗ</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

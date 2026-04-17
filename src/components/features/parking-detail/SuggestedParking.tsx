@@ -47,8 +47,8 @@ import { ParkingContext } from "./ParkingContext";
           <div key = {lot.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all cursor-pointer">
             <div className="aspect-[4/3] w-full bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
               <img 
-                src={lot.image}
-                alt="anh"
+                src={lot.image?.thumbnail || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?q=80&w=800&auto=format&fit=crop"}
+                alt={lot.name || "anh"}
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
               />
               <div className="absolute top-3 right-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1 shadow-sm">

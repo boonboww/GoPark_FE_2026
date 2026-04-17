@@ -188,6 +188,14 @@ class ParkingService {
   }
 
   /**
+   * Lấy dữ liệu bản đồ/sơ đồ bãi đỗ
+   * GET /parking-lots/map/:id
+   */
+  async getParkingLotMap(lotId: number) {
+    return get<any>(`/parking-lots/map/${lotId}`);
+  }
+
+  /**
    * Thiết lập giá tiền cho khu vực
    * POST /payment/pricing-rule
    */
