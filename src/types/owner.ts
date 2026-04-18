@@ -16,6 +16,11 @@ export interface ParkingLotType {
   totalSlots: number;
   availableSlots: number;
   status: "OPEN" | "CLOSED" | string;
+  description?: string;
+  image?: {
+    thumbnail?: string;
+    gallery?: string[];
+  };
 }
 
 /** Dùng cho /parking-lots/owner/:ownerId/totals */
@@ -37,4 +42,11 @@ export interface UpdateProfileRequest {
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
+}
+
+/** Request body cho update parking lot */
+export interface UpdateParkingLotRequest {
+  name?: string;
+  description?: string;
+  images?: File | File[];
 }

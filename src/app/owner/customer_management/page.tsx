@@ -58,7 +58,7 @@ export default function CustomerManagementPage() {
             <CardContent className="p-6">
               <div className="flex flex-col gap-6">
                 {/* Toolbar */}
-              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2 flex-1 max-w-sm relative">
                     {isFetching && !isLoading ? (
                       <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
@@ -72,7 +72,7 @@ export default function CustomerManagementPage() {
                       onChange={(e) => setSearchText(e.target.value)}
                     />
                   </div>
-                  <Sheet>
+                  {/* <Sheet>
                     <SheetTrigger asChild>
                       <Button className="flex items-center gap-2">
                         <Plus className="h-4 w-4" />
@@ -82,7 +82,7 @@ export default function CustomerManagementPage() {
                     <SheetContent className="w-[400px] sm:w-[600px] sm:max-w-[calc(100vw-2rem)]">
                       <FormAddCustomer />
                     </SheetContent>
-                  </Sheet>
+                  </Sheet> */}
                 </div>
 
                 {/* Table */}

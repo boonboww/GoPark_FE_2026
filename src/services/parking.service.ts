@@ -1,4 +1,5 @@
 import { post, get, patch } from "@/lib/api";
+import { UpdateParkingLotRequest } from "@/types/owner";
 
 export interface WalkInRequest {
   name: string;
@@ -280,6 +281,25 @@ class ParkingService {
     return get<any>(
       `/parking-lots/${lotId}/available-map?start_time=${startTime}&end_time=${endTime}`,
     );
+  }
+
+  /**
+   * Cập nhật thông tin bãi đỗ xe
+   * PATCH /parking-lots/:id
+   */
+  async updateParkingLot(lotId: number, payload: UpdateParkingLotRequest) {
+    const formData = new FormData();
+    if (payload.name) formData.append("name", payload.name);
+    if (payload.description) formData.append("description", payload.description);
+    
+    if (payload.images) {
+      const imageArray = Array.isArray(payload.images) ? payload.images : [payload.images];
+      for (let i = 0; i < imageArray.length; i++) {
+        formData.append('images', imageArray[i]);
+      }
+    }
+    
+    return patch<any>(`/parking-lots/${lotId}`, formData);
   }
 
   /**
