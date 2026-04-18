@@ -101,41 +101,52 @@ export default function AnalyticsPage() {
       <SidebarInset>
         <SiteHeader />
 
-        <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
+        <div className="max-w-[1400px] mx-auto w-full p-6 space-y-6">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-2">
+              Phân tích
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Báo cáo hiệu suất và số liệu kinh doanh.
+            </p>
+          </div>
+
           <DashboardHeader
             dateRange={dateRange}
             setDateRange={setDateRange}
             onExport={handleExport}
           />
 
-          {isLoading && data ? (
-            <div className="absolute inset-0 bg-background/50 z-50 flex items-center justify-center backdrop-blur-sm pointer-events-none">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : null}
-
-          {!data && isLoading ? (
-            <div className="flex items-center justify-center min-h-[60vh]">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            data && (
-              <div
-                className={`transition-opacity duration-200 ${isLoading ? "opacity-50" : "opacity-100"}`}
-              >
-                <OverviewCards metrics={data.metrics} />
-                <AnalyticsCharts
-                  revenueData={data.revenueOverTime}
-                  paymentData={data.paymentMethods}
-                  trafficData={data.trafficFlow}
-                />
-                <DataTables
-                  recentTransactions={data.recentTransactions}
-                  topParkingLots={data.topParkingLots}
-                />
+          <div className="relative min-h-[500px]">
+            {isLoading && data && (
+              <div className="absolute inset-0 bg-background/50 z-50 flex items-center justify-center backdrop-blur-sm pointer-events-none">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            )
-          )}
+            )}
+
+            {!data && isLoading ? (
+              <div className="flex items-center justify-center h-[500px]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              data && (
+                <div
+                  className={`space-y-6 transition-opacity duration-200 ${isLoading ? "opacity-50" : "opacity-100"}`}
+                >
+                  <OverviewCards metrics={data.metrics} />
+                  <AnalyticsCharts
+                    revenueData={data.revenueOverTime}
+                    paymentData={data.paymentMethods}
+                    trafficData={data.trafficFlow}
+                  />
+                  <DataTables
+                    recentTransactions={data.recentTransactions}
+                    topParkingLots={data.topParkingLots}
+                  />
+                </div>
+              )
+            )}
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

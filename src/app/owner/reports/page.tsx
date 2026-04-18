@@ -16,11 +16,16 @@ export default function ReportsPage() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-          <div className="flex items-center justify-between space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight">Quản lý Báo cáo</h2>
+        <div className="max-w-6xl mx-auto p-6 space-y-6 w-full">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Quản lý Báo cáo</h1>
+            <p className="text-sm text-muted-foreground w-full">
+              Xem và phân tích các báo cáo hoạt động của bãi đỗ xe.
+            </p>
           </div>
-          <ReportList />
+          <div className="bg-card rounded-xl border border-border shadow-sm p-4">
+            <ReportList />
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

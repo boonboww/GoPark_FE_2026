@@ -159,58 +159,55 @@ export default function OwnerWalletPage() {
       }
     >
       <AppSidebar variant="inset" />
-      <SidebarInset className="bg-slate-50/50">
+      <SidebarInset>
         <SiteHeader />
 
-        <div className="p-4 md:p-8 space-y-8 max-w-[1400px] mx-auto w-full">
+        <div className="max-w-6xl mx-auto p-6 space-y-6 w-full">
           {/* Header Section */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="space-y-1">
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                Ví tiền
-              </h1>
-            </div>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-3">
+              Ví tiền
+            </h1>
+            <p className="text-sm text-muted-foreground w-full">
+              Quản lý doanh thu và yêu cầu chuyển tiền về tài khoản ngân hàng.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
             {/* Left Column: Stats & Form (4/12) */}
             <div className="lg:col-span-5 xl:col-span-4 space-y-6 md:space-y-8">
-              {/* Premium Balance Card */}
-              <Card className="bg-slate-900 border-none shadow-2xl relative overflow-hidden group">
-                {/* Decorative background effects */}
-                <div className="absolute -right-10 -top-10 h-40 w-40 bg-emerald-500/20 rounded-full blur-3xl group-hover:bg-emerald-500/30 transition-all duration-500" />
-                <div className="absolute -left-10 -bottom-10 h-40 w-40 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-all duration-500" />
-
-                <CardHeader className="relative z-10">
+              <Card className="bg-card border-border shadow-sm">
+                <CardHeader>
                   <div className="flex items-center justify-between pb-2">
-                    <CardDescription className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">
+                    <CardDescription className="text-muted-foreground font-semibold uppercase tracking-widest text-xs">
                       Tổng doanh thu hiện có
                     </CardDescription>
-                    <TrendingUp className="h-4 w-4 text-emerald-400 opacity-50" />
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <CardTitle className="text-4xl md:text-5xl font-black tracking-tighter text-white">
+                  <CardTitle className="text-4xl font-bold tracking-tight text-foreground mt-2">
                     {isFetchingWallet ? (
-                      <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     ) : isWalletError ? (
-                      <span className="text-2xl text-slate-500">
+                      <span className="text-2xl text-muted-foreground">
                         Chưa kích hoạt
                       </span>
                     ) : (
                       <div className="flex items-baseline gap-1">
                         {(balance || 0).toLocaleString("vi-VN")}
-                        <span className="text-xl font-medium text-slate-500 ml-1">
+                        <span className="text-xl font-medium text-muted-foreground ml-1">
                           ₫
                         </span>
                       </div>
                     )}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="relative z-10">
+                <CardContent>
                   {isWalletError ? (
                     <Button
                       onClick={handleActivateWallet}
                       disabled={isActivating}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-11 rounded-xl transition-all shadow-lg shadow-emerald-600/20"
+                      variant="default"
+                      className="w-full h-11"
                     >
                       {isActivating ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -220,21 +217,21 @@ export default function OwnerWalletPage() {
                       Kích hoạt ví ngay
                     </Button>
                   ) : (
-                    <div className="flex items-center justify-between bg-white/5 rounded-xl p-3 border border-white/10">
+                    <div className="flex items-center justify-between bg-muted rounded-xl p-3 border border-border">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                          <Banknote className="h-4 w-4 text-emerald-400" />
+                        <div className="h-8 w-8 rounded-full bg-background flex items-center justify-center border border-border">
+                          <Banknote className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div className="space-y-0.5">
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
                             Trạng thái ví
                           </p>
-                          <p className="text-xs text-white font-semibold">
+                          <p className="text-sm text-foreground font-medium">
                             Đang hoạt động
                           </p>
                         </div>
                       </div>
-                      <Badge className="bg-emerald-500/10 text-emerald-400 border-none hover:bg-emerald-500/20">
+                      <Badge variant="outline" className="text-foreground">
                         Verified
                       </Badge>
                     </div>
@@ -243,26 +240,24 @@ export default function OwnerWalletPage() {
               </Card>
 
               {/* Withdraw Form Card */}
-              <Card
-                className={`border-slate-200/60 shadow-xl bg-white rounded-3xl overflow-hidden transition-all duration-300 ${isWalletError ? "opacity-40 pointer-events-none grayscale" : "hover:shadow-2xl hover:shadow-slate-200/50"}`}
-              >
-                <CardHeader className="bg-slate-50/50 border-b border-slate-100/60">
+              <Card className="border-border bg-card">
+                <CardHeader className="border-b border-border">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <ArrowDownLeft className="h-5 w-5 text-rose-500" />
+                      <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                        <ArrowDownLeft className="h-4 w-4 text-muted-foreground" />
                         Rút tiền
                       </CardTitle>
-                      <CardDescription className="text-xs font-medium mt-1">
+                      <CardDescription className="text-sm mt-1">
                         Yêu cầu chuyển doanh thu về ngân hàng
                       </CardDescription>
                     </div>
-                    <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center border border-slate-100 shadow-sm">
-                      <Landmark className="h-5 w-5 text-slate-400" />
+                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center border border-border">
+                      <Landmark className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="p-6 space-y-5">
+                <CardContent className="p-6 space-y-4">
                   <div className="space-y-2">
                     <Label className="text-slate-700 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2">
                       <Banknote className="h-3 w-3 text-emerald-500" /> Số tiền
@@ -336,14 +331,15 @@ export default function OwnerWalletPage() {
                 </CardContent>
                 <CardFooter className="p-6 pt-0">
                   <Button
-                    className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-base shadow-xl shadow-slate-900/10 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                    variant="default"
+                    className="w-full h-12"
                     onClick={handleWithdraw}
                     disabled={isLoading || !amount || parseInt(amount) < 100000}
                   >
                     {isLoading ? (
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <ChevronRight className="mr-2 h-5 w-5" />
+                      <ChevronRight className="mr-2 h-4 w-4" />
                     )}
                     Gửi yêu cầu rút tiền
                   </Button>
@@ -423,16 +419,16 @@ function PaginatedTransactionHistory({
   };
 
   return (
-    <Card className="border-slate-200/60 shadow-xl bg-white rounded-3xl h-full flex flex-col overflow-hidden">
+    <Card className="border-border bg-card h-full flex flex-col overflow-hidden shadow-sm">
       <Tabs
         defaultValue="all"
         className="flex flex-col h-full"
         onValueChange={handleTabChange}
       >
-        <CardHeader className="border-b border-slate-100 flex-none px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-0.5">
-            <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <History className="h-5 w-5 text-emerald-600" />
+        <CardHeader className="border-b border-border flex-none px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <History className="h-5 w-5 text-muted-foreground" />
               Lịch sử biến động
             </CardTitle>
             <CardDescription className="text-xs">
@@ -514,10 +510,10 @@ function PaginatedTransactionHistory({
                       <button
                         key={pg}
                         onClick={() => setCurrentPage(() => pg)}
-                        className={`h-8 w-8 rounded-lg text-xs font-black transition-all ${
+                        className={`h-8 w-8 rounded-md text-xs font-medium transition-all ${
                           pg === currentPage
-                            ? "bg-slate-900 text-white shadow-md"
-                            : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground hover:bg-accent"
                         }`}
                       >
                         {pg}
@@ -591,16 +587,16 @@ function TransactionList({
           >
             <div className="flex items-center gap-5">
               <div
-                className={`h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110 ${
+                className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 border border-border ${
                   isIncome
-                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                    : "bg-rose-50 text-rose-600 border border-rose-100"
+                    ? "bg-muted text-foreground"
+                    : "bg-background text-muted-foreground"
                 }`}
               >
                 {isIncome ? (
-                  <ArrowUpRight className="h-7 w-7" />
+                  <ArrowUpRight className="h-5 w-5" />
                 ) : (
-                  <ArrowDownLeft className="h-7 w-7" />
+                  <ArrowDownLeft className="h-5 w-5" />
                 )}
               </div>
               <div>
@@ -633,8 +629,8 @@ function TransactionList({
 
             <div className="text-right">
               <p
-                className={`font-black text-lg md:text-xl tracking-tighter ${
-                  isIncome ? "text-emerald-600" : "text-slate-900"
+                className={`font-semibold text-base ${
+                  isIncome ? "text-foreground" : "text-muted-foreground"
                 }`}
               >
                 {isIncome ? "+" : ""}
@@ -645,21 +641,21 @@ function TransactionList({
                 {status === "PENDING" ? (
                   <Badge
                     variant="outline"
-                    className="text-[9px] h-5 border-amber-200 bg-amber-50 text-amber-700 font-black uppercase tracking-widest px-2"
+                    className="text-[9px] h-5 px-2"
                   >
                     Đang xử lý
                   </Badge>
                 ) : status === "SUCCESS" ? (
                   <Badge
                     variant="outline"
-                    className="text-[9px] h-5 border-emerald-200 bg-emerald-50 text-emerald-700 font-black uppercase tracking-widest px-2"
+                    className="text-[9px] h-5 px-2 border-foreground"
                   >
                     Hoàn tất
                   </Badge>
                 ) : (
                   <Badge
                     variant="outline"
-                    className="text-[9px] h-5 border-slate-200 bg-slate-100 text-slate-500 font-black uppercase tracking-widest px-2"
+                    className="text-[9px] h-5 px-2 border-muted-foreground text-muted-foreground"
                   >
                     {status}
                   </Badge>

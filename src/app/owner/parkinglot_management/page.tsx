@@ -245,16 +245,25 @@ export default function ParkingLotManagementPage() {
       }
     >
       <AppSidebar variant="inset" />
-      <SidebarInset className="bg-slate-50">
+      <SidebarInset>
         <SiteHeader />
 
-        <div className="p-4 md:p-6 space-y-6 max-w-[1600px] w-full mx-auto">
+        <div className="max-w-[1400px] mx-auto p-6 space-y-6 w-full">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+              Quản lý Bãi đỗ xe
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Thiết lập cấu trúc, quản lý sơ đồ và giám sát chỗ đỗ xe trực tuyến.
+            </p>
+          </div>
+
           {/* TOP BAR: Button on Left, Date/Time on Right */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-5 rounded-2xl shadow-sm border border-slate-200/60">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-card p-5 rounded-xl shadow-sm border border-border">
             {!hasData ? (
               <Button
                 onClick={() => openConfigModal("setup")}
-                className="bg-black text-white hover:bg-slate-800 shadow-xl border border-black px-6"
+                variant="default"
               >
                 <Settings className="w-4 h-4 mr-2" /> Thiết lập Sơ đồ
               </Button>
@@ -262,9 +271,8 @@ export default function ParkingLotManagementPage() {
               <Button
                 onClick={() => openConfigModal("edit")}
                 variant="outline"
-                className="bg-white text-slate-800 hover:bg-slate-50 shadow-sm border-slate-200 px-6 font-semibold"
               >
-                <Settings className="w-4 h-4 mr-1 text-slate-500" /> Quản lý Sơ
+                <Settings className="w-4 h-4 mr-1" /> Quản lý Sơ
                 đồ
               </Button>
             )}
@@ -285,12 +293,7 @@ export default function ParkingLotManagementPage() {
                 <PopoverTrigger asChild>
                   <Button
                     variant={availableMapData ? "default" : "outline"}
-                    className={cn(
-                      "h-11 px-6 rounded-xl font-bold transition-all duration-300",
-                      availableMapData 
-                        ? "bg-amber-500 hover:bg-amber-600 border-amber-500 shadow-lg shadow-amber-200" 
-                        : "border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-sm"
-                    )}
+                    className="h-10 px-4"
                   >
                     <Filter className="mr-2 h-4 w-4" />
                     {availableMapData ? "Đang lọc" : "Bộ lọc thời gian"}
@@ -354,7 +357,8 @@ export default function ParkingLotManagementPage() {
 
                     <div className="pt-2 flex flex-col gap-2">
                       <Button 
-                        className="w-full bg-black text-white hover:bg-slate-800 font-bold h-11 rounded-xl shadow-lg"
+                        variant="default"
+                        className="w-full"
                         onClick={handleApplyFilter}
                         disabled={isFetchingAvailable}
                       >
@@ -380,7 +384,7 @@ export default function ParkingLotManagementPage() {
           </div>
 
           {/* SELECTORS: Floor dropdown + Zone pills */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
             {/* Floor selector row */}
             <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
               <div className="flex items-center gap-1.5 shrink-0">
@@ -460,7 +464,7 @@ export default function ParkingLotManagementPage() {
           </div>
 
           {/* GRID */}
-          <div className="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col relative w-full">
+          <div className="flex-1 bg-card rounded-xl shadow-sm border border-border overflow-hidden flex flex-col relative w-full">
             {/* Grid header bar */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/60 shrink-0">
               <div className="flex items-center gap-2.5">
@@ -529,7 +533,8 @@ export default function ParkingLotManagementPage() {
                   {!hasData && (
                     <Button
                       onClick={() => openConfigModal("setup")}
-                      className="mt-6 bg-black text-white px-10 py-7 rounded-2xl hover:bg-slate-800 shadow-2xl hover:shadow-black/20 hover:-translate-y-1 transition-all duration-300 font-bold text-lg"
+                      variant="default"
+                      className="mt-6"
                     >
                       Tạo Sơ Đồ Khởi Tạo Ngay
                     </Button>
@@ -570,7 +575,7 @@ export default function ParkingLotManagementPage() {
           </div>
 
           {/* LEGEND */}
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-white px-5 py-3.5 rounded-2xl shadow-sm border border-slate-200/60">
+          <div className="flex flex-wrap items-center justify-between gap-4 bg-card px-5 py-3.5 rounded-xl shadow-sm border border-border">
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">
               Chú thích
             </span>

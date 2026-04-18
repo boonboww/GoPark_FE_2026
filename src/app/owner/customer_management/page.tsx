@@ -22,6 +22,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus, Loader2, AlertCircle } from "lucide-react";
 import { FormAddCustomer } from "./form_add_customer";
 import { useCustomers } from "@/hooks/useCustomers";
@@ -43,12 +44,21 @@ export default function CustomerManagementPage() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <div className="flex flex-col gap-4 md:gap-8 px-4 lg:px-6">
+        <div className="max-w-[1400px] mx-auto p-6 space-y-6 w-full">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+              Quản lý Khách hàng
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Quản lý danh sách khách hàng.
+            </p>
+          </div>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-6">
                 {/* Toolbar */}
-                <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2 flex-1 max-w-sm relative">
                     {isFetching && !isLoading ? (
                       <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
@@ -158,8 +168,8 @@ export default function CustomerManagementPage() {
                   </Table>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </SidebarInset>
     </SidebarProvider>

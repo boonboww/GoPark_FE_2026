@@ -18,7 +18,7 @@ export default function ParkingLotList({
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-44 rounded-xl bg-gray-100 animate-pulse border border-gray-200"
+            className="h-44 rounded-xl bg-muted animate-pulse border border-border"
           ></div>
         ))}
       </div>
@@ -27,9 +27,9 @@ export default function ParkingLotList({
 
   if (parkingLots.length === 0) {
     return (
-      <div className="p-10 text-center bg-gray-50 rounded-xl border border-dashed border-gray-300">
+      <div className="p-10 text-center bg-muted/30 rounded-xl border border-dashed border-border flex flex-col items-center">
         <svg
-          className="w-12 h-12 text-gray-300 mx-auto mb-3"
+          className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -41,8 +41,8 @@ export default function ParkingLotList({
             d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
           ></path>
         </svg>
-        <p className="text-gray-500 font-medium">Không tìm thấy bãi đỗ xe nào.</p>
-        <p className="text-gray-400 text-sm mt-1">
+        <p className="text-muted-foreground font-medium">Không tìm thấy bãi đỗ xe nào.</p>
+        <p className="text-muted-foreground/60 text-sm mt-1">
           Bạn chưa thêm bãi đỗ xe nào.
         </p>
       </div>
@@ -54,19 +54,19 @@ export default function ParkingLotList({
       {parkingLots.map((lot) => (
         <div
           key={lot.id}
-          className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md hover:border-indigo-100 transition-all group"
+          className="bg-card rounded-xl shadow-sm border border-border overflow-hidden hover:shadow-md hover:border-primary/50 transition-all group"
         >
           <div className="p-6">
             <h3
-              className="text-lg font-bold text-gray-900 mb-3 group-hover:text-indigo-600 transition-colors line-clamp-1"
+              className="text-lg font-bold text-foreground mb-3 group-hover:text-primary transition-colors line-clamp-1"
               title={lot.name}
             >
               {lot.name}
             </h3>
 
-            <div className="flex items-start gap-2 text-gray-600 mb-5 h-10">
+            <div className="flex items-start gap-2 text-muted-foreground mb-5 h-10">
               <svg
-                className="w-5 h-5 flex-shrink-0 mt-0.5 text-gray-400"
+                className="w-5 h-5 flex-shrink-0 mt-0.5 text-muted-foreground/60"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -87,11 +87,11 @@ export default function ParkingLotList({
               <p className="text-sm line-clamp-2">{lot.address}</p>
             </div>
 
-            <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-500">
+            <div className="pt-4 border-t border-border flex items-center justify-between">
+              <span className="text-sm font-medium text-muted-foreground">
                 Tổng số chỗ
               </span>
-              <span className="inline-flex items-center justify-center px-3 py-1 text-sm font-bold bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
+              <span className="inline-flex items-center justify-center px-3 py-1 text-sm font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
                 {lot.totalSlots}
               </span>
             </div>

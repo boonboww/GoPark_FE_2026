@@ -39,7 +39,7 @@ export function RevenueChart({ data }: { data?: DashboardSummaryResponse['revenu
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6 flex-1 flex flex-col justify-end">
         <ChartContainer
           config={chartConfig}
-          className="aspect-auto h-[250px] w-full"
+          className="aspect-auto h-[400px] w-full"
         >
           <AreaChart data={data}>
             <defs>

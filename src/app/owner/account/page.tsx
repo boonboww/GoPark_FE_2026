@@ -4,7 +4,9 @@ import React from "react";
 import OwnerProfile from "./OwnerProfile";
 import ParkingLotList from "./ParkingLotList";
 import { AppSidebar } from "@/components/app-sidebar";
+import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useAccountPage } from "./hooks/useAccountPage";
 
 export default function OwnerAccountPage() {
@@ -27,26 +29,38 @@ export default function OwnerAccountPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <div className="flex flex-1 flex-col">
-          <div className="min-h-[calc(100vh-80px)] bg-gray-50 p-6 md:p-8">
-            <div className="max-w-5xl mx-auto space-y-6">
-              <OwnerProfile
-                profile={profile}
-                onViewParkingLots={handleViewParkingLots}
-              />
+        <SiteHeader />
+        <div className="max-w-6xl mx-auto p-6 space-y-6 w-full">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+              Tài Khoản
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Quản lý thông tin hồ sơ và danh sách các bãi đỗ xe của bạn.
+            </p>
+          </div>
 
-              {showParkingLots && (
-                <div className="mt-8 pt-6 border-t border-gray-200 transition-all duration-300 ease-in-out">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <div className="space-y-6">
+            <OwnerProfile
+              profile={profile}
+              onViewParkingLots={handleViewParkingLots}
+            />
+
+            {showParkingLots && (
+              <Card className="border-border bg-card shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold">
                     Bãi đỗ xe của tôi
-                  </h2>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <ParkingLotList
                     parkingLots={parkingLots}
                     isLoading={isLoadingLots}
                   />
-                </div>
-              )}
-            </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </SidebarInset>
