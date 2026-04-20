@@ -20,6 +20,7 @@ export const mapBookingData = (item: any) => {
             hour12: false
         })
 
+        
     const statusMap: Record<string, string> = {
         CONFIRMED: "Đã xác nhận",
         ONGOING: "Đang hoạt động",

@@ -27,6 +27,7 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.20",
     "framer-motion": "^12.34.0",
+    "html5-qrcode": "^2.3.8",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.563.0",
     "maplibre-gl": "^4.7.1",

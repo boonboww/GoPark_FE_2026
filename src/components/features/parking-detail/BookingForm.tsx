@@ -354,11 +354,14 @@ export function BookingForm() {
       //   return;
       // }
 
-    } catch (error) {
+    } catch (error:any) {
 
       console.error("Lỗi khi đặt chỗ:", error);
 
-      alert("Đặt chỗ thất bại. Vui lòng thử lại.");
+      const errorMessage = error?.response?.data?.message || error?.response?.message || error?.message ||  "Đặt chỗ thất bại. Vui lòng thử lại.";
+
+      // Hiển thị message đó lên alert hoặc toast
+      alert(errorMessage);
 
     }
   }
