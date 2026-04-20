@@ -97,6 +97,22 @@ export function ParkingInfo() {
             >
               Đặt ngay
             </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const query = new URLSearchParams({
+                  parkingId: dataLot.id,
+                  parkingName: dataLot.name,
+                  parkingAddress: dataLot.address || '',
+                  parkingImage: dataLot?.image?.thumbnail || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?q=80&w=800&auto=format&fit=crop"
+                }).toString();
+                router.push(`/users/chat/${dataLot.owner?.id}?${query}`);
+              }}
+              className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+            >
+              Chat với Chủ Bãi
+            </button>
           </div>
         </div>
 

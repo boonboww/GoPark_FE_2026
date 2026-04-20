@@ -20,6 +20,7 @@ import {
   Contact,
   Menu,
   Building2,
+  MessageCircle,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useWallet } from "@/hooks/useWallet";
@@ -86,6 +87,7 @@ const Header = () => {
             <History className="h-5 w-5 inline-block mr-1" />
             Lịch sử đặt chỗ
           </Link>
+
           <Link
             href="/about"
             className="transition-colors hover:text-primary hover:font-semibold"
@@ -140,7 +142,7 @@ const Header = () => {
                     alt="User Avatar"
                     className="w-8 h-8 rounded-full object-cover"
                   />
-                  <span className="text-sm font-semibold max-w-[100px] truncate hidden sm:block dark:text-white">
+                  <span className="text-sm font-semibold max-w-25 truncate hidden sm:block dark:text-white">
                     {user?.profile?.name || "Người dùng"}
                   </span>
                   <ChevronDown
@@ -204,6 +206,14 @@ const Header = () => {
                       Yêu cầu của tôi
                     </Link>
 
+                    <Link
+                      href="/users/chat"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Trò chuyện
+                    </Link>
+
                     {user?.role && user.role !== "OWNER" && (
                       <Link
                         href="/auth/become-owner"
@@ -220,7 +230,7 @@ const Header = () => {
                       <Settings className="h-4 w-4" />
                       Cài đặt
                     </Link>
-                    <div className="h-[1px] bg-gray-100 dark:bg-stone-800 my-1"></div>
+                    <div className="h-px bg-gray-100 dark:bg-stone-800 my-1"></div>
 
                     <button
                       onClick={() => {

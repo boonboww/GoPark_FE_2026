@@ -5,6 +5,7 @@ import {
   IconDotsVertical,
   IconLogout,
   IconUserCircle,
+  IconMessageCircle,
 } from "@tabler/icons-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -97,13 +98,19 @@ export function NavUser({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/owner/account">
+                <Link href={authUser?.role === 'OWNER' ? "/owner/chat" : "/users/chat"}>
+                  <IconMessageCircle />
+                  Tin nhắn
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={authUser?.role === 'OWNER' ? "/owner/account" : "/users/profile"}>
                   <IconUserCircle />
                   Tài khoản
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/owner/wallet">
+                <Link href={authUser?.role === 'OWNER' ? "/owner/wallet" : "/users/wallet"}>
                   <IconCreditCard />
                   Ví tiền
                 </Link>
