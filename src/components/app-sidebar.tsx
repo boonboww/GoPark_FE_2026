@@ -11,6 +11,7 @@ import {
   IconHelp,
   IconInnerShadowTop,
   IconListDetails,
+  IconMessageCircle,
   IconReport,
   IconSettings,
   IconTicket,
@@ -63,6 +64,11 @@ const data = {
       title: "Quản lý khách hàng",
       url: "/owner/customer_management",
       icon: IconUsers,
+    },
+    {
+      title: "Tin nhắn",
+      url: "/owner/chat",
+      icon: IconMessageCircle,
     },
     {
       title: "Báo cáo",
