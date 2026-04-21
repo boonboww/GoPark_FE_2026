@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, Camera, Car, Info, QrCode, Mail, ArrowLeft, Wallet, User, Phone, Users, Loader2,Clock } from "lucide-react";
+import { Plus, Edit2, Trash2, Camera, Car, Info, QrCode, Mail, ArrowLeft, Wallet, User, Phone, Users, Loader2, Clock, ArrowUpFromLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";   
 import { Loader } from "@/components/ui/loader";
 import { apiClient } from "@/lib/api";
+import { ocrService } from "@/services/ocr.service";
 import { uploadAvatarToSupabase } from "@/services/storage.service";
 import { useWallet } from "@/hooks/useWallet";
 import { QRCodeSVG } from "qrcode.react";
@@ -27,9 +28,31 @@ interface UserProfile {
   image: string;
 }
 
+const normalizeGenderValue = (gender?: string | null): UserProfile["gender"] => {
+  const normalized = (gender || "").toLowerCase().trim();
+
+  if (["male", "nam", "m"].includes(normalized)) return "male";
+  if (["female", "nu", "nữ", "f"].includes(normalized)) return "female";
+  if (["other", "khac", "khác", "o"].includes(normalized)) return "other";
+
+  return "";
+};
+
+const formatGenderLabel = (gender?: string | null): string => {
+  const normalized = normalizeGenderValue(gender);
+
+  if (normalized === "male") return "Nam";
+  if (normalized === "female") return "Nữ";
+  if (normalized === "other") return "Khác";
+
+  return "Chưa cập nhật";
+};
+
 interface Vehicle {
   id: string; // From backend id is number, so we will handle that
   plate_number: string;
+  owner_name?: string | null;
+  brand?: string | null;
   image: string;
   type: string;
   qr_code_data?: string | null; 
@@ -89,17 +112,30 @@ export default function ProfilePage() {
   // Forms
   const [pForm, setPForm] = useState<UserProfile>({ name: "", phone: "", gender: "", image: "" });
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
-  const [vForm, setVForm] = useState<{ plate_number: string; image: string; type: string }>({
+  const [vForm, setVForm] = useState<{ plate_number: string; owner_name: string; brand: string; image: string; type: string }>({
     plate_number: "",
+    owner_name: "",
+    brand: "",
     image: "",
     type: "Từ 4 đến 10 chỗ",
   });
+  const [vehicleDocFile, setVehicleDocFile] = useState<File | null>(null);
+  const [vehicleDocPreview, setVehicleDocPreview] = useState("");
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
   
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingVehicle, setIsSavingVehicle] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (vehicleDocPreview) {
+        URL.revokeObjectURL(vehicleDocPreview);
+      }
+    };
+  }, [vehicleDocPreview]);
 
   const fetchProfile = async () => {
     try {
@@ -110,7 +146,7 @@ export default function ProfilePage() {
         setProfile({
           name: res.data.profile?.name || "",
           phone: res.data.profile?.phone || "",
-          gender: res.data.profile?.gender || "",
+          gender: normalizeGenderValue(res.data.profile?.gender),
           image: res.data.profile?.image || "",
         });
 
@@ -185,13 +221,38 @@ export default function ProfilePage() {
 
     setIsSavingProfile(true);
     try {
-      await apiClient("/users/me/profile", {
+      const payload = {
+        name: pForm.name,
+        phone: pForm.phone,
+        gender: pForm.gender || undefined,
+        image: pForm.image,
+      };
+
+      const res = await apiClient<any>("/users/me/profile", {
         method: "PATCH",
-        body: JSON.stringify(pForm),
+        body: JSON.stringify(payload),
       });
+
+      const updatedProfile = res?.data?.profile || res?.profile;
+      const nextProfile: UserProfile = {
+        name: updatedProfile?.name || pForm.name,
+        phone: updatedProfile?.phone || pForm.phone,
+        gender: normalizeGenderValue(updatedProfile?.gender ?? pForm.gender),
+        image: updatedProfile?.image || pForm.image,
+      };
+
       toast.success("Đã cập nhật thông tin cá nhân!");
-      setProfile(pForm);
-      updateUser({ profile: { ...authUser?.profile, name: pForm.name, image: pForm.image } as any });
+      setProfile(nextProfile);
+      setPForm(nextProfile);
+      updateUser({
+        profile: {
+          ...authUser?.profile,
+          name: nextProfile.name,
+          phone: nextProfile.phone,
+          gender: nextProfile.gender || null,
+          image: nextProfile.image,
+        } as any,
+      });
       setIsProfileDialogOpen(false);
     } catch (e) {
       toast.error("Không thể cập nhật hồ sơ");
@@ -206,15 +267,75 @@ export default function ProfilePage() {
       toast.error(`Bạn chỉ được đăng ký tối đa ${MAX_VEHICLES} phương tiện!`);
       return;
     }
-    setVForm({ plate_number: "", image: "", type: "Từ 4 đến 10 chỗ" });
+    setVForm({ plate_number: "", owner_name: "", brand: "", image: "", type: "Từ 4 đến 10 chỗ" });
+    setVehicleDocFile(null);
+    setVehicleDocPreview("");
     setEditingVehicleId(null);
     setIsVehicleDialogOpen(true);
   };
 
   const openEditVehicle = (vehicle: Vehicle) => {
-    setVForm({ plate_number: vehicle.plate_number, image: vehicle.image, type: vehicle.type });
+    setVForm({
+      plate_number: vehicle.plate_number,
+      owner_name: vehicle.owner_name || "",
+      brand: vehicle.brand || "",
+      image: vehicle.image,
+      type: vehicle.type,
+    });
+    setVehicleDocFile(null);
+    setVehicleDocPreview("");
     setEditingVehicleId(vehicle.id.toString());
     setIsVehicleDialogOpen(true);
+  };
+
+  const handleRegistrationDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Vui lòng chọn ảnh giấy tờ nhỏ hơn 8MB");
+      return;
+    }
+
+    if (vehicleDocPreview) {
+      URL.revokeObjectURL(vehicleDocPreview);
+    }
+
+    setVehicleDocFile(file);
+    setVehicleDocPreview(URL.createObjectURL(file));
+  };
+
+  const handleAutoFillFromRegistration = async () => {
+    if (!vehicleDocFile) {
+      toast.error("Vui lòng chụp hoặc tải ảnh giấy đăng ký trước.");
+      return;
+    }
+
+    setIsOcrLoading(true);
+    try {
+      const extracted = await ocrService.recognizeVehicleRegistration(vehicleDocFile);
+
+      if (extracted.ownerName || extracted.licensePlate || extracted.brand) {
+        setVForm((prev) => ({
+          ...prev,
+          owner_name: extracted.ownerName || prev.owner_name,
+          plate_number: extracted.licensePlate || prev.plate_number,
+          brand: extracted.brand || prev.brand,
+        }));
+
+        const ownerStatus = extracted.ownerName ? "đã đọc tên chủ sở hữu" : "chưa đọc được tên chủ sở hữu";
+        const plateStatus = extracted.licensePlate ? "đã đọc biển số" : "chưa đọc được biển số";
+        const brandStatus = extracted.brand ? "đã đọc hãng xe" : "chưa đọc được hãng xe";
+        toast.success(`OCR ${ownerStatus}, ${plateStatus}, ${brandStatus}. Bạn kiểm tra lại rồi bấm xác nhận.`);
+      } else {
+        console.warn("OCR raw text (no owner/plate extracted):", extracted.rawText);
+        toast.info("OCR chưa đọc rõ tên chủ sở hữu, biển số và hãng xe. Bạn có thể nhập tay rồi bấm xác nhận.");
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "Không thể quét giấy đăng ký xe");
+    } finally {
+      setIsOcrLoading(false);
+    }
   };
 
   const handleDeleteVehicle = async (id: string) => {
@@ -282,6 +403,11 @@ export default function ProfilePage() {
         setIsQrDialogOpen(true);
       }
       setIsVehicleDialogOpen(false);
+      setVehicleDocFile(null);
+      if (vehicleDocPreview) {
+        URL.revokeObjectURL(vehicleDocPreview);
+      }
+      setVehicleDocPreview("");
     } catch (error: any) {
       toast.error(error?.message || "Lỗi lưu phương tiện");
     } finally {
@@ -405,6 +531,7 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500 dark:text-slate-400">Giới tính:</span>
                     <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {formatGenderLabel(profile.gender)}
                   </span>
                 </div>
               </div>
@@ -436,9 +563,13 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
                 <Button onClick={() => router.push('/users/wallet')} className="w-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white shadow-sm">
                   Nạp tiền
+                </Button>
+                <Button onClick={() => router.push('/users/wallet/withdraw')} className="w-full bg-teal-600 hover:bg-teal-700 text-white shadow-sm">
+                  <ArrowUpFromLine className="w-4 h-4 mr-2" />
+                  Rút tiền
                 </Button>
                 <Button onClick={() => router.push('/users/wallet')} variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-100 dark:hover:bg-emerald-800/60 dark:hover:text-white">
                   Lịch sử GD
@@ -563,6 +694,12 @@ export default function ProfilePage() {
     <div className="flex items-start justify-between">
       <div>
         <h3 className="text-lg font-bold text-slate-800 tracking-wider uppercase">{v.plate_number}</h3>
+        {v.owner_name && (
+          <div className="text-xs text-slate-500 mt-1">Chủ xe: {v.owner_name}</div>
+        )}
+        {v.brand && (
+          <div className="text-xs text-slate-500 mt-0.5">Hãng xe: {v.brand}</div>
+        )}
         <div className="flex items-center gap-1.5 text-sm text-slate-600 mt-1 mb-1">
           <Car className="w-4 h-4 text-blue-600" />
           <span className="font-medium text-slate-700">Ô tô ({v.type})</span>
@@ -705,10 +842,68 @@ export default function ProfilePage() {
           <DialogHeader>
             <DialogTitle>{editingVehicleId ? "Sửa thông tin xe" : "Thêm ô tô mới"}</DialogTitle>
             <DialogDescription>
-              Vui lòng nhập chính xác biển số xe để quy trình quét tại bãi diễn ra thuận lợi.
+              Bạn có thể chụp/tải giấy đăng ký xe, bấm quét để tự điền thông tin rồi xác nhận.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="space-y-3 rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+              <Label className="text-slate-700">Giấy đăng ký phương tiện (tùy chọn)</Label>
+
+              <div className="w-full h-44 rounded-lg border border-dashed border-blue-300 bg-white relative flex items-center justify-center overflow-hidden">
+                {vehicleDocPreview ? (
+                  <img src={vehicleDocPreview} alt="Giấy đăng ký phương tiện" className="w-full h-full object-contain p-1" />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-slate-400 px-4 text-center">
+                    <Camera className="w-7 h-7 mb-2" />
+                    <span className="text-xs">Chụp hoặc tải ảnh giấy đăng ký để tự động điền biển số và loại xe</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant="outline" className="w-full" disabled={isOcrLoading} asChild>
+                  <label className="cursor-pointer">
+                    Chụp ảnh
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={handleRegistrationDocumentChange}
+                    />
+                  </label>
+                </Button>
+
+                <Button type="button" variant="outline" className="w-full" disabled={isOcrLoading} asChild>
+                  <label className="cursor-pointer">
+                    Tải ảnh
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleRegistrationDocumentChange}
+                    />
+                  </label>
+                </Button>
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleAutoFillFromRegistration}
+                disabled={!vehicleDocFile || isOcrLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                {isOcrLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Đang quét giấy đăng ký...
+                  </>
+                ) : (
+                  "Gửi ảnh để đọc tên chủ sở hữu"
+                )}
+              </Button>
+            </div>
+
             <div className="flex flex-col items-center">
                <div className="w-full h-32 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 relative flex items-center justify-center overflow-hidden">
                   {vForm.image ? (
@@ -731,6 +926,26 @@ export default function ProfilePage() {
                 value={vForm.plate_number}
                 onChange={(e) => setVForm({ ...vForm, plate_number: e.target.value.toUpperCase() })}
                 className="uppercase font-medium"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="ownerName">Tên chủ phương tiện</Label>
+              <Input
+                id="ownerName"
+                placeholder="VD: Nguyễn Văn A"
+                value={vForm.owner_name}
+                onChange={(e) => setVForm({ ...vForm, owner_name: e.target.value })}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="brand">Hãng xe</Label>
+              <Input
+                id="brand"
+                placeholder="VD: Toyota"
+                value={vForm.brand}
+                onChange={(e) => setVForm({ ...vForm, brand: e.target.value })}
               />
             </div>
             
