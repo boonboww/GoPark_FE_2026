@@ -28,6 +28,8 @@ import {
   MessageSquare,
   Send,
   Delete,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -246,6 +248,10 @@ export default function ApprovalsPage() {
   /** ID của đơn đang được xử lý (để hiện loading) */
   const [actingRequestId, setActingRequestId] = useState<string | null>(null);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   /** Lấy thông tin user hiện tại (admin) */
   const { user } = useAuthStore();
   const adminId = user?.id || "";
@@ -319,6 +325,11 @@ export default function ApprovalsPage() {
     return result;
   }, [requests, filters]);
 
+  // Paginated requests
+  const paginatedRequests = useMemo(() => {
+    return filteredRequests.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filteredRequests, currentPage]);
+
   // ── Thống kê ────────────────────────────────────────────────────────────────
 
   const stats = useMemo(() => {
@@ -334,11 +345,13 @@ export default function ApprovalsPage() {
   /** Cập nhật bộ lọc */
   const handleFilterChange = (key: keyof Filters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
   };
 
   /** Xóa tất cả bộ lọc */
   const clearFilters = () => {
     setFilters({ search: "", status: "", type: "", sortBy: "newest" });
+    setCurrentPage(1);
   };
 
   /** Mở dialog xem chi tiết */
@@ -582,7 +595,7 @@ export default function ApprovalsPage() {
           </Select>
           {/* Nút xóa bộ lọc */}
           {(filters.search || filters.status || filters.type || filters.sortBy !== "newest") && (
-            <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700">
+            <Button variant="default" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700 hover:bg-red-300 bg-red-100">
               <X size={16} className="mr-1" />
               Xóa lọc
             </Button>
@@ -592,7 +605,7 @@ export default function ApprovalsPage() {
 
       {/* ── Danh sách đơn yêu cầu (dạng thẻ) ─────────────────────────────── */}
       <div className="space-y-3">
-        {filteredRequests.map((request) => {
+        {paginatedRequests.map((request) => {
           const typeConf = requestTypeConfig[request.type];
           const statusConf = statusConfig[request.status];
           const TypeIcon = typeConf.icon;
@@ -601,7 +614,7 @@ export default function ApprovalsPage() {
             <div
               key={request.id}
               onClick={() => openDetail(request)}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group"
+              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:bg-gray-200/50 transition-all cursor-pointer group"
             >
               <div className="flex flex-col sm:flex-row gap-4">
 
@@ -726,6 +739,68 @@ export default function ApprovalsPage() {
           );
         })}
       </div>
+
+      {/* Phân trang */}
+      {filteredRequests.length > 0 && (
+        <div className="px-5 py-4 bg-white rounded-xl border border-gray-100 flex items-center justify-between shadow-sm">
+          <div className="text-sm text-gray-500">
+            Hiển thị <span className="font-medium text-gray-900">{Math.min(filteredRequests.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredRequests.length, currentPage * pageSize)}</span> trong <span className="font-medium text-gray-900">{filteredRequests.length}</span> đơn yêu cầu
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            
+            {(() => {
+              const totalPages = Math.ceil(filteredRequests.length / pageSize);
+              const pages = [];
+              for (let i = 1; i <= totalPages; i++) {
+                if (
+                  i === 1 ||
+                  i === totalPages ||
+                  (i >= currentPage - 1 && i <= currentPage + 1)
+                ) {
+                  pages.push(i);
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                  pages.push("...");
+                }
+              }
+              
+              return pages.filter((p, idx, arr) => p !== "..." || arr[idx - 1] !== "...").map((page, idx) => (
+                typeof page === "number" ? (
+                  <Button
+                    key={idx}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(page)}
+                    className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                  >
+                    {page}
+                  </Button>
+                ) : (
+                  <span key={idx} className="text-gray-400 px-1">...</span>
+                )
+              ));
+            })()}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(filteredRequests.length / pageSize), prev + 1))}
+              disabled={currentPage >= Math.ceil(filteredRequests.length / pageSize)}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Trạng thái trống */}
       {filteredRequests.length === 0 && (

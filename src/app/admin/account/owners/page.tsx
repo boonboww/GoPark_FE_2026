@@ -25,6 +25,8 @@ import {
   Star,
   ParkingSquare,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -188,6 +190,10 @@ export default function OwnersPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   // ── Gọi API lấy danh sách chủ bãi đỗ ───────────────────────────────────────
 
   const fetchOwners = async () => {
@@ -259,6 +265,11 @@ export default function OwnersPage() {
     return result;
   }, [owners, filters]);
 
+  // Paginated owners
+  const paginatedOwners = useMemo(() => {
+    return filteredOwners.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filteredOwners, currentPage]);
+
   // ── Tính toán thống kê ──────────────────────────────────────────────────────
 
   const stats = useMemo(() => {
@@ -282,11 +293,13 @@ export default function OwnersPage() {
   /** Cập nhật bộ lọc */
   const handleFilterChange = (key: keyof Filters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
   };
 
   /** Xóa tất cả bộ lọc, về mặc định */
   const clearFilters = () => {
     setFilters({ search: "", status: "", sortBy: "newest" });
+    setCurrentPage(1);
   };
 
   /** Mở dialog xem chi tiết chủ bãi */
@@ -477,7 +490,7 @@ export default function OwnersPage() {
           </Select>
           {/* Nút xóa bộ lọc (chỉ hiện khi có lọc) */}
           {(filters.search || filters.status || filters.sortBy !== "newest") && (
-            <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700">
+            <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700 hover:bg-red-300 bg-red-100">
               <X size={16} className="mr-1" />
               Xóa lọc
             </Button>
@@ -516,13 +529,13 @@ export default function OwnersPage() {
 
             {/* Nội dung bảng */}
             <tbody className="divide-y divide-gray-50">
-              {filteredOwners.map((owner) => {
+              {paginatedOwners.map((owner) => {
                 const statusKey = (owner.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig;
                 const config = statusConfig[statusKey] || statusConfig.ACTIVE;
                 return (
                   <tr
                     key={owner.id}
-                    className="hover:bg-blue-50/40 transition-colors cursor-pointer"
+                    className="hover:bg-gray-200/50 transition-colors cursor-pointer"
                     onClick={() => openDetail(owner)}
                   >
                     {/* Thông tin chủ bãi */}
@@ -635,6 +648,68 @@ export default function OwnersPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Phân trang */}
+        {filteredOwners.length > 0 && (
+          <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+            <div className="text-sm text-gray-500">
+              Hiển thị <span className="font-medium text-gray-900">{Math.min(filteredOwners.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredOwners.length, currentPage * pageSize)}</span> trong <span className="font-medium text-gray-900">{filteredOwners.length}</span> chủ bãi
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              
+              {(() => {
+                const totalPages = Math.ceil(filteredOwners.length / pageSize);
+                const pages = [];
+                for (let i = 1; i <= totalPages; i++) {
+                  if (
+                    i === 1 ||
+                    i === totalPages ||
+                    (i >= currentPage - 1 && i <= currentPage + 1)
+                  ) {
+                    pages.push(i);
+                  } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    pages.push("...");
+                  }
+                }
+                
+                return pages.filter((p, idx, arr) => p !== "..." || arr[idx - 1] !== "...").map((page, idx) => (
+                  typeof page === "number" ? (
+                    <Button
+                      key={idx}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                    >
+                      {page}
+                    </Button>
+                  ) : (
+                    <span key={idx} className="text-gray-400 px-1">...</span>
+                  )
+                ));
+              })()}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(filteredOwners.length / pageSize), prev + 1))}
+                disabled={currentPage >= Math.ceil(filteredOwners.length / pageSize)}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Trạng thái trống — khi không có kết quả nào */}
         {filteredOwners.length === 0 && (

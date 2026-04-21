@@ -22,6 +22,8 @@ import {
   X,
   TrendingUp,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -201,6 +203,10 @@ export default function CustomerPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   // Fetch customers
   const fetchCustomers = async () => {
     try {
@@ -260,6 +266,11 @@ export default function CustomerPage() {
     return result;
   }, [customers, filters]);
 
+  // Paginated customers
+  const paginatedCustomers = useMemo(() => {
+    return filteredCustomers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filteredCustomers, currentPage]);
+
   // Stats
   const stats = useMemo(() => {
     if (apiStats) {
@@ -286,10 +297,12 @@ export default function CustomerPage() {
 
   const handleFilterChange = (key: keyof Filters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
     setFilters({ search: "", status: "", sortBy: "newest" });
+    setCurrentPage(1);
   };
 
   const openDetail = (customer: Customer) => {
@@ -483,7 +496,7 @@ const formatNumber = (num: number) => {
           </Select>
           {/* Clear */}
           {(filters.search || filters.status || filters.sortBy !== "newest") && (
-            <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700">
+            <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700 hover:bg-red-300 bg-red-100">
               <X size={16} className="mr-1" />
               Xóa lọc
             </Button>
@@ -517,13 +530,13 @@ const formatNumber = (num: number) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredCustomers.map((customer) => {
+              {paginatedCustomers.map((customer) => {
                 const statusKey = (customer.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig;
                 const config = statusConfig[statusKey] || statusConfig.ACTIVE;
                 return (
                   <tr
                     key={customer.id}
-                    className="hover:bg-blue-50/30 transition-colors cursor-pointer"
+                    className="hover:bg-gray-200/50 transition-colors cursor-pointer"
                     onClick={() => openDetail(customer)}
                   >
                     {/* Customer info */}
@@ -616,6 +629,68 @@ const formatNumber = (num: number) => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {filteredCustomers.length > 0 && (
+          <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+            <div className="text-sm text-gray-500">
+              Hiển thị <span className="font-medium text-gray-900">{Math.min(filteredCustomers.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredCustomers.length, currentPage * pageSize)}</span> trong <span className="font-medium text-gray-900">{filteredCustomers.length}</span> khách hàng
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              
+              {(() => {
+                const totalPages = Math.ceil(filteredCustomers.length / pageSize);
+                const pages = [];
+                for (let i = 1; i <= totalPages; i++) {
+                  if (
+                    i === 1 ||
+                    i === totalPages ||
+                    (i >= currentPage - 1 && i <= currentPage + 1)
+                  ) {
+                    pages.push(i);
+                  } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    pages.push("...");
+                  }
+                }
+                
+                return pages.filter((p, idx, arr) => p !== "..." || arr[idx - 1] !== "...").map((page, idx) => (
+                  typeof page === "number" ? (
+                    <Button
+                      key={idx}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                    >
+                      {page}
+                    </Button>
+                  ) : (
+                    <span key={idx} className="text-gray-400 px-1">...</span>
+                  )
+                ));
+              })()}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(filteredCustomers.length / pageSize), prev + 1))}
+                disabled={currentPage >= Math.ceil(filteredCustomers.length / pageSize)}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Empty State */}
         {filteredCustomers.length === 0 && (
