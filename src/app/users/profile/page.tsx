@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, Camera, Car, Info, QrCode, Mail, ArrowLeft, Wallet, User, Phone, Users, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Camera, Car, Info, QrCode, Mail, ArrowLeft, Wallet, User, Phone, Users, Loader2,Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,8 @@ import { apiClient } from "@/lib/api";
 import { uploadAvatarToSupabase } from "@/services/storage.service";
 import { useWallet } from "@/hooks/useWallet";
 import { QRCodeSVG } from "qrcode.react";
+import { ExtendBookingModal } from "@/components/features/parking-detail/ExtendBookingModal";
+
 
 interface UserProfile {
   name: string;
@@ -47,6 +49,8 @@ interface Booking {
     image:string;
   };
   created_at: string;
+  start_time:string;
+  end_time:string;
 }
 
 const MAX_VEHICLES = 3;
@@ -58,6 +62,9 @@ export default function ProfilePage() {
   const [isMounted, setIsMounted] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
 
+  const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
+  const [bookingToExtend, setBookingToExtend] = useState<any>(null);
+
   // States
   const [profile, setProfile] = useState<UserProfile>({
     name: "",
@@ -65,6 +72,13 @@ export default function ProfilePage() {
     gender: "",
     image: "",
   });
+
+  const handleOpenExtend = (booking: any) => {
+    console.log("Dữ liệu chuẩn bị gán vào state:", booking);
+    setBookingToExtend(booking);
+    setIsExtendModalOpen(true);
+  };
+
   const [email, setEmail] = useState("");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
@@ -335,6 +349,8 @@ export default function ProfilePage() {
 
   if (!isMounted) return null;
 
+  
+
   return (
     <div className="container mx-auto p-4 lg:p-8 max-w-7xl">
       <div className="mb-6 flex items-center gap-4">
@@ -506,7 +522,7 @@ export default function ProfilePage() {
                       </div>
 
                       {/* Thông tin phương tiện */}
-                      <div className="flex-1 flex flex-col justify-between py-1 relative">
+                      {/* <div className="flex-1 flex flex-col justify-between py-1 relative">
                         <div>
                           <div className="flex items-start justify-between">
                             <div>
@@ -525,6 +541,7 @@ export default function ProfilePage() {
                                    </div>
                                  )}
                             </div>
+                            
                             <div className="flex items-center gap-2 absolute top-0 right-0 z-10 sm:invisible group-hover:visible transition-all">
                               <Button variant="ghost" size="icon" onClick={() => openEditVehicle(v)} className="h-8 w-8 text-blue-600 hover:bg-blue-50 cursor-pointer">
                                 <Edit2 className="w-4 h-4" />
@@ -539,7 +556,66 @@ export default function ProfilePage() {
                           <Info className="w-3.5 h-3.5" />
                           <span className="line-clamp-1">{latestBooking ? "Trình mã Book QR xanh khi ra/vào bãi đỗ." : "Trình mã QR khi ra/vào bãi."}</span>
                         </div>
-                      </div>
+                      </div> */}
+
+                      <div className="flex-1 flex flex-col justify-between py-1 relative">
+  <div>
+    <div className="flex items-start justify-between">
+      <div>
+        <h3 className="text-lg font-bold text-slate-800 tracking-wider uppercase">{v.plate_number}</h3>
+        <div className="flex items-center gap-1.5 text-sm text-slate-600 mt-1 mb-1">
+          <Car className="w-4 h-4 text-blue-600" />
+          <span className="font-medium text-slate-700">Ô tô ({v.type})</span>
+        </div>
+
+        {latestBooking && (
+          <div className="flex flex-col gap-2 mt-2">
+            {/* Trạng thái đặt chỗ */}
+            <div className="inline-flex items-center bg-green-100/50 border border-green-200 px-3 py-1.5 rounded-lg shadow-sm w-fit">
+              <span className="relative flex h-2 w-2 mr-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              <span className="text-xs font-semibold text-green-700">
+                {latestBooking.status.toLowerCase() === "ongoing" ? "Đang đỗ tại bãi" : "Đã có lịch đặt chỗ"}
+              </span>
+            </div>
+
+            {/* Nút Gia hạn: Chỉ hiển thị khi xe đang ở trạng thái 'ongoing' */}
+            {(latestBooking.status.toLowerCase() === "ongoing" || 
+              latestBooking.status.toLowerCase() === "confirmed") && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => handleOpenExtend(latestBooking)}
+                className="w-fit text-[11px] h-7 border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1 shadow-sm"
+              >
+                <Clock className="w-3 h-3" /> Gia hạn thêm giờ
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Các nút điều khiển ẩn hiện khi hover */}
+      <div className="flex items-center gap-2 absolute top-0 right-0 z-10 sm:invisible group-hover:visible transition-all">
+        <Button variant="ghost" size="icon" onClick={() => openEditVehicle(v)} className="h-8 w-8 text-blue-600 hover:bg-blue-50 cursor-pointer">
+          <Edit2 className="w-4 h-4" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={() => handleDeleteVehicle(v.id)} className="h-8 w-8 text-red-600 hover:bg-red-50 cursor-pointer">
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  </div>
+
+  <div className="mt-3 text-xs text-slate-400 flex items-center gap-1">
+    <Info className="w-3.5 h-3.5" />
+    <span className="line-clamp-1">
+      {latestBooking ? "Trình mã Book QR xanh khi ra/vào bãi đỗ." : "Trình mã QR khi ra/vào bãi."}
+    </span>
+  </div>
+</div>
                     </div>
                   )})}
                 </div>
@@ -720,7 +796,20 @@ export default function ProfilePage() {
 
       {isSavingProfile && <Loader fullScreen variant="spinner" text="Đang lưu hồ sơ..." />}
       {isSavingVehicle && <Loader fullScreen variant="spinner" text="Đang lưu thông tin phương tiện..." />}
+
+
+
+      {/* Thêm Modal Gia hạn ở đây */}
+      <ExtendBookingModal
+        isOpen={isExtendModalOpen}
+        onClose={() => setIsExtendModalOpen(false)}
+        booking={bookingToExtend}
+      />
+
+      {isSavingProfile && <Loader fullScreen variant="spinner" text="Đang lưu hồ sơ..." />}
+      {isSavingVehicle && <Loader fullScreen variant="spinner" text="Đang lưu thông tin phương tiện..." />}
     </div>
+
   );
 }
 
