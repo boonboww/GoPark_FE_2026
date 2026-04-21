@@ -70,9 +70,6 @@ interface Filters {
   sortBy: string;
 }
 
-// ─── Hằng số cấu hình ────────────────────────────────────────────────────────
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 /** Cấu hình trạng thái giao dịch */
 const statusConfig: Record<TransactionStatus, { label: string; className: string; dot: string; icon: typeof CheckCircle2 }> = {
@@ -458,10 +455,10 @@ export default function TransactionsPage() {
   // ── Thẻ thống kê ────────────────────────────────────────────────────────────
 
   const statCards = [
-    { title: "Tổng giao dịch", value: stats.total.toString(), icon: Receipt, color: "bg-blue-500" },
-    { title: "Thành công", value: stats.success.toString(), icon: CheckCircle2, color: "bg-green-500" },
-    { title: "Thu vào", value: formatCompactCurrency(stats.totalAmount), icon: TrendingUp, color: "bg-emerald-500" },
-    { title: "Hoàn tiền", value: formatCompactCurrency(stats.refundedAmount), icon: TrendingDown, color: "bg-orange-500" },
+    { title: "Tổng giao dịch", value: stats.total.toString(), icon: Receipt, color: "bg-blue-600", light: "bg-blue-50" },
+    { title: "Thành công", value: stats.success.toString(), icon: CheckCircle2, color: "bg-green-600", light: "bg-green-50" },
+    { title: "Thu vào", value: formatCompactCurrency(stats.totalAmount), icon: TrendingUp, color: "bg-emerald-600", light: "bg-emerald-50" },
+    { title: "Hoàn tiền", value: formatCompactCurrency(stats.refundedAmount), icon: TrendingDown, color: "bg-orange-600", light: "bg-orange-50" },
   ];
 
   // ── Loading ─────────────────────────────────────────────────────────────────
@@ -510,14 +507,14 @@ export default function TransactionsPage() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <Card key={card.title} className="hover:shadow-md transition-shadow border-0 shadow-sm">
+            <Card key={card.title} className={`hover:shadow-md transition-shadow border-0 shadow-sm ${card.light}`}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">{card.title}</p>
+                    <p className={`text-sm font-medium ${card.color.replace('bg-', 'text-').replace('600', '700')}`}>{card.title}</p>
                     <p className="text-3xl font-bold text-gray-900 mt-1">{card.value}</p>
                   </div>
-                  <div className={`w-12 h-12 rounded-xl ${card.color} flex items-center justify-center shadow-lg`}>
+                  <div className={`w-12 h-12 rounded-xl ${card.color} flex items-center justify-center shadow-lg shadow-${card.color.split('-')[1]}-200`}>
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                 </div>
@@ -540,75 +537,102 @@ export default function TransactionsPage() {
             className="pl-10 h-11 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
           />
         </div>
+        
         {/* Dòng 2: Bộ lọc */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-12 gap-3 items-end">
           {/* Trạng thái */}
-          <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
-            <SelectTrigger className="h-10 border-gray-200 bg-slate-50 text-slate-900 text-sm">
-              <SelectValue placeholder="Trạng thái" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Trạng thái</SelectItem>
-              <SelectItem value="success">Thành công</SelectItem>
-              <SelectItem value="pending">Đang xử lý</SelectItem>
-              <SelectItem value="failed">Thất bại</SelectItem>
-              <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="lg:col-span-2">
+            <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
+              <SelectTrigger className="h-10 w-full border-gray-200 bg-slate-50 text-slate-900 text-sm">
+                <SelectValue placeholder="Trạng thái" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                <SelectItem value="success">Thành công</SelectItem>
+                <SelectItem value="pending">Đang xử lý</SelectItem>
+                <SelectItem value="failed">Thất bại</SelectItem>
+                <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Loại giao dịch */}
-          <Select value={filters.type || "all"} onValueChange={(val) => handleFilterChange("type", val === "all" ? "" : val)}>
-            <SelectTrigger className="h-10 border-gray-200 bg-slate-50 text-slate-900 text-sm">
-              <SelectValue placeholder="Loại GD" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Loại GD</SelectItem>
-              <SelectItem value="top_up">Nộp tiền vào ví</SelectItem>
-              <SelectItem value="withdrawal">Rút tiền từ ví</SelectItem>
-              <SelectItem value="booking_payment">Thanh toán đặt chỗ</SelectItem>
-              <SelectItem value="subscription">Gói dịch vụ</SelectItem>
-              <SelectItem value="refund">Hoàn tiền</SelectItem>
-              <SelectItem value="penalty">Phạt đỗ quá giờ</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="lg:col-span-2">
+            <Select value={filters.type || "all"} onValueChange={(val) => handleFilterChange("type", val === "all" ? "" : val)}>
+              <SelectTrigger className="h-10 w-full border-gray-200 bg-slate-50 text-slate-900 text-sm">
+                <SelectValue placeholder="Loại GD" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả loại GD</SelectItem>
+                <SelectItem value="top_up">Nộp tiền vào ví</SelectItem>
+                <SelectItem value="withdrawal">Rút tiền từ ví</SelectItem>
+                <SelectItem value="booking_payment">Thanh toán đặt chỗ</SelectItem>
+                <SelectItem value="subscription">Gói dịch vụ</SelectItem>
+                <SelectItem value="refund">Hoàn tiền</SelectItem>
+                <SelectItem value="penalty">Phạt đỗ quá giờ</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Phương thức */}
-          <Select value={filters.paymentMethod || "all"} onValueChange={(val) => handleFilterChange("paymentMethod", val === "all" ? "" : val)}>
-            <SelectTrigger className="h-10 border-gray-200 bg-slate-50 text-slate-900 text-sm">
-              <SelectValue placeholder="Phương thức" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Phương thức</SelectItem>
-              <SelectItem value="momo">MoMo</SelectItem>
-              <SelectItem value="vnpay">VNPay</SelectItem>
-              <SelectItem value="zalopay">ZaloPay</SelectItem>
-              <SelectItem value="bank_transfer">Chuyển khoản</SelectItem>
-              <SelectItem value="wallet">Ví GoPark</SelectItem>
-              <SelectItem value="cash">Tiền mặt</SelectItem>
-              <SelectItem value="credit_card">Thẻ tín dụng</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="lg:col-span-2">
+            <Select value={filters.paymentMethod || "all"} onValueChange={(val) => handleFilterChange("paymentMethod", val === "all" ? "" : val)}>
+              <SelectTrigger className="h-10 w-full border-gray-200 bg-slate-50 text-slate-900 text-sm">
+                <SelectValue placeholder="Phương thức" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Phương thức</SelectItem>
+                <SelectItem value="momo">MoMo</SelectItem>
+                <SelectItem value="vnpay">VNPay</SelectItem>
+                <SelectItem value="zalopay">ZaloPay</SelectItem>
+                <SelectItem value="bank_transfer">Chuyển khoản</SelectItem>
+                <SelectItem value="wallet">Ví GoPark</SelectItem>
+                <SelectItem value="cash">Tiền mặt</SelectItem>
+                <SelectItem value="credit_card">Thẻ tín dụng</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          {/* Từ ngày */}
-          <Input type="date" value={filters.dateFrom} onChange={(e) => handleFilterChange("dateFrom", e.target.value)} className="h-10 px-2" />
-          {/* Đến ngày */}
-          <Input type="date" value={filters.dateTo} onChange={(e) => handleFilterChange("dateTo", e.target.value)} className="h-10 px-2" />
+          {/* Khoảng ngày */}
+          <div className="lg:col-span-3 flex items-center gap-2 bg-slate-50 border border-gray-200 rounded-md px-2 h-10">
+            <Input 
+              type="date" 
+              value={filters.dateFrom} 
+              onChange={(e) => handleFilterChange("dateFrom", e.target.value)} 
+              className="h-8 border-0 bg-transparent text-xs p-1 w-full focus-visible:ring-0" 
+            />
+            <span className="text-gray-400 text-xs">→</span>
+            <Input 
+              type="date" 
+              value={filters.dateTo} 
+              onChange={(e) => handleFilterChange("dateTo", e.target.value)} 
+              className="h-8 border-0 bg-transparent text-xs p-1 w-full focus-visible:ring-0" 
+            />
+          </div>
+
           {/* Sắp xếp */}
-          <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
-            <SelectTrigger className="h-10 border-gray-200 bg-slate-50 text-slate-900 text-sm">
-              <SelectValue placeholder="Sắp xếp" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Mới nhất</SelectItem>
-              <SelectItem value="oldest">Cũ nhất</SelectItem>
-              <SelectItem value="amount-high">Số tiền ↓</SelectItem>
-              <SelectItem value="amount-low">Số tiền ↑</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="lg:col-span-2">
+            <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
+              <SelectTrigger className="h-10 w-full border-gray-200 bg-slate-50 text-slate-900 text-sm">
+                <SelectValue placeholder="Sắp xếp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Mới nhất</SelectItem>
+                <SelectItem value="oldest">Cũ nhất</SelectItem>
+                <SelectItem value="amount-high">Số tiền ↓</SelectItem>
+                <SelectItem value="amount-low">Số tiền ↑</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Xóa lọc */}
-          <Button variant="ghost" onClick={clearFilters} className="h-10 text-gray-500 hover:text-gray-700">
-            <X size={16} className="mr-1" />Xóa lọc
-          </Button>
+          <div className="lg:col-span-1 flex justify-end">
+            {(filters.search || filters.status || filters.type || filters.paymentMethod || filters.dateFrom || filters.dateTo || filters.sortBy !== "newest") && (
+              <Button variant="default" onClick={clearFilters} className="h-10 w-10 p-0 text-red-500 hover:text-red-600 hover:bg-red-200 bg-red-50" title="Xóa tất cả bộ lọc">
+                <X size={18} />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

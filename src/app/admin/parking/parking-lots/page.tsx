@@ -28,6 +28,8 @@ import {
   SquareParkingIcon,
   ParkingCircleOff,
   ParkingCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,7 +120,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 120,
     availableSlots: 45,
     occupiedSlots: 75,
-    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 15000, priceperday: 100000 }],
+    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 15000, pricePerDay: 100000 }],
     rating: 4.5,
     totalReviews: 234,
     totalBookings: 1520,
@@ -145,7 +147,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 200,
     availableSlots: 82,
     occupiedSlots: 118,
-    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 25000, priceperday: 180000 }],
+    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 25000, pricePerDay: 180000 }],
     rating: 4.7,
     totalReviews: 456,
     totalBookings: 3200,
@@ -172,7 +174,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 50,
     availableSlots: 50,
     occupiedSlots: 0,
-    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 10000, priceperday: 80000 }],
+    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 10000, pricePerDay: 80000 }],
     rating: 0,
     totalReviews: 0,
     totalBookings: 0,
@@ -194,7 +196,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 300,
     availableSlots: 120,
     occupiedSlots: 180,
-    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 20000, priceperday: 150000 }],
+    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 20000, pricePerDay: 150000 }],
     rating: 4.8,
     totalReviews: 623,
     totalBookings: 4500,
@@ -220,7 +222,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 150,
     availableSlots: 68,
     occupiedSlots: 82,
-    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 12000, priceperday: 80000 }],
+    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 12000, pricePerDay: 80000 }],
     rating: 4.0,
     totalReviews: 189,
     totalBookings: 980,
@@ -241,7 +243,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 60,
     availableSlots: 60,
     occupiedSlots: 0,
-    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 8000, priceperday: 60000 }],
+    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 8000, pricePerDay: 60000 }],
     rating: 3.2,
     totalReviews: 45,
     totalBookings: 120,
@@ -263,7 +265,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 250,
     availableSlots: 95,
     occupiedSlots: 155,
-    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 30000, priceperday: 200000 }],
+    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 30000, pricePerDay: 200000 }],
     rating: 4.9,
     totalReviews: 789,
     totalBookings: 5600,
@@ -292,7 +294,7 @@ const mockParkingLots: ParkingLot[] = [
     totalSlots: 300,
     availableSlots: 130,
     occupiedSlots: 170,
-    pricePerHour: [{ zonename: "Khu vực chung", priceperhour: 35000, priceperday: 250000 }],
+    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 35000, pricePerDay: 250000 }],
     rating: 4.9,
     totalReviews: 1023,
     totalBookings: 6800,
@@ -374,6 +376,10 @@ export default function ParkingLotsPage() {
   const [selectedLot, setSelectedLot] = useState<ParkingLotItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   // ── Gọi API lấy danh sách bãi đỗ ───────────────────────────────────────────
 
   const fetchParkingLots = async () => {
@@ -414,7 +420,11 @@ export default function ParkingLotsPage() {
           availableSlots: lot.availableSlots
         },
         totalSpaces: lot.totalSlots,
-        pricePerHour: lot.pricePerHour,
+        pricePerHour: (lot.pricePerHour || []).map(p => ({
+          zonename: p.zonename,
+          pricePerHour: (p as any).pricePerHour || (p as any).priceperhour,
+          pricePerDay: (p as any).pricePerDay || (p as any).priceperday
+        })),
         averageRating: lot.rating.toString(),
         totalReviews: lot.totalReviews,
         totalBookings: lot.totalBookings,
@@ -477,15 +487,15 @@ export default function ParkingLotsPage() {
         break;
       case "price-low":
         result.sort((a, b) => {
-          const minA = Math.min(...(a.pricePerHour || []).map(p => p.priceperhour), Infinity);
-          const minB = Math.min(...(b.pricePerHour || []).map(p => p.priceperhour), Infinity);
+          const minA = Math.min(...(a.pricePerHour || []).map(p => p.pricePerHour), Infinity);
+          const minB = Math.min(...(b.pricePerHour || []).map(p => p.pricePerHour), Infinity);
           return minA - minB;
         });
         break;
       case "price-high":
         result.sort((a, b) => {
-          const minA = Math.min(...(a.pricePerHour || []).map(p => p.priceperhour), -1);
-          const minB = Math.min(...(b.pricePerHour || []).map(p => p.priceperhour), -1);
+          const minA = Math.min(...(a.pricePerHour || []).map(p => p.pricePerHour), -1);
+          const minB = Math.min(...(b.pricePerHour || []).map(p => p.pricePerHour), -1);
           return minB - minA;
         });
         break;
@@ -493,6 +503,11 @@ export default function ParkingLotsPage() {
 
     return result;
   }, [parkingLots, filters]);
+
+  // Paginated lots
+  const paginatedLots = useMemo(() => {
+    return filteredLots.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  }, [filteredLots, currentPage]);
 
   // ── Thống kê ────────────────────────────────────────────────────────────────
 
@@ -502,10 +517,12 @@ export default function ParkingLotsPage() {
 
   const handleFilterChange = (key: keyof Filters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
   };
 
   const clearFilters = () => {
     setFilters({ search: "", status: "", type: "", sortBy: "rating" });
+    setCurrentPage(1);
   };
 
   const openDetail = (lot: ParkingLotItem) => {
@@ -635,7 +652,7 @@ export default function ParkingLotsPage() {
           </Select>
           {/* Xóa lọc */}
           {(filters.search || filters.status || filters.type || filters.sortBy !== "rating") && (
-            <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700">
+            <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700 hover:bg-red-300 bg-red-100">
               <X size={16} className="mr-1" />
               Xóa lọc
             </Button>
@@ -659,7 +676,7 @@ export default function ParkingLotsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredLots.map((lot) => {
+              {paginatedLots.map((lot) => {
                 const currentStatus = lot.status.toLowerCase() as ParkingLotStatus;
                 const stConf = statusConfig[currentStatus] || statusConfig.active;
                 const occupancy = getOccupancyPercent(lot.availableSpaces.totalSlots - lot.availableSpaces.availableSlots, lot.availableSpaces.totalSlots);
@@ -668,7 +685,7 @@ export default function ParkingLotsPage() {
                 return (
                   <tr
                     key={lot.id}
-                    className="hover:bg-blue-50/40 transition-colors cursor-pointer"
+                    className="hover:bg-gray-200/50 transition-colors cursor-pointer"
                     onClick={() => openDetail(lot)}
                   >
                     {/* Thông tin bãi đỗ */}
@@ -716,7 +733,7 @@ export default function ParkingLotsPage() {
                       {lot.pricePerHour && lot.pricePerHour.length > 0 ? (
                         <div>
                           <p className="text-sm font-semibold text-gray-900">
-                            {formatCurrency(Math.min(...lot.pricePerHour.map(p => p.priceperhour)))}
+                            {formatCurrency(Math.min(...lot.pricePerHour.map(p => p.pricePerHour)))}
                           </p>
                           {lot.pricePerHour.length > 1 && (
                             <p className="text-[10px] text-gray-400">Từ {lot.pricePerHour.length} mức giá</p>
@@ -771,6 +788,68 @@ export default function ParkingLotsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Phân trang */}
+        {filteredLots.length > 0 && (
+          <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+            <div className="text-sm text-gray-500">
+              Hiển thị <span className="font-medium text-gray-900">{Math.min(filteredLots.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredLots.length, currentPage * pageSize)}</span> trong <span className="font-medium text-gray-900">{filteredLots.length}</span> bãi đỗ
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              
+              {(() => {
+                const totalPages = Math.ceil(filteredLots.length / pageSize);
+                const pages = [];
+                for (let i = 1; i <= totalPages; i++) {
+                  if (
+                    i === 1 ||
+                    i === totalPages ||
+                    (i >= currentPage - 1 && i <= currentPage + 1)
+                  ) {
+                    pages.push(i);
+                  } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    pages.push("...");
+                  }
+                }
+                
+                return pages.filter((p, idx, arr) => p !== "..." || arr[idx - 1] !== "...").map((page, idx) => (
+                  typeof page === "number" ? (
+                    <Button
+                      key={idx}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                    >
+                      {page}
+                    </Button>
+                  ) : (
+                    <span key={idx} className="text-gray-400 px-1">...</span>
+                  )
+                ));
+              })()}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(filteredLots.length / pageSize), prev + 1))}
+                disabled={currentPage >= Math.ceil(filteredLots.length / pageSize)}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Trạng thái trống */}
         {filteredLots.length === 0 && (
@@ -837,7 +916,7 @@ export default function ParkingLotsPage() {
                     <IconCash className="w-5 h-5 text-green-600 mx-auto mb-1" />
                     <p className="text-lg font-bold text-green-700">
                       {lot.pricePerHour && lot.pricePerHour.length > 0 
-                        ? formatCurrency(Math.min(...lot.pricePerHour.map(p => p.priceperhour)))
+                        ? formatCurrency(Math.min(...lot.pricePerHour.map(p => p.pricePerHour)))
                         : "—"}
                     </p>
                     <p className="text-[10px] text-green-500 uppercase font-bold tracking-wider">Giá thấp nhất</p>
@@ -914,8 +993,8 @@ export default function ParkingLotsPage() {
                         {lot.pricePerHour.map((price, idx) => (
                           <tr key={idx} className="hover:bg-gray-50/50">
                             <td className="px-4 py-2 text-gray-700 font-medium">{price.zonename}</td>
-                            <td className="px-4 py-2 text-right text-blue-600 font-semibold">{formatCurrency(price.priceperhour)}</td>
-                            <td className="px-4 py-2 text-right text-indigo-600 font-semibold">{formatCurrency(price.priceperday)}</td>
+                            <td className="px-4 py-2 text-right text-blue-600 font-semibold">{formatCurrency(price.pricePerHour)}</td>
+                            <td className="px-4 py-2 text-right text-indigo-600 font-semibold">{formatCurrency(price.pricePerDay)}</td>
                           </tr>
                         ))}
                       </tbody>

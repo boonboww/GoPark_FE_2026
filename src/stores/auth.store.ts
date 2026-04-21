@@ -70,13 +70,19 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           isLoading: false,
         }),
 
-      logout: () =>
+      logout: () => {
+        // Clear legacy keys
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("role");
+        }
         set({
           user: null,
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
-        }),
+        });
+      },
 
       setLoading: (loading) => set({ isLoading: loading }),
 
