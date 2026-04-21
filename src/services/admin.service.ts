@@ -203,9 +203,9 @@ export interface ParkingLot {
   availableSlots: number;
   occupiedSlots: number;
   pricePerHour: {
-    zonename: string;
-    priceperhour: number;
-    priceperday: number;
+    zonename?: string;
+    pricePerHour: number;
+    pricePerDay: number;
   }[];
   rating: number;
   totalReviews: number;
@@ -243,9 +243,9 @@ export interface ParkingLotItem {
   };
   totalSpaces: number;
   pricePerHour: {
-    zonename: string;
-    priceperhour: number;
-    priceperday: number;
+    zonename?: string;
+    pricePerHour: number;
+    pricePerDay: number;
   }[];
   averageRating: string;
   totalReviews: number;

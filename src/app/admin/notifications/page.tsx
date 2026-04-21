@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Bell,
   BellPlus,
@@ -22,6 +22,8 @@ import {
   Plus,
   Megaphone,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,25 +47,24 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth.store";
-import { useNotificationStore, SentNotification, NotificationType, TargetType, NotificationStatus } from "@/stores/notification.store";
+import { useNotificationStore, SentNotification, NotificationType, TargetType, NotificationStatus, UserSelectItem } from "@/stores/notification.store";
 import { notificationService } from "@/services/notification.service";
-import { userService, User as ApiUser } from "@/services/userService";
-
-interface UserSelectItem {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
+import { userService } from "@/services/userService";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const typeConfig: Record<string, { label: string; color: string; bgColor: string; icon: string }> = {
-  PROMOTIONAL: { label: "Khuyến mãi", color: "text-purple-700", bgColor: "bg-purple-50 border-purple-200", icon: "🎉" },
   PROMOTION: { label: "Khuyến mãi", color: "text-purple-700", bgColor: "bg-purple-50 border-purple-200", icon: "🎉" },
   ALERT: { label: "Cảnh báo", color: "text-amber-700", bgColor: "bg-amber-50 border-amber-200", icon: "⚠️" },
   REMINDER: { label: "Nhắc nhở", color: "text-blue-700", bgColor: "bg-blue-50 border-blue-200", icon: "⏰" },
   SYSTEM: { label: "Hệ thống", color: "text-slate-700", bgColor: "bg-slate-50 border-slate-200", icon: "⚙️" },
+};
+
+const targetConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+  ALL: { label: "Toàn bộ", color: "text-blue-700", bgColor: "bg-blue-50 border-blue-200" },
+  USER: { label: "Khách hàng", color: "text-emerald-700", bgColor: "bg-emerald-50 border-emerald-200" },
+  OWNER: { label: "Chủ bãi", color: "text-violet-700", bgColor: "bg-violet-50 border-violet-200" },
+  SPECIFIC: { label: "Người nhận cụ thể", color: "text-amber-700", bgColor: "bg-amber-50 border-amber-200" },
 };
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
@@ -101,14 +102,20 @@ export default function NotificationsPage() {
     setLoading,
     error: storeError,
     setError,
+    filters,
+    setFilters,
+    clearFilters,
+    fetchNotifications,
+    fetchUsers,
+    sendToUser,
+    sendToRole,
+    availableUsers,
+    currentPage,
+    pageSize,
+    setCurrentPage,
   } = useNotificationStore();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<string>("");
-  const [filterTarget, setFilterTarget] = useState<string>("");
-  const [filterStatus, setFilterStatus] = useState<string>("");
-
-  const [filteredNotifications, setFilteredNotifications] = useState<SentNotification[]>([]);
+  const { searchTerm, filterType, filterTarget, filterStatus } = filters;
 
   // Create notification form
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -123,49 +130,17 @@ export default function NotificationsPage() {
     selectedUsers: [] as string[],
   });
   const [userSearch, setUserSearch] = useState("");
-  const [availableUsers, setAvailableUsers] = useState<UserSelectItem[]>([]);
   const [sending, setSending] = useState(false);
-
-  // ── Fetch Users ───────────────────────────────────────────────────────────
-  const fetchUsers = async () => {
-    try {
-      const users = await userService.getAllUsers();
-      // Map API user to UI user item
-      const mappedUsers: UserSelectItem[] = users.map((u) => ({
-        id: u._id,
-        name: u.userName,
-        email: u.email,
-        role: u.role,
-      }));
-      setAvailableUsers(mappedUsers);
-    } catch (err) {
-      console.error("Lỗi khi tải người dùng:", err);
-    }
-  };
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await notificationService.getAll();
-      setNotifications(response.data.items || []);
-    } catch (err: any) {
-      console.error("Lỗi khi tải thông báo:", err);
-      setError(err.message || "Lỗi không xác định");
-      toast.error("Không thể tải danh sách thông báo");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (notifications.length === 0) {
       fetchNotifications();
-    fetchUsers();
+      fetchUsers();
     }
   }, []);
 
-  // Filter logic
-  useEffect(() => {
+  // Filter logic - derived state
+  const filteredNotifications = useMemo(() => {
     let filtered = [...notifications];
 
     if (searchTerm) {
@@ -191,15 +166,14 @@ export default function NotificationsPage() {
       filtered = filtered.filter((n) => n.status === filterStatus);
     }
 
-    setFilteredNotifications(filtered);
+    return filtered;
   }, [searchTerm, filterType, filterTarget, filterStatus, notifications]);
 
-  const clearFilters = () => {
-    setSearchTerm("");
-    setFilterType("");
-    setFilterTarget("");
-    setFilterStatus("");
-  };
+  const totalPages = Math.ceil(filteredNotifications.length / pageSize);
+  const paginatedNotifications = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredNotifications.slice(start, start + pageSize);
+  }, [filteredNotifications, currentPage, pageSize]);
 
   const resetForm = () => {
     setFormData({
@@ -222,29 +196,33 @@ export default function NotificationsPage() {
     setSending(true);
 
     try {
-      const payload = {
-        title: formData.title,
-        message: formData.message,
-        type: formData.type,
-        targetType: formData.targetType,
-        targetRole: formData.targetType === "role" ? formData.targetRole : undefined,
-        targetUsers: formData.targetType === "specific" ? formData.selectedUsers : undefined,
-      };
-
-      if (formData.targetType === "all") {
-        await notificationService.broadcast(payload);
-      } else if (formData.targetType === "role") {
-        await notificationService.sendToRole(payload);
-      } else if (formData.targetType === "specific") {
+      if (formData.targetType === "specific") {
         if (formData.selectedUsers.length === 0) {
           toast.error("Vui lòng chọn người nhận cụ thể.");
           return;
         }
-        await notificationService.sendToUser(payload);
+        await sendToUser({
+          userIds: formData.selectedUsers,
+          notification: {
+            title: formData.title,
+            content: formData.message,
+            target_role: "NULL",
+            type: formData.type,
+          },
+        });
+      } else {
+        // Handle "all" and "role"
+        await sendToRole({
+          notification: {
+            title: formData.title,
+            content: formData.message,
+            target_role: formData.targetType === "all" ? "ALL" : (formData.targetRole || "USER").toUpperCase(),
+            type: formData.type,
+          },
+        });
       }
 
       toast.success("Thông báo đã được gửi thành công!");
-      await fetchNotifications();
       setIsCreateOpen(false);
       resetForm();
     } catch (err: any) {
@@ -383,27 +361,27 @@ export default function NotificationsPage() {
               <Input
                 placeholder="Tìm kiếm theo tiêu đề, nội dung..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => setFilters({ searchTerm: e.target.value })}
                 className="pl-10 h-10 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
               />
             </div>
 
             {/* Filter Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <Select value={filterType || "all"} onValueChange={setFilterType}>
+              <Select value={filterType || "all"} onValueChange={(val) => setFilters({ filterType: val })}>
                 <SelectTrigger className="w-full h-10 border-gray-200 bg-slate-50 text-slate-900">
                   <SelectValue placeholder="Tất cả loại" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tất cả loại</SelectItem>
-                  <SelectItem value="PROMOTIONAL">Khuyến mãi</SelectItem>
+                  <SelectItem value="PROMOTION">Khuyến mãi</SelectItem>
                   <SelectItem value="ALERT">Cảnh báo</SelectItem>
                   <SelectItem value="REMINDER">Nhắc nhở</SelectItem>
                   <SelectItem value="SYSTEM">Hệ thống</SelectItem>
                 </SelectContent>
               </Select>
 
-              <Select value={filterTarget || "all"} onValueChange={setFilterTarget}>
+              <Select value={filterTarget || "all"} onValueChange={(val) => setFilters({ filterTarget: val })}>
                 <SelectTrigger className="w-full h-10 border-gray-200 bg-slate-50 text-slate-900">
                   <SelectValue placeholder="Tất cả đối tượng" />
                 </SelectTrigger>
@@ -416,7 +394,7 @@ export default function NotificationsPage() {
                 </SelectContent>
               </Select>
 
-              <Select value={filterStatus || "all"} onValueChange={setFilterStatus}>
+              <Select value={filterStatus || "all"} onValueChange={(val) => setFilters({ filterStatus: val })}>
                 <SelectTrigger className="w-full h-10 border-gray-200 bg-slate-50 text-slate-900">
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
@@ -446,7 +424,12 @@ export default function NotificationsPage() {
                 Thông báo đã gửi ({filteredNotifications.length})
               </CardTitle>
             </div>
-            <Button variant="ghost" size="sm" className="text-gray-500 gap-1.5">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-gray-500 gap-1.5"
+              onClick={() => fetchNotifications()}
+            >
               <RefreshCw className="w-3.5 h-3.5" />
               Làm mới
             </Button>
@@ -481,7 +464,7 @@ export default function NotificationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filteredNotifications.map((notif) => {
+                {paginatedNotifications.map((notif: SentNotification) => {
                   const tc = typeConfig[notif.type] || typeConfig.SYSTEM;
                   const sc = statusConfig[notif.status] || statusConfig.sent;
                   const readPercent =
@@ -492,7 +475,11 @@ export default function NotificationsPage() {
                   return (
                     <tr
                       key={notif.id}
-                      className="hover:bg-blue-50/30 transition-colors"
+                      className="hover:bg-gray-200/50 transition-colors cursor-pointer group"
+                      onClick={() => {
+                        setSelectedNotification(notif);
+                        setIsDetailOpen(true);
+                      }}
                     >
                       {/* Title & Message */}
                       <td className="px-5 py-4 max-w-xs">
@@ -531,16 +518,22 @@ export default function NotificationsPage() {
                             <User className="w-3.5 h-3.5 text-amber-500" />
                           )}
                           <span className="text-sm text-gray-700">
-                            <Badge
-                          className={`${tc.bgColor} ${tc.color} border text-[10px] font-semibold`}
-                        >
-                            {notif.targetRole === "ALL" ? "Tất cả" :
-                              notif.targetRole === "USER" ? "Khách hàng" :
-                                notif.targetRole === "OWNER" ? "Chủ bãi" :
-                                  notif.targetRole === null || notif.targetRole === "NULL" || notif.targetType === "specific" ? "Khách hàng cụ thể" :
-                                    notif.targetRole || "Khách hàng cụ thể"}
-
-                                    </Badge>
+                            {(() => {
+                              let targetKey = "SPECIFIC";
+                              if (notif.targetType === "all" || notif.targetRole === "ALL") targetKey = "ALL";
+                              else if (notif.targetRole === "USER") targetKey = "USER";
+                              else if (notif.targetRole === "OWNER") targetKey = "OWNER";
+                              else if (notif.targetType === "specific" || notif.targetRole === "NULL" || !notif.targetRole) targetKey = "SPECIFIC";
+                              
+                              const config = targetConfig[targetKey];
+                              return (
+                                <Badge
+                                  className={`${config.bgColor} ${config.color} border text-[10px] font-semibold`}
+                                >
+                                  {config.label}
+                                </Badge>
+                              );
+                            })()}
                           </span>
                         </div>
                       </td>
@@ -580,10 +573,12 @@ export default function NotificationsPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <button
-                            onClick={() => {
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
                               setSelectedNotification(notif);
                               setIsDetailOpen(true);
                             }}
@@ -592,7 +587,9 @@ export default function NotificationsPage() {
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => {
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
                               setNotifications((prev) =>
                                 prev.filter((n) => n.id !== notif.id)
                               );
@@ -628,6 +625,52 @@ export default function NotificationsPage() {
               >
                 Xóa bộ lọc
               </Button>
+            </div>
+          )}
+          {filteredNotifications.length > 0 && (
+            <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .map((p, i, arr) => {
+                      const showEllipsis = i > 0 && p - arr[i-1] > 1;
+                      return (
+                        <div key={p} className="flex items-center gap-1">
+                          {showEllipsis && <span className="text-gray-400 px-1">...</span>}
+                          <Button
+                            variant={currentPage === p ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(p)}
+                            className={`h-8 w-8 p-0 ${currentPage === p ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                          >
+                            {p}
+                          </Button>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
@@ -681,8 +724,8 @@ export default function NotificationsPage() {
                 Loại thông báo
               </label>
               <div className="grid grid-cols-5 gap-2">
-                {(Object.keys(typeConfig) as NotificationType[]).map((type) => {
-                  const cfg = typeConfig[type];
+                {(["PROMOTION", "ALERT", "REMINDER", "SYSTEM"] as NotificationType[]).map((type) => {
+                  const cfg = typeConfig[type] || typeConfig.SYSTEM;
                   return (
                     <button
                       key={type}

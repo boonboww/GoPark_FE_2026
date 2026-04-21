@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuthStore } from '@/stores/auth.store';
 import { 
   LayoutDashboard, 
   Users, 
@@ -59,7 +60,6 @@ const sidebarItems: SidebarItem[] = [
     icon: CreditCard,
     children: [
       { title: "Giao dịch", href: "/admin/payment/transactions", icon: CreditCard },
-      { title: "Hoàn tiền", href: "/admin/payment/refunds", icon: CreditCard, badge: "2" },
     ]
   },
   {
@@ -88,6 +88,9 @@ export default function AdminSidebar({ className = "" }: AdminSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const logout = useAuthStore(state => state.logout);
+  const user = useAuthStore(state => state.user);
 
   const toggleExpanded = (title: string) => {
     setExpandedItems(prev => 
@@ -261,8 +264,8 @@ export default function AdminSidebar({ className = "" }: AdminSidebarProps) {
                 <span className="text-white text-xs font-bold">AD</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-gray-800 truncate">Admin User</p>
-                <p className="text-[11px] text-gray-400 truncate">admin@gopark.com</p>
+                <p className="font-semibold text-sm text-gray-800 truncate">{user?.profile?.name}</p>
+                <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
               </div>
               <button className="relative p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
                 <Bell className="w-4 h-4 text-gray-400" />
@@ -290,9 +293,8 @@ export default function AdminSidebar({ className = "" }: AdminSidebarProps) {
               <button 
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
                 onClick={() => {
-                  localStorage.removeItem("token");
-                  localStorage.removeItem("role");
-                  window.location.href = "/account/login";
+                  logout();
+                  router.push("/auth/login");
                 }}
               >
                 <LogOut className="w-4 h-4" />
@@ -303,9 +305,8 @@ export default function AdminSidebar({ className = "" }: AdminSidebarProps) {
             <button 
               className="w-full flex items-center justify-center p-2 text-red-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
               onClick={() => {
-                localStorage.removeItem("token");
-                localStorage.removeItem("role");
-                window.location.href = "/account/login";
+                logout();
+                router.push("/auth/login");
               }}
             >
               <LogOut className="w-4 h-4" />
