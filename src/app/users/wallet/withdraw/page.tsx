@@ -98,9 +98,8 @@ export default function WithdrawPage() {
 
       const txId = res.data?.id || res.id;
       if (txId) {
-        setTransactionId(txId);
-        setStatus('loading');
-        setCountdown(300);
+        toast.success('Đã gửi yêu cầu rút tiền, chuyển sang trang chờ xử lý.');
+        router.push(`/users/wallet/withdraw/pending/${txId}`);
       } else {
         toast.error('Lỗi khởi tạo yêu cầu. Không tìm thấy ID giao dịch.');
       }
@@ -112,13 +111,6 @@ export default function WithdrawPage() {
   };
 
   const navigateBackToProfile = () => {
-    if (status === 'loading') {
-      if (window.confirm('Giao dịch đang chờ xử lý. Nếu bạn thoát, lệnh sẽ không bị hủy nhưng bạn không còn theo dõi được trực tiếp trên màn hình này. Thoát?')) {
-        router.replace('/users/profile');
-      }
-      return;
-    }
-
     router.replace('/users/profile');
   };
 

@@ -58,7 +58,10 @@ const VIETNAM_BANKS = [
   "Sacombank",
 ];
 
+import { useRouter } from "next/navigation";
+
 export default function OwnerWalletPage() {
+  const router = useRouter();
   const [amount, setAmount] = useState("");
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
@@ -125,7 +128,7 @@ export default function OwnerWalletPage() {
         holder: accountHolder,
       });
 
-      await apiClient("/wallets/withdraw", {
+      const res = await apiClient<any>("/wallets/withdraw", {
         method: "POST",
         body: JSON.stringify({
           amount: numAmount,
@@ -134,13 +137,13 @@ export default function OwnerWalletPage() {
         }),
       });
 
-      toast.success("Gửi yêu cầu rút tiền thành công!");
-      setAmount("");
-      setBankName("");
-      setAccountNumber("");
-      setAccountHolder("");
-      refetchWallet();
-      refetchTransactions();
+      const txId = res?.data?.id || res?.id;
+      if (txId) {
+        toast.success("Gửi yêu cầu rút tiền thành công!");
+        router.push(`/owner/wallet/withdraw/pending/${txId}`);
+      } else {
+        toast.error("Không tìm thấy mã giao dịch sau khi rút.");
+      }
     } catch (error) {
       console.error(error);
       toast.error("Lỗi khi gửi yêu cầu rút tiền");

@@ -17,6 +17,11 @@ export interface VehicleRegistrationScanResult {
 
 type OcrLanguage = "eng" | "vie";
 
+type OcrRecognizeOptions = {
+  language?: OcrLanguage;
+  preferRawText?: boolean;
+};
+
 const loadImageFromFile = (file: File): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
@@ -429,18 +434,118 @@ const extractOwnerNameFromText = (text: string): string => {
   return "";
 };
 
-const extractLicensePlateFromText = (text: string): string => {
-  const normalized = text.toUpperCase().replace(/[–—]/g, "-");
+const normalizePlateCandidate = (candidate: string): string => {
+  const cleaned = candidate
+    .toUpperCase()
+    .replace(/[–—]/g, "-")
+    .replace(/\s+/g, "")
+    .replace(/[^A-Z0-9.-]/g, "");
 
-  const grouped = normalized.match(/\b(\d{2}[A-Z]{1,2})\s*[-.]?\s*(\d{3})\s*[-.]?\s*(\d{2})\b/);
+  const toDigit = (char: string): string => {
+    const map: Record<string, string> = {
+      O: "0",
+      Q: "0",
+      D: "0",
+      I: "1",
+      L: "1",
+      Z: "2",
+      S: "5",
+      G: "6",
+      B: "8",
+    };
+    return map[char] || char;
+  };
+
+  const toLetter = (char: string): string => {
+    const map: Record<string, string> = {
+      "0": "O",
+      "1": "I",
+      "2": "Z",
+      "5": "S",
+      "6": "G",
+      "8": "B",
+    };
+    return map[char] || char;
+  };
+
+  const normalizedCompact = cleaned.replace(/[.-]/g, "");
+
+  // Handle OCR confusion for compact strings: 2 digits + 1 letter + optional 1 alnum + 5 digits.
+  if (/^[A-Z0-9]{8,9}$/.test(normalizedCompact)) {
+    const prefixLength = normalizedCompact.length - 5;
+    if (prefixLength === 3 || prefixLength === 4) {
+      const prefixRaw = normalizedCompact.slice(0, prefixLength);
+      const suffixRaw = normalizedCompact.slice(prefixLength);
+
+      const firstTwo = `${toDigit(prefixRaw[0])}${toDigit(prefixRaw[1])}`;
+      const third = toLetter(prefixRaw[2]);
+      const fourth = prefixRaw[3] ? toDigit(prefixRaw[3]) : "";
+      const suffix = suffixRaw
+        .split("")
+        .map((char) => toDigit(char))
+        .join("");
+
+      const prefix = `${firstTwo}${third}${fourth}`;
+      if (/^\d{2}[A-Z][A-Z0-9]?$/.test(prefix) && /^\d{5}$/.test(suffix)) {
+        return `${prefix}-${suffix.slice(0, 3)}.${suffix.slice(3)}`;
+      }
+    }
+  }
+
+  const grouped = cleaned.match(/^(\d{2}[A-Z][A-Z0-9]?)[-.]?(\d{3})[-.]?(\d{2})$/);
   if (grouped) {
     return `${grouped[1]}-${grouped[2]}.${grouped[3]}`;
   }
 
-  const compact = normalized.match(/\b(\d{2}[A-Z]{1,2})\s*(\d{5})\b/);
+  const compact = cleaned.match(/^(\d{2}[A-Z][A-Z0-9]?)(\d{5})$/);
   if (compact) {
     const suffix = compact[2];
     return `${compact[1]}-${suffix.slice(0, 3)}.${suffix.slice(3)}`;
+  }
+
+  return "";
+};
+
+const findPlateCandidates = (value: string): string[] => {
+  const normalized = value.toUpperCase().replace(/[–—]/g, "-");
+  const matches = normalized.match(/\b\d{2}[A-Z][A-Z0-9]?\s*[-.]?\s*\d{3}\s*[-.]?\s*\d{2}\b/g) || [];
+  return matches
+    .map((item) => normalizePlateCandidate(item))
+    .filter(Boolean);
+};
+
+const PLATE_LABEL_PATTERN = /(bien\s*so|b[ie]en\s*so\s*dang\s*ky|plate|registration\s*plate)\s*:?/i;
+
+const extractLicensePlateFromText = (text: string): string => {
+  const normalizedText = text.replace(/\r/g, "");
+  const compactText = normalizedText.replace(/\s+/g, " ").trim();
+  const lines = normalizedText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (!PLATE_LABEL_PATTERN.test(toSearchText(line))) continue;
+
+    const inlineCandidates = findPlateCandidates(line);
+    if (inlineCandidates.length > 0) return inlineCandidates[0];
+
+    const nextLineCandidates = findPlateCandidates(lines[index + 1] || "");
+    if (nextLineCandidates.length > 0) return nextLineCandidates[0];
+  }
+
+  const labeledInOneLine = compactText.match(
+    /(?:bien\s*so|plate)\s*:?[\s\-]*([0-9A-Z.\-\s]{7,20}?)(?=\s+(?:so\s*khung|chassis|so\s*may|engine|nhan\s*hieu|brand|mau\s*son|color|owner|ten\s*chu\s*xe|dia\s*chi|address)|$)/i,
+  );
+  if (labeledInOneLine?.[1]) {
+    const candidate = normalizePlateCandidate(labeledInOneLine[1]);
+    if (candidate) return candidate;
+  }
+
+  const allCandidates = findPlateCandidates(compactText);
+  if (allCandidates.length > 0) {
+    return allCandidates[0];
   }
 
   return "";
@@ -503,6 +608,80 @@ const extractVehicleBrandFromText = (text: string): string => {
   return "";
 };
 
+const scoreRawTextQuality = (value: string): number => {
+  if (!value) return 0;
+
+  const normalized = value.replace(/\r/g, "").trim();
+  if (!normalized) return 0;
+
+  const lines = normalized.split("\n").map((line) => line.trim()).filter(Boolean);
+  const searchText = toSearchText(normalized);
+  let score = 0;
+
+  if (lines.length >= 4) score += 2;
+  if (/(ten chu xe|owner s full name|owner name)/.test(searchText)) score += 4;
+  if (/(bien so|plate)/.test(searchText)) score += 4;
+  if (/(nhan hieu|brand|make)/.test(searchText)) score += 2;
+  if (normalized.length >= 60) score += 2;
+  if ((normalized.match(/\n/g) || []).length >= 3) score += 1;
+
+  return score;
+};
+
+const collectStringValues = (value: unknown, acc: string[]): void => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed) acc.push(trimmed);
+    return;
+  }
+
+  if (!value || typeof value !== "object") return;
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectStringValues(item, acc);
+    }
+    return;
+  }
+
+  for (const nestedValue of Object.values(value as Record<string, unknown>)) {
+    collectStringValues(nestedValue, acc);
+  }
+};
+
+const pickBestRawTextFromJson = (json: any): string => {
+  const prioritizedCandidates = [
+    json?.data?.text,
+    json?.text,
+    json?.data?.rawText,
+    json?.rawText,
+    json?.data?.ocrText,
+    json?.ocrText,
+    json?.data?.fullText,
+    json?.fullText,
+    json?.data?.content,
+    json?.content,
+  ]
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (prioritizedCandidates.length > 0) {
+    return prioritizedCandidates.sort((a, b) => scoreRawTextQuality(b) - scoreRawTextQuality(a))[0];
+  }
+
+  const allStrings: string[] = [];
+  collectStringValues(json, allStrings);
+
+  const bestString = allStrings
+    .filter((item) => item.length >= 20)
+    .sort((a, b) => scoreRawTextQuality(b) - scoreRawTextQuality(a))[0];
+
+  if (bestString) return bestString;
+
+  return JSON.stringify(json);
+};
+
 export const ocrService = {
   /**
    * Send image to backend for OCR processing
@@ -510,7 +689,7 @@ export const ocrService = {
    */
   recognizeLicensePlate: async (
     file: File,
-    options?: { language?: OcrLanguage },
+    options?: OcrRecognizeOptions,
   ): Promise<string> => {
     const formData = new FormData();
     formData.append("image", file);
@@ -574,6 +753,10 @@ export const ocrService = {
           json.data?.text || 
           json.text;
 
+        if (options?.preferRawText) {
+          return pickBestRawTextFromJson(json);
+        }
+
         // Nếu không trích xuất được chuỗi, stringify để có thể thấy được cấu trúc thay vì [object Object]
         return typeof extractedPlate === "string" ? extractedPlate : JSON.stringify(json);
       } else {
@@ -589,31 +772,70 @@ export const ocrService = {
   recognizeVehicleRegistration: async (
     file: File,
   ): Promise<VehicleRegistrationScanResult> => {
+    const originalFile = file;
     const preprocessedFile = await addPaddingForOcr(file);
     const enhancedFile = await createEnhancedOcrImage(preprocessedFile);
-    const variants = [preprocessedFile, enhancedFile];
+    const variants = [originalFile, preprocessedFile, enhancedFile];
     const results: VehicleRegistrationScanResult[] = [];
+    const seenRawTexts = new Set<string>();
 
-    for (const variant of variants) {
-      const rawText = await ocrService.recognizeLicensePlate(variant, { language: "vie" });
+    const languages: OcrLanguage[] = ["vie", "eng"];
+
+    const evaluateRawText = (rawText: string) => {
+      const key = rawText.replace(/\s+/g, " ").trim();
+      if (!key || seenRawTexts.has(key)) return;
+      seenRawTexts.add(key);
+
       results.push({
         rawText,
         ownerName: extractOwnerNameFromText(rawText),
         licensePlate: extractLicensePlateFromText(rawText),
         brand: extractVehicleBrandFromText(rawText),
       });
+    };
+
+    for (const variant of variants) {
+      for (const language of languages) {
+        try {
+          const rawText = await ocrService.recognizeLicensePlate(variant, {
+            language,
+            preferRawText: true,
+          });
+          evaluateRawText(rawText);
+        } catch {
+          // Continue trying other variants/languages.
+        }
+      }
     }
 
+    if (results.length === 0) {
+      const fallbackRawText = await ocrService.recognizeLicensePlate(originalFile, {
+        language: "vie",
+        preferRawText: true,
+      });
+      evaluateRawText(fallbackRawText);
+    }
+
+    const scoreResult = (result: VehicleRegistrationScanResult): number => {
+      const ownerScore = scoreOwnerNameQuality(result.ownerName);
+      const plateScore = result.licensePlate ? 6 : 0;
+      const brandScore = result.brand ? 2 : 0;
+      const rawTextScore = scoreRawTextQuality(result.rawText);
+      return ownerScore + plateScore + brandScore + rawTextScore;
+    };
+
+    const bestOverall = [...results].sort((a, b) => scoreResult(b) - scoreResult(a))[0];
     const bestByOwner = [...results].sort(
-      (a, b) => scoreOwnerNameQuality(b.ownerName) - scoreOwnerNameQuality(a.ownerName),
+      (a, b) => scoreOwnerNameQuality(b.ownerName) - scoreOwnerNameQuality(a.ownerName) || scoreRawTextQuality(b.rawText) - scoreRawTextQuality(a.rawText),
     )[0];
-    const bestByPlate = results.find((item) => item.licensePlate);
+    const bestByPlate = [...results].find((item) => item.licensePlate);
+    const bestByBrand = [...results].find((item) => item.brand);
 
     return {
-      rawText: bestByOwner?.rawText || results[0]?.rawText || "",
-      ownerName: bestByOwner?.ownerName || "",
-      licensePlate: bestByPlate?.licensePlate || bestByOwner?.licensePlate || "",
-      brand: bestByOwner?.brand || results.find((item) => item.brand)?.brand || "",
+      rawText: bestOverall?.rawText || bestByOwner?.rawText || results[0]?.rawText || "",
+      ownerName: bestByOwner?.ownerName || bestOverall?.ownerName || "",
+      licensePlate: bestByPlate?.licensePlate || bestOverall?.licensePlate || "",
+      brand: bestByBrand?.brand || bestOverall?.brand || "",
     };
   },
 };
