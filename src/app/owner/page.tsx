@@ -42,14 +42,17 @@ export default function Page() {
       <SidebarInset>
         <SiteHeader />
         <div className="max-w-[1400px] mx-auto p-6 flex-1 space-y-6 w-full @container/main">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-              Tổng quan
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Theo dõi trạng thái và hiệu suất hoạt động của hệ thống bãi đỗ xe.
-            </p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-foreground tracking-tight">
+                Dashboard
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Theo dõi trạng thái và hiệu suất hoạt động của hệ thống bãi đỗ xe.
+              </p>
+            </div>
           </div>
+
 
           <div className="relative min-h-[500px]">
             {isLoading && (

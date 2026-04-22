@@ -1,4 +1,4 @@
-import { post, get, patch } from "@/lib/api";
+import { post, get, patch, apiClient } from "@/lib/api";
 import { UpdateParkingLotRequest } from "@/types/owner";
 
 export interface WalkInRequest {
@@ -300,6 +300,17 @@ class ParkingService {
     }
     
     return patch<any>(`/parking-lots/${lotId}`, formData);
+  }
+
+  /**
+   * Xóa ảnh của bãi đỗ xe
+   * DELETE /parking-lots/:parkingLotId/images
+   */
+  async deleteParkingLotImage(lotId: number, imageUrl: string) {
+    return apiClient<any>(`/parking-lots/${lotId}/images`, {
+      method: "DELETE",
+      body: JSON.stringify({ imageUrl }),
+    });
   }
 
   /**

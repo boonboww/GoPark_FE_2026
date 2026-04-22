@@ -2,25 +2,18 @@
 
 import * as React from "react";
 import {
-  IconCamera,
   IconChartBar,
-  IconCreditCard,
   IconDashboard,
-  IconFileAi,
-  IconFileDescription,
   IconHelp,
-  IconInnerShadowTop,
   IconListDetails,
   IconMessageCircle,
   IconReport,
-  IconSettings,
   IconTicket,
-  IconUser,
   IconUsers,
+  IconWallet,
 } from "@tabler/icons-react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -35,8 +28,8 @@ import {
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
+    name: "Chủ bãi",
+    email: "owner@gopark.vn",
     avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
@@ -65,11 +58,7 @@ const data = {
       url: "/owner/customer_management",
       icon: IconUsers,
     },
-    {
-      title: "Tin nhắn",
-      url: "/owner/chat",
-      icon: IconMessageCircle,
-    },
+
     {
       title: "Báo cáo",
       url: "/owner/reports",
@@ -85,30 +74,43 @@ const data = {
     },
   ],
 };
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+      <SidebarHeader className="border-b border-sidebar-border pb-4">
         <SidebarMenu>
           <SidebarMenuItem className="flex w-full items-center justify-between group-data-[collapsible=icon]:justify-center">
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5 group-data-[collapsible=icon]:!hidden"
+              className="data-[slot=sidebar-menu-button]:!p-1.5 group-data-[collapsible=icon]:!hidden hover:bg-transparent"
             >
-              <a href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">GoPark Owner</span>
+              <a href="/owner" className="flex items-center gap-2">
+                {/* Logo Icon — filled circle like Tasko's smiley */}
+                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="w-5 h-5 text-primary-foreground fill-current"
+                  >
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
+                  </svg>
+                </div>
+                <span className="text-base font-bold text-foreground">
+                  GoPark
+                </span>
               </a>
             </SidebarMenuButton>
-            <SidebarTrigger className="shrink-0" />
+            {/* <SidebarTrigger className="shrink-0" /> */}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+
+      <SidebarContent className="px-2 py-3 gap-0">
+        <NavMain items={data.navMain} label="MENU" />
+        <NavMain items={data.navSecondary} label="GENERAL" />
       </SidebarContent>
-      <SidebarFooter>
+
+      <SidebarFooter className="border-t border-sidebar-border pt-3">
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>

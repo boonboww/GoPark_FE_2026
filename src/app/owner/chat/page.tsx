@@ -5,7 +5,17 @@ import Link from "next/link";
 import { chatService } from "@/services/chat.service";
 import { useAuthStore } from "@/stores/auth.store";
 import { Conversation, Message } from "@/types/chat";
-import { User, MessageCircle, Pin, Reply, Undo2, Paperclip, Image as ImageIcon, Video, Trash2 } from "lucide-react";
+import {
+  User,
+  MessageCircle,
+  Pin,
+  Reply,
+  Undo2,
+  Paperclip,
+  Image as ImageIcon,
+  Video,
+  Trash2,
+} from "lucide-react";
 import { useChatSocket } from "@/hooks/useChatSocket";
 import {
   Dialog,
@@ -17,6 +27,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SiteHeader } from "@/components/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function OwnerChatList() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -26,13 +39,13 @@ export default function OwnerChatList() {
   } | null>(null);
   const [isDeletingConversation, setIsDeletingConversation] = useState(false);
   const user = useAuthStore((state) => state.user);
-  
+
   // Lắng nghe socket để realtime cập nhật danh sách chat
   const { socket } = useChatSocket();
 
   const loadConversations = () => {
     if (user?.id) {
-      chatService.getConversations().then(data => {
+      chatService.getConversations().then((data) => {
         setConversations(data);
       });
     }
@@ -45,7 +58,7 @@ export default function OwnerChatList() {
   // Khi có tin nhắn mới tới, load lại danh sách để đẩy lên trên cùng
   useEffect(() => {
     if (!socket) return;
-    
+
     const handleNewMessage = (msg: Message) => {
       loadConversations();
     };
@@ -54,12 +67,12 @@ export default function OwnerChatList() {
       loadConversations();
     };
 
-    socket.on('receiveMessage', handleNewMessage);
-    socket.on('messageRecalled', handleMessageRecalled);
+    socket.on("receiveMessage", handleNewMessage);
+    socket.on("messageRecalled", handleMessageRecalled);
 
     return () => {
-      socket.off('receiveMessage', handleNewMessage);
-      socket.off('messageRecalled', handleMessageRecalled);
+      socket.off("receiveMessage", handleNewMessage);
+      socket.off("messageRecalled", handleMessageRecalled);
     };
   }, [socket, user?.id]);
 
@@ -103,7 +116,7 @@ export default function OwnerChatList() {
       toast.success("Đã xóa đoạn hội thoại");
       setPendingDeleteConversation(null);
     } catch (error) {
-      console.error('Xóa hội thoại thất bại', error);
+      console.error("Xóa hội thoại thất bại", error);
       toast.error("Không thể xóa hội thoại. Vui lòng thử lại.");
     } finally {
       setIsDeletingConversation(false);
@@ -142,165 +155,199 @@ export default function OwnerChatList() {
 
   const getMessagePreviewIcon = (message: Message | null) => {
     if (!message) return null;
-    if (message.content === "[RECALLED]") return <Undo2 size={14} className="text-amber-600" />;
-    if (message.type === "FILE") return <Paperclip size={14} className="text-gray-500" />;
-    if (message.type === "IMAGE") return <ImageIcon size={14} className="text-blue-500" />;
-    if (message.type === "VIDEO") return <Video size={14} className="text-violet-500" />;
-    if ((message.content || "").startsWith("[REPLY:")) return <Reply size={14} className="text-green-600" />;
+    if (message.content === "[RECALLED]")
+      return <Undo2 size={14} className="text-amber-600" />;
+    if (message.type === "FILE")
+      return <Paperclip size={14} className="text-gray-500" />;
+    if (message.type === "IMAGE")
+      return <ImageIcon size={14} className="text-blue-500" />;
+    if (message.type === "VIDEO")
+      return <Video size={14} className="text-violet-500" />;
+    if ((message.content || "").startsWith("[REPLY:"))
+      return <Reply size={14} className="text-green-600" />;
     return null;
   };
 
   return (
-    <div className="container max-w-5xl mx-auto py-8 px-4 h-[calc(100vh-100px)]">
-      <div className="rounded-2xl border border-emerald-200/80 dark:border-emerald-900 overflow-hidden flex flex-col h-full bg-linear-to-b from-emerald-50/60 via-white to-slate-50 dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 shadow-[0_12px_40px_rgba(16,185,129,0.12)]">
-        <div className="p-5 border-b border-emerald-100 dark:border-emerald-900/70 bg-linear-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
-            <MessageCircle className="text-emerald-600" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-emerald-900 dark:text-emerald-300">Tin nhắn của khách hàng</h2>
-            <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80">Hiển thị trạng thái ghim, trả lời, thu hồi rõ ràng</p>
-          </div>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-0">
-          {conversations.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-3">
-              <MessageCircle size={48} className="text-gray-300" />
-              <p>Bạn chưa có cuộc trò chuyện nào với khách hàng.</p>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant="inset" />
+      <SidebarInset>
+        <div className="max-w-[1400px] mx-auto p-6 flex-1 w-full flex flex-col h-[calc(100vh-var(--header-height))]">
+          <div className="rounded-2xl border border-border overflow-hidden flex flex-col flex-1 bg-card shadow-sm">
+            <div className="p-5 border-b border-border bg-muted/30 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <MessageCircle className="text-primary" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">
+                  Tin nhắn của khách hàng
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Hiển thị trạng thái ghim, trả lời, thu hồi rõ ràng
+                </p>
+              </div>
             </div>
-          ) : (
-            <ul className="p-3 space-y-2">
-              {conversations.map((conv) => {
-                const partner = conv.user1Id === user?.id ? conv.user2Id : conv.user1Id;
-                const unreadCount = conv.unreadCount || 0;
-                const hasUnread = unreadCount > 0;
-                const hasPinned = Boolean(conv.pinnedMessageId);
-                const lastMessage = conv.messages && conv.messages.length > 0
-                  ? conv.messages[conv.messages.length - 1]
-                  : null;
 
-                return (
-                  <li
-                    key={conv.id}
-                    className={`group relative rounded-xl border transition-all duration-200 ${
-                      hasUnread
-                        ? "bg-rose-50/70 dark:bg-rose-950/10 border-rose-200/70 dark:border-rose-900/40"
-                        : "bg-white/80 dark:bg-slate-900/70 border-slate-200 dark:border-slate-800"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      className="absolute right-3 top-3 z-20 hidden h-8 w-8 items-center justify-center rounded-full border border-rose-200 bg-white text-rose-500 shadow-sm transition hover:bg-rose-50 hover:text-rose-600 group-hover:inline-flex"
-                      onClick={(e) =>
-                        requestDeleteConversation(
-                          e,
-                          conv.id,
-                          `Khách hàng #${partner?.slice(-5)}`,
-                        )
-                      }
-                      title="Xóa đoạn hội thoại"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                    <Link
-                      href={`/owner/chat/${partner}`}
-                      className="flex items-center gap-4 p-4 pr-12 hover:-translate-y-px"
-                    >
-                      <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center shrink-0 border border-white/70 dark:border-slate-700">
-                        <User className="text-gray-500 dark:text-gray-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-baseline mb-1">
-                          <h4 className={`text-sm truncate ${hasUnread ? "font-bold text-slate-900 dark:text-white" : "font-semibold text-slate-900 dark:text-white"}`}>
-                            Khách hàng #{partner?.slice(-5)}
-                          </h4>
-                          <div className="flex items-center gap-2">
-                            {lastMessage && (
-                              <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                                {new Date(lastMessage.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                              </span>
-                            )}
-                            {hasUnread && (
-                              <span className="inline-flex min-w-6 h-6 px-2 items-center justify-center rounded-full bg-rose-500 text-white text-xs font-bold">
-                                {unreadCount > 99 ? "99+" : unreadCount}
-                              </span>
-                            )}
+            <div className="flex-1 overflow-y-auto p-0">
+              {conversations.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-3">
+                  <MessageCircle size={48} className="text-gray-300" />
+                  <p>Bạn chưa có cuộc trò chuyện nào với khách hàng.</p>
+                </div>
+              ) : (
+                <ul className="p-3 space-y-2">
+                  {conversations.map((conv) => {
+                    const partner =
+                      conv.user1Id === user?.id ? conv.user2Id : conv.user1Id;
+                    const unreadCount = conv.unreadCount || 0;
+                    const hasUnread = unreadCount > 0;
+                    const hasPinned = Boolean(conv.pinnedMessageId);
+                    const lastMessage =
+                      conv.messages && conv.messages.length > 0
+                        ? conv.messages[conv.messages.length - 1]
+                        : null;
+
+                    return (
+                      <li
+                        key={conv.id}
+                        className={`group relative rounded-xl border transition-all duration-200 ${
+                          hasUnread
+                            ? "bg-primary/5 border-primary/20"
+                            : "bg-card border-border hover:bg-muted/50"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          className="absolute right-3 top-3 z-20 hidden h-8 w-8 items-center justify-center rounded-full border border-destructive/20 bg-background text-destructive shadow-sm transition hover:bg-destructive/10 hover:text-destructive group-hover:inline-flex"
+                          onClick={(e) =>
+                            requestDeleteConversation(
+                              e,
+                              conv.id,
+                              `Khách hàng #${partner?.slice(-5)}`,
+                            )
+                          }
+                          title="Xóa đoạn hội thoại"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                        <Link
+                          href={`/owner/chat/${partner}`}
+                          className="flex items-center gap-4 p-4 pr-12 hover:-translate-y-px"
+                        >
+                          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center shrink-0 border border-border">
+                            <User className="text-muted-foreground" />
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          {getMessagePreviewIcon(lastMessage)}
-                          <p className={`text-sm truncate ${hasUnread ? "font-bold text-slate-800 dark:text-slate-100" : "text-slate-600 dark:text-slate-400"}`}>
-                            {renderLastMessage(lastMessage)}
-                          </p>
-                        </div>
-                        <div className="mt-2 flex items-center gap-2">
-                          {hasPinned && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 text-[11px] font-semibold">
-                              <Pin size={12} /> Đã ghim
-                            </span>
-                          )}
-                          {(lastMessage?.content || "").startsWith("[REPLY:") && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-semibold">
-                              <Reply size={12} /> Đã trả lời
-                            </span>
-                          )}
-                          {lastMessage?.content === "[RECALLED]" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 px-2 py-0.5 text-[11px] font-semibold">
-                              <Undo2 size={12} /> Đã thu hồi
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-baseline mb-1">
+                              <h4
+                                className={`text-sm truncate ${hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground"}`}
+                              >
+                                Khách hàng #{partner?.slice(-5)}
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                {lastMessage && (
+                                  <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
+                                    {new Date(
+                                      lastMessage.createdAt,
+                                    ).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                )}
+                                {hasUnread && (
+                                  <span className="inline-flex min-w-6 h-6 px-2 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                                    {unreadCount > 99 ? "99+" : unreadCount}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {getMessagePreviewIcon(lastMessage)}
+                              <p
+                                className={`text-sm truncate ${hasUnread ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                              >
+                                {renderLastMessage(lastMessage)}
+                              </p>
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              {hasPinned && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5 text-[11px] font-medium">
+                                  <Pin size={12} /> Đã ghim
+                                </span>
+                              )}
+                              {(lastMessage?.content || "").startsWith(
+                                "[REPLY:",
+                              ) && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-medium">
+                                  <Reply size={12} /> Đã trả lời
+                                </span>
+                              )}
+                              {lastMessage?.content === "[RECALLED]" && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-[11px] font-medium">
+                                  <Undo2 size={12} /> Đã thu hồi
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
 
-      <Dialog
-        open={Boolean(pendingDeleteConversation)}
-        onOpenChange={(open) => {
-          if (!open && !isDeletingConversation) {
-            setPendingDeleteConversation(null);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Xóa đoạn hội thoại?</DialogTitle>
-            <DialogDescription>
-              Bạn sắp xóa cuộc trò chuyện với
-              {" "}
-              <span className="font-semibold text-foreground">
-                {pendingDeleteConversation?.title || "khách hàng"}
-              </span>
-              . Hội thoại sẽ chỉ bị ẩn ở phía bạn, dữ liệu của đối phương vẫn giữ nguyên.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPendingDeleteConversation(null)}
-              disabled={isDeletingConversation}
-            >
-              Hủy
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleConfirmDeleteConversation}
-              disabled={isDeletingConversation}
-            >
-              {isDeletingConversation ? "Đang xóa..." : "Xóa hội thoại"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          <Dialog
+            open={Boolean(pendingDeleteConversation)}
+            onOpenChange={(open) => {
+              if (!open && !isDeletingConversation) {
+                setPendingDeleteConversation(null);
+              }
+            }}
+          >
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Xóa đoạn hội thoại?</DialogTitle>
+                <DialogDescription>
+                  Bạn sắp xóa cuộc trò chuyện với{" "}
+                  <span className="font-semibold text-foreground">
+                    {pendingDeleteConversation?.title || "khách hàng"}
+                  </span>
+                  . Hội thoại sẽ chỉ bị ẩn ở phía bạn, dữ liệu của đối phương
+                  vẫn giữ nguyên.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPendingDeleteConversation(null)}
+                  disabled={isDeletingConversation}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleConfirmDeleteConversation}
+                  disabled={isDeletingConversation}
+                >
+                  {isDeletingConversation ? "Đang xóa..." : "Xóa hội thoại"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

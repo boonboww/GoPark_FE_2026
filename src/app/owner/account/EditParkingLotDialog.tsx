@@ -53,6 +53,8 @@ export default function EditParkingLotDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [deletedImages, setDeletedImages] = useState<string[]>([]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -73,6 +75,12 @@ export default function EditParkingLotDialog({
       // Clear old previews
       previews.forEach(p => URL.revokeObjectURL(p));
       setPreviews([]);
+
+      const imgs: string[] = [];
+      if (parkingLot.image?.thumbnail) imgs.push(parkingLot.image.thumbnail);
+      if (parkingLot.image?.gallery) imgs.push(...parkingLot.image.gallery);
+      setExistingImages(imgs);
+      setDeletedImages([]);
     }
   }, [parkingLot, open, form]);
 
@@ -100,12 +108,32 @@ export default function EditParkingLotDialog({
     setPreviews(newPreviews);
   };
 
+  const removeExistingImage = (index: number) => {
+    const url = existingImages[index];
+    setDeletedImages([...deletedImages, url]);
+    
+    const newExisting = [...existingImages];
+    newExisting.splice(index, 1);
+    setExistingImages(newExisting);
+  };
+
   const mutation = useMutation({
-    mutationFn: (values: FormValues) =>
-      parkingService.updateParkingLot(parkingLot!.id, {
+    mutationFn: async (values: FormValues) => {
+      // 1. Xóa các ảnh cũ đã đánh dấu
+      if (deletedImages.length > 0) {
+        await Promise.all(
+          deletedImages.map((url) => 
+            parkingService.deleteParkingLotImage(parkingLot!.id, url)
+          )
+        );
+      }
+      
+      // 2. Cập nhật thông tin & thêm ảnh mới
+      return parkingService.updateParkingLot(parkingLot!.id, {
         ...values,
-        images: selectedFiles,
-      }),
+        images: selectedFiles.length > 0 ? selectedFiles : undefined,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["parkingLots", ownerId] });
       toast.success("Cập nhật bãi đỗ xe thành công");
@@ -163,9 +191,27 @@ export default function EditParkingLotDialog({
                 </FormLabel>
                 
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                  {/* Hiển thị ảnh đã up (existing) */}
+                  {existingImages.map((url, index) => (
+                    <div key={`existing-${index}`} className="relative aspect-square rounded-xl overflow-hidden border border-border group animate-in fade-in zoom-in duration-200">
+                      <img 
+                        src={url} 
+                        alt={`Existing ${index}`} 
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeExistingImage(index)}
+                        className="absolute top-1.5 right-1.5 bg-destructive text-white rounded-full p-1.5 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+
                   {/* Hiển thị ảnh đang chọn để tải lên */}
                   {previews.map((preview, index) => (
-                    <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-border group animate-in fade-in zoom-in duration-200">
+                    <div key={`new-${index}`} className="relative aspect-square rounded-xl overflow-hidden border border-border group animate-in fade-in zoom-in duration-200">
                       <img 
                         src={preview} 
                         alt={`Preview ${index}`} 
@@ -184,9 +230,9 @@ export default function EditParkingLotDialog({
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl hover:border-primary/50 hover:bg-muted/50 transition-all text-muted-foreground hover:text-primary gap-2 group"
+                    className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl hover:border-primary hover:bg-accent transition-all text-muted-foreground hover:text-foreground gap-2 group"
                   >
-                    <div className="bg-muted group-hover:bg-primary/10 p-2 rounded-full transition-colors">
+                    <div className="bg-muted group-hover:bg-accent p-2 rounded-full transition-colors">
                       <ImagePlus className="w-6 h-6" />
                     </div>
                     <span className="text-[11px] font-medium">Thêm ảnh</span>

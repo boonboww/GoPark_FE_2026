@@ -175,7 +175,7 @@ export function TicketDetail({
   const statusConfig = {
     occupied: {
       label: "Đang đỗ",
-      color: "bg-blue-100 text-blue-700 border-blue-200",
+      color: "bg-muted text-muted-foreground border-border",
     },
     reserved: {
       label: "Đã đặt trước",
@@ -183,7 +183,7 @@ export function TicketDetail({
     },
     available: {
       label: "Chỗ trống",
-      color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+      color: "bg-primary/10 text-primary border-primary/20",
     },
   };
 
@@ -402,9 +402,9 @@ export function TicketDetail({
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl p-3.5">
-                    <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                    <p className="text-xs text-blue-600 leading-relaxed">
+                  <div className="flex items-start gap-2.5 bg-primary/5 border border-primary/20 rounded-xl p-3.5">
+                    <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <p className="text-xs text-primary leading-relaxed">
                       Sau khi xác nhận, vị trí <strong>{slotCode}</strong> sẽ
                       chuyển sang trạng thái <strong>Đang đỗ</strong> ngay lập
                       tức.

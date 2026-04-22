@@ -7,6 +7,9 @@ import { chatService } from "@/services/chat.service";
 import { ArrowLeft, Send, User as UserIcon, Image as ImageIcon, Paperclip, Video } from "lucide-react";
 import { Reply, Pin, Undo2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SiteHeader } from "@/components/site-header";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function OwnerChatRoom({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = React.use(params);
@@ -240,26 +243,38 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] bg-gray-50 dark:bg-gray-900 border rounded-xl overflow-hidden shadow-sm m-4">
-      {/* Header chat */}
-      <div className="bg-white dark:bg-gray-800 p-4 border-b flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            onClick={() => router.push('/owner/chat')}
-            title="Quay lại danh sách chat"
-          >
-            <ArrowLeft size={18} className="text-gray-600 dark:text-gray-300" />
-          </button>
-          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center border border-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]">
-               <UserIcon className="text-gray-500" />
-          </div>
-          <div>
-             <h3 className="font-semibold text-green-700 dark:text-green-400">Khách hàng #{receiverId?.slice(-5)}</h3>
-             {isTyping && <span className="text-xs text-green-500 italic animate-pulse">Đang phản hồi...</span>}
-          </div>
-        </div>
-      </div>
+    <SidebarProvider
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
+    >
+      <AppSidebar variant="inset" />
+      <SidebarInset>
+        <SiteHeader />
+        <div className="max-w-[1400px] mx-auto p-6 flex-1 w-full flex flex-col h-[calc(100vh-var(--header-height))]">
+          <div className="flex flex-col flex-1 bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+            {/* Header chat */}
+            <div className="bg-muted/30 p-4 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  className="p-2 rounded-full hover:bg-muted transition-colors"
+                  onClick={() => router.push('/owner/chat')}
+                  title="Quay lại danh sách chat"
+                >
+                  <ArrowLeft size={18} className="text-muted-foreground" />
+                </button>
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20">
+                     <UserIcon className="text-primary" />
+                </div>
+                <div>
+                   <h3 className="font-semibold text-foreground">Khách hàng #{receiverId?.slice(-5)}</h3>
+                   {isTyping && <span className="text-xs text-primary italic animate-pulse">Đang phản hồi...</span>}
+                </div>
+              </div>
+            </div>
 
       {/* Messages */}
       <div
@@ -270,17 +285,17 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
         }}
       >
         {pinnedMessage && (
-          <div className="sticky top-0 z-10 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg p-2 flex items-start justify-between gap-2">
+          <div className="sticky top-0 z-10 bg-accent/50 border border-border rounded-lg p-3 flex items-start justify-between gap-2 shadow-sm backdrop-blur-md">
             <div>
-              <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-300">Tin nhắn đã ghim</p>
-              <p className="text-sm text-gray-700 dark:text-gray-200 line-clamp-2">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Pin size={12}/> Tin nhắn đã ghim</p>
+              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
                 {pinnedMessage.content === '[RECALLED]'
                   ? 'Tin nhắn đã được thu hồi'
                   : parseReply(pinnedMessage.content).body || '[Tệp đính kèm]'}
               </p>
             </div>
             <button
-              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-200"
+              className="text-muted-foreground hover:text-foreground"
               onClick={async (e) => {
                 e.stopPropagation();
                 await handlePinMessage(null);
@@ -312,14 +327,14 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
 
               return (
                 <div key={i} className="flex justify-start">
-                  <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-gray-800 shadow-sm border border-green-100 dark:border-green-900 overflow-hidden">
-                    <div className="h-32 w-full bg-gray-200 relative">
+                  <div className="w-full max-w-sm rounded-2xl bg-card shadow-sm border border-border overflow-hidden">
+                    <div className="h-32 w-full bg-muted relative">
                        <img src={payload.image || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop"} alt={payload.name} className="w-full h-full object-cover" />
                        <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent"></div>
                        <p className="absolute bottom-2 left-3 right-3 text-white font-bold truncate">Chào mừng đến với {payload.name}</p>
                     </div>
-                    <div className="p-3 bg-green-50 dark:bg-gray-800">
-                      <p className="text-sm font-medium text-green-900 dark:text-green-100">Khách hàng đang quan tâm tới bãi đỗ {payload.name}</p>
+                    <div className="p-3 bg-muted/30">
+                      <p className="text-sm font-medium text-foreground">Khách hàng đang quan tâm tới bãi đỗ {payload.name}</p>
                     </div>
                   </div>
                 </div>
@@ -343,7 +358,7 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
                     activeActionMessageId === m.id
                       ? 'flex'
                       : 'hidden'
-                  } absolute top-full mt-1 z-20 items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-md px-2 py-1 ${
+                  } absolute top-full mt-1 z-20 items-center gap-2 rounded-lg border border-border bg-popover shadow-md px-2 py-1 ${
                     isMe ? 'right-0' : 'left-0'
                   }`}
                   onClick={(e) => e.stopPropagation()}
@@ -354,7 +369,7 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
                   onMouseLeave={() => scheduleCloseActionMenu(m.id)}
                 >
                   <button
-                    className="text-xs flex items-center gap-1 text-gray-700 dark:text-gray-200 hover:text-green-600"
+                    className="text-xs flex items-center gap-1 text-foreground hover:text-primary transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       setReplyToMessageId(m.id);
@@ -364,7 +379,7 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
                     <Reply size={12} /> Trả lời
                   </button>
                   <button
-                    className="text-xs flex items-center gap-1 text-gray-700 dark:text-gray-200 hover:text-green-600"
+                    className="text-xs flex items-center gap-1 text-foreground hover:text-primary transition-colors"
                     onClick={async (e) => {
                       e.stopPropagation();
                       await handlePinMessage(m.id);
@@ -375,7 +390,7 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
                   </button>
                   {isMe && m.content !== '[RECALLED]' && (
                     <button
-                      className="text-xs flex items-center gap-1 text-gray-700 dark:text-gray-200 hover:text-red-600"
+                      className="text-xs flex items-center gap-1 text-foreground hover:text-destructive transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         recallMessage(m.id);
@@ -391,12 +406,12 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
                   onClick={(e) => e.stopPropagation()}
                   className={`max-w-[70%] p-3 rounded-2xl ${
                     isMe 
-                      ? "bg-green-600 text-white rounded-tr-none" 
-                      : "bg-white dark:bg-gray-800 border-gray-200 border dark:border-gray-700 rounded-tl-none dark:text-gray-200"
+                      ? "bg-primary text-primary-foreground rounded-tr-none" 
+                      : "bg-muted text-foreground border border-border rounded-tl-none"
                   }`}
                 >
                   {repliedMessage && (
-                    <div className={`mb-2 p-2 rounded-lg text-xs ${isMe ? 'bg-green-700/80' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                    <div className={`mb-2 p-2 rounded-lg text-xs ${isMe ? 'bg-primary-foreground/20' : 'bg-background border border-border text-muted-foreground'}`}>
                       <p className="font-semibold">Trả lời</p>
                       <p className="line-clamp-1">
                         {repliedMessage.content === '[RECALLED]'
@@ -411,26 +426,26 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
                   ) : m.type === 'VIDEO' ? (
                     <video src={m.content} controls className="max-w-full rounded-lg mt-1 mb-1" />
                   ) : m.type === 'FILE' ? (
-                     <a href={m.content} target="_blank" className="underline font-medium break-all text-green-100">Tệp đính kèm</a>
+                     <a href={m.content} target="_blank" className={`underline font-medium break-all ${isMe ? 'text-primary-foreground' : 'text-primary'}`}>Tệp đính kèm</a>
                   ) : (
                      <p className={`whitespace-pre-wrap wrap-break-word ${m.content === '[RECALLED]' ? 'italic opacity-80' : ''}`}>
                        {messageBody === '[RECALLED]' ? 'Tin nhắn đã được thu hồi' : messageBody}
                      </p>
                   )}
-                  <p className={`text-[10px] mt-1 ${isMe ? 'text-green-100 text-right' : 'text-gray-400'}`}>
+                  <p className={`text-[10px] mt-1 ${isMe ? 'text-primary-foreground/80 text-right' : 'text-muted-foreground'}`}>
                     {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                   </p>
                 </div>
                 {/* Trạng thái đã xem */}
                 {isMe && isLastInGroup && m.isRead && (
                   <div className="mt-1 mr-1 flex items-center justify-end">
-                    <div className="w-4 h-4 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                      <UserIcon className="w-2.5 h-2.5 text-gray-500" />
+                    <div className="w-4 h-4 rounded-full overflow-hidden border border-border bg-muted flex items-center justify-center">
+                      <UserIcon className="w-2.5 h-2.5 text-muted-foreground" />
                     </div>
                   </div>
                 )}
                 {isMe && isLastInGroup && !m.isRead && (
-                  <span className="text-[10px] text-gray-400 mt-1 mr-1">Đã gửi</span>
+                  <span className="text-[10px] text-muted-foreground mt-1 mr-1">Đã gửi</span>
                 )}
               </div>
             );
@@ -439,10 +454,10 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
         
         {isTyping && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-2xl rounded-tl-none flex items-center gap-1.5 h-10">
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+            <div className="bg-muted p-3 rounded-2xl rounded-tl-none flex items-center gap-1.5 h-10 border border-border">
+              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></span>
             </div>
           </div>
         )}
@@ -450,19 +465,19 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
       </div>
 
       {/* Input */}
-      <div className="bg-white dark:bg-gray-800 border-t rounded-b-xl">
+      <div className="bg-card border-t border-border rounded-b-xl">
         {replyToMessage && (
-          <div className="mx-3 mt-2 px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-xs flex items-start justify-between">
+          <div className="mx-3 mt-2 px-3 py-2 rounded-lg bg-accent border border-border text-xs flex items-start justify-between">
             <div>
-              <p className="font-semibold text-gray-700 dark:text-gray-200">Đang trả lời</p>
-              <p className="text-gray-600 dark:text-gray-300 line-clamp-1">
+              <p className="font-semibold text-foreground">Đang trả lời</p>
+              <p className="text-muted-foreground line-clamp-1 mt-0.5">
                 {replyToMessage.content === '[RECALLED]'
                   ? 'Tin nhắn đã được thu hồi'
                   : parseReply(replyToMessage.content || '').body || '[Tệp đính kèm]'}
               </p>
             </div>
             <button
-              className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-200"
+              className="text-muted-foreground hover:text-foreground"
               onClick={() => setReplyToMessageId(null)}
             >
               <X size={14} />
@@ -470,7 +485,7 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
           </div>
         )}
 
-        <div className="p-3 flex gap-2 items-center focus-within:ring-1 focus-within:ring-green-500 rounded-b-xl">
+        <div className="p-3 flex gap-2 items-center focus-within:ring-1 focus-within:ring-primary rounded-b-xl">
 
         <input
           ref={imageInputRef}
@@ -494,7 +509,7 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
         />
 
         <button
-          className="text-gray-400 hover:text-green-600 transition-colors p-2 shrink-0"
+          className="text-muted-foreground hover:text-primary transition-colors p-2 shrink-0"
           title="Gửi ảnh"
           onClick={() => imageInputRef.current?.click()}
           disabled={isUploading}
@@ -502,7 +517,7 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
            <ImageIcon size={20} />
         </button>
         <button
-          className="text-gray-400 hover:text-green-600 transition-colors p-2 shrink-0"
+          className="text-muted-foreground hover:text-primary transition-colors p-2 shrink-0"
           title="Gửi video"
           onClick={() => videoInputRef.current?.click()}
           disabled={isUploading}
@@ -510,7 +525,7 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
           <Video size={20} />
         </button>
         <button
-          className="text-gray-400 hover:text-green-600 transition-colors p-2 shrink-0 mr-1"
+          className="text-muted-foreground hover:text-primary transition-colors p-2 shrink-0 mr-1"
           title="Đính kèm tệp"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
@@ -518,7 +533,7 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
            <Paperclip size={20} />
         </button>
         <input 
-          className="flex-1 border-none bg-gray-50 dark:bg-gray-900 rounded-full px-4 py-2.5 outline-none dark:text-white"
+          className="flex-1 border border-border bg-muted/30 rounded-full px-4 py-2.5 outline-none text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-background transition-colors"
           placeholder={isUploading ? "Đang tải tệp lên..." : "Nhập phản hồi..."}
           value={text}
           onChange={e => handleTyping(e.target.value)}
@@ -526,7 +541,7 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
           disabled={isUploading}
         />
         <button 
-          className="bg-green-600 hover:bg-green-700 text-white rounded-full p-2 h-11 w-11 flex items-center justify-center transition-colors shrink-0"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full p-2 h-11 w-11 flex items-center justify-center transition-colors shrink-0"
           onClick={handleSend}
           disabled={isUploading}
         >
@@ -534,6 +549,9 @@ export default function OwnerChatRoom({ params }: { params: Promise<{ id: string
         </button>
         </div>
       </div>
-    </div>
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

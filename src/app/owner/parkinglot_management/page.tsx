@@ -283,7 +283,7 @@ export default function ParkingLotManagementPage() {
                   variant="ghost"
                   size="sm"
                   onClick={handleResetFilter}
-                  className="text-slate-500 hover:text-red-500 hover:bg-red-50 font-bold h-11 px-4 transition-all"
+                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 font-bold h-11 px-4 transition-all"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" /> Xoá lọc
                 </Button>
@@ -583,18 +583,18 @@ export default function ParkingLotManagementPage() {
               {/* Available */}
               <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full">
                 <div className="w-4 h-7 rounded-sm bg-white border-2 border-dashed border-slate-300 shadow-sm shrink-0" />
-                <span className="text-xs font-semibold text-slate-500">
+                <span className="text-xs font-semibold text-muted-foreground">
                   Chỗ trống
                 </span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
               </div>
 
               {/* Occupied */}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full">
-                <div className="relative w-4 h-7 rounded-sm bg-blue-200 border-2 border-blue-500 shadow-sm overflow-hidden shrink-0">
-                  <div className="absolute bottom-0 left-0 w-full h-1/2 bg-blue-500" />
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border border-border rounded-full">
+                <div className="relative w-4 h-7 rounded-sm bg-muted border-2 border-muted-foreground shadow-sm overflow-hidden shrink-0">
+                  <div className="absolute bottom-0 left-0 w-full h-1/2 bg-muted-foreground" />
                 </div>
-                <span className="text-xs font-semibold text-blue-600">
+                <span className="text-xs font-semibold text-muted-foreground">
                   Xe đang đỗ
                 </span>
               </div>

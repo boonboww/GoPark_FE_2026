@@ -351,7 +351,7 @@ export function StructureManagerTab() {
             size="sm"
             onClick={() => genLotMut.mutate()}
             disabled={genLotMut.isPending || !lotId}
-            className="text-xs font-semibold border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+            className="text-xs font-semibold"
           >
             {genLotMut.isPending ? (
               <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -511,7 +511,7 @@ export function StructureManagerTab() {
                       size="sm"
                       onClick={() => genFloorMut.mutate(floor.id)}
                       disabled={genFloorMut.isPending}
-                      className="text-xs h-8 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                      className="text-xs h-8"
                     >
                       {genFloorMut.isPending ? (
                         <Loader2 className="w-3 h-3 mr-1 animate-spin" />
@@ -1000,7 +1000,7 @@ export function StructureManagerTab() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 text-xs font-semibold border border-dashed border-blue-200 w-full rounded-xl"
+                          className="text-muted-foreground hover:text-foreground hover:bg-accent text-xs font-semibold border border-dashed border-border w-full rounded-xl transition-colors"
                           onClick={() => {
                             setAddingZone(floor.id);
                             setEditingZone(null);
