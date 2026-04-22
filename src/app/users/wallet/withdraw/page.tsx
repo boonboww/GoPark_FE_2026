@@ -5,13 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Wallet, Loader2, ArrowLeft, CheckCircle2, XCircle, Clock, ChevronDown, Search } from 'lucide-react';
+import { Wallet, Loader2, ArrowLeft, CheckCircle2, XCircle, Clock, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { toast } from 'sonner';
 import { useWallet } from '@/hooks/useWallet';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 type WithdrawStatus = 'form' | 'loading' | 'success' | 'failed';
 
@@ -43,6 +42,7 @@ export default function WithdrawPage() {
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(300); // 5 minutes in seconds
   const [loadingError, setLoadingError] = useState('');
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
 
   // Fetch banks list from VietQR
   useEffect(() => {
@@ -85,6 +85,7 @@ export default function WithdrawPage() {
 
     const compiledRefId = `${selectedBank.shortName} - ${accountNumber.trim()}`;
 
+    setIsSubmittingRequest(true);
     try {
       const res = await apiClient<any>('/wallets/withdraw', {
         method: 'POST',
@@ -105,7 +106,20 @@ export default function WithdrawPage() {
       }
     } catch (error: any) {
       toast.error(error.message || 'Không thể tạo yêu cầu rút tiền.');
+    } finally {
+      setIsSubmittingRequest(false);
     }
+  };
+
+  const navigateBackToProfile = () => {
+    if (status === 'loading') {
+      if (window.confirm('Giao dịch đang chờ xử lý. Nếu bạn thoát, lệnh sẽ không bị hủy nhưng bạn không còn theo dõi được trực tiếp trên màn hình này. Thoát?')) {
+        router.replace('/users/profile');
+      }
+      return;
+    }
+
+    router.replace('/users/profile');
   };
 
   useEffect(() => {
@@ -171,17 +185,9 @@ export default function WithdrawPage() {
         </h1>
         <Button 
           variant="outline" 
-          onClick={() => {
-            if (status === 'loading') {
-              if (window.confirm('Giao dịch đang chờ xử lý. Nếu bạn thoát, lệnh sẽ không bị hủy nhưng bạn không còn theo dõi được trực tiếp trên màn hình này. Thoát?')) {
-                router.push('/users/wallet');
-              }
-            } else {
-              router.push('/users/wallet');
-            }
-          }}
+          onClick={navigateBackToProfile}
         >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại ví
+          <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại hồ sơ
         </Button>
       </div>
 
@@ -196,6 +202,12 @@ export default function WithdrawPage() {
               </strong>
             </CardDescription>
           </CardHeader>
+          {isSubmittingRequest && (
+            <div className="mx-6 mb-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Đang gửi yêu cầu rút tiền, vui lòng chờ trong giây lát...
+            </div>
+          )}
           <CardContent className="space-y-6">
             <div className="space-y-3">
               <div className="flex justify-between items-center">
@@ -283,9 +295,16 @@ export default function WithdrawPage() {
             <Button
               className="w-full bg-emerald-600 hover:bg-emerald-700 h-12 text-lg"
               onClick={handleWithdraw}
-              disabled={isFetchingWallet || !amount || !accountNumber || !selectedBank}
+              disabled={isSubmittingRequest || isFetchingWallet || !amount || !accountNumber || !selectedBank}
             >
-              Yêu cầu Rút Tiền
+              {isSubmittingRequest ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang gửi yêu cầu...
+                </>
+              ) : (
+                'Yêu cầu Rút Tiền'
+              )}
             </Button>
           </CardFooter>
         </Card>
@@ -334,8 +353,8 @@ export default function WithdrawPage() {
             </p>
           </CardContent>
           <CardFooter className="justify-center mt-6">
-            <Button onClick={() => router.push('/users/wallet')} className="bg-emerald-600 hover:bg-emerald-700">
-              Quay lại ví
+            <Button onClick={() => router.replace('/users/profile')} className="bg-emerald-600 hover:bg-emerald-700">
+              Quay lại hồ sơ
             </Button>
           </CardFooter>
         </Card>
@@ -356,7 +375,7 @@ export default function WithdrawPage() {
             </p>
           </CardContent>
           <CardFooter className="justify-center mt-6 flex gap-4">
-            <Button variant="outline" onClick={() => router.push('/users/wallet')}>Quay lại ví</Button>
+            <Button variant="outline" onClick={() => router.replace('/users/profile')}>Quay lại hồ sơ</Button>
             <Button onClick={() => setStatus('form')} className="bg-emerald-600 hover:bg-emerald-700">
               Thử lại
             </Button>
