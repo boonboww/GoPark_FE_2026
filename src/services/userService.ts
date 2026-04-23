@@ -1,12 +1,12 @@
-import { get } from "@/lib/api";
+import { get, post } from "@/lib/api";
 
 export interface User {
   _id: string;
   userName: string;
   email: string;
   phoneNumber?: string;
-  role: "user" | "owner" | "admin";
-  status: "active" | "banned";
+  role: "user" | "owner" | "admin" | "staff";
+  status: "active" | "banned" | "ACTIVE";
   createdAt: string;
 }
 
@@ -15,9 +15,32 @@ export interface UserResponse {
   data: User[] | { data: User[] };
 }
 
+export interface CreateStaffDto {
+  email: string;
+  password: string;
+  fullName: string;
+  phoneNumber?: string;
+}
+
+export interface UserResDto {
+  id: string;
+  email: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  roles: string[];
+  profile: {
+    id: number;
+    name: string;
+    phone: string | null;
+    gender: string | null;
+    image: string | null;
+  };
+}
+
 /**
  * User Service
- * Handles fetching users from the admin API.
+ * Handles fetching users from the admin API and staff management.
  */
 export const userService = {
   /**
@@ -56,4 +79,13 @@ export const userService = {
       return [];
     }
   },
+
+  /**
+   * Create a new staff account
+   * POST /api/v1/users/staff
+   */
+  createStaff: async (data: CreateStaffDto): Promise<UserResDto> => {
+    return await post<UserResDto>("/users/staff", data);
+  },
 };
+

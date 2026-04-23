@@ -64,6 +64,11 @@ const data = {
       url: "/owner/reports",
       icon: IconReport,
     },
+    {
+      title: "Quản lý nhân viên",
+      url: "/owner/staff-management",
+      icon: IconUsers,
+    },
   ],
 
   navSecondary: [
