@@ -60,6 +60,7 @@ const sidebarItems: SidebarItem[] = [
     icon: CreditCard,
     children: [
       { title: "Giao dịch", href: "/admin/payment/transactions", icon: CreditCard },
+      { title: "Hoàn tiền", href: "/admin/payment/refunds", icon: CreditCard }
     ]
   },
   {
