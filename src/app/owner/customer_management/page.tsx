@@ -28,7 +28,11 @@ import { FormAddCustomer } from "./form_add_customer";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useCustomerStore } from "@/stores/customer.store";
 
+import { useAuthStore } from "@/stores/auth.store";
+
 export default function CustomerManagementPage() {
+  const { user } = useAuthStore();
+  const role = user?.role?.toLowerCase() || "user";
   const { customers, isLoading, isFetching, isError } = useCustomers();
   const { searchText, setSearchText, lotId } = useCustomerStore();
 
@@ -43,7 +47,7 @@ export default function CustomerManagementPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <SiteHeader />
+        {role !== "staff" && <SiteHeader />}
         <div className="max-w-[1400px] mx-auto p-6 space-y-6 w-full">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold text-foreground tracking-tight">

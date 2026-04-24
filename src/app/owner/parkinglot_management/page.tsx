@@ -51,8 +51,11 @@ import { useQuery } from "@tanstack/react-query";
 import { parkingService } from "@/services/parking.service";
 import { useCustomerStore } from "@/stores/customer.store";
 import { Loader2 } from "lucide-react";
+import { useAuthStore } from "@/stores/auth.store";
 
 export default function ParkingLotManagementPage() {
+  const { user: authUser } = useAuthStore();
+  const role = authUser?.role?.toLowerCase() || "user";
   const { lotId } = useCustomerStore();
   const [date, setDate] = React.useState<Date>(new Date());
   const [startTime, setStartTime] = React.useState("10:00");
@@ -246,7 +249,7 @@ export default function ParkingLotManagementPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <SiteHeader />
+        {role !== "staff" && <SiteHeader />}
 
         <div className="max-w-[1400px] mx-auto p-6 space-y-6 w-full">
           <div className="space-y-1">
