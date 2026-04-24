@@ -6,6 +6,7 @@ import { QueryProvider } from "@/components/query-provider";
 import { GuardProvider } from "@/components/GuardProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import Chatbot from "@/components/layout/chatbot";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,6 +38,7 @@ export default function RootLayout({
             <GuardProvider>{children}</GuardProvider>
           </QueryProvider>
           <Toaster />
+          <Chatbot />
         </ThemeProvider>
       </body>
     </html>
