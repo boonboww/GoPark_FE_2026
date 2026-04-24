@@ -26,12 +26,9 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
+import { useAuthStore } from "@/stores/auth.store";
+
 const data = {
-  user: {
-    name: "Chủ bãi",
-    email: "owner@gopark.vn",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
       title: "Bảng điều khiển",
@@ -49,6 +46,11 @@ const data = {
       icon: IconTicket,
     },
     {
+      title: "Trò chuyện",
+      url: "/owner/chat",
+      icon: IconMessageCircle,
+    },
+    {
       title: "Phân tích",
       url: "/owner/analytics",
       icon: IconChartBar,
@@ -58,7 +60,6 @@ const data = {
       url: "/owner/customer_management",
       icon: IconUsers,
     },
-
     {
       title: "Báo cáo",
       url: "/owner/reports",
@@ -81,6 +82,29 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useAuthStore();
+  const role = user?.role?.toLowerCase() || "user";
+
+  // Filter menu items based on role
+  const filteredNavMain = data.navMain.filter((item) => {
+    if (role === "staff") {
+      const allowedForStaff = [
+        "/owner",
+        "/owner/parkinglot_management",
+        "/owner/bookings",
+        "/owner/customer_management",
+      ];
+      return allowedForStaff.includes(item.url);
+    }
+    return true; // Owner/Admin sees everything
+  });
+
+  const userData = {
+    name: user?.profile?.name || (role === "owner" ? "Chủ bãi" : "Nhân viên"),
+    email: user?.email || "user@gopark.vn",
+    avatar: user?.profile?.image || "/avatars/shadcn.jpg",
+  };
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader className="border-b border-sidebar-border pb-4">
@@ -91,7 +115,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5 group-data-[collapsible=icon]:!hidden hover:bg-transparent"
             >
               <a href="/owner" className="flex items-center gap-2">
-                {/* Logo Icon — filled circle like Tasko's smiley */}
                 <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
                   <svg
                     viewBox="0 0 24 24"
@@ -105,18 +128,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </span>
               </a>
             </SidebarMenuButton>
-            {/* <SidebarTrigger className="shrink-0" /> */}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-3 gap-0">
-        <NavMain items={data.navMain} label="MENU" />
+        <NavMain items={filteredNavMain} label="MENU" />
         <NavMain items={data.navSecondary} label="GENERAL" />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border pt-3">
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarFooter>
     </Sidebar>
   );

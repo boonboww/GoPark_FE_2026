@@ -1,4 +1,4 @@
-import { get, post } from "@/lib/api";
+import { get, post, del } from "@/lib/api";
 
 export interface User {
   _id: string;
@@ -20,6 +20,7 @@ export interface CreateStaffDto {
   password: string;
   fullName: string;
   phoneNumber?: string;
+  parkingLotId: number;
 }
 
 export interface UserResDto {
@@ -86,6 +87,27 @@ export const userService = {
    */
   createStaff: async (data: CreateStaffDto): Promise<UserResDto> => {
     return await post<UserResDto>("/users/staff", data);
+  },
+
+  /**
+   * Get all staff members belonging to a parking lot
+   * GET /api/v1/users/staff/lot/:parkingLotId
+   */
+  getStaffByParkingLot: async (parkingLotId: number): Promise<UserResDto[]> => {
+    const response = await get<{ data: UserResDto[] } | UserResDto[]>(
+      `/users/staff/lot/${parkingLotId}`
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (response as any)?.data ?? response;
+    return Array.isArray(data) ? data : [];
+  },
+
+  /**
+   * Delete a staff member
+   * DELETE /api/v1/users/staff/:id
+   */
+  deleteStaff: async (id: string): Promise<void> => {
+    await del<void>(`/users/staff/${id}`);
   },
 };
 

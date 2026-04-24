@@ -7,11 +7,8 @@ import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
 
-import { OverviewCards } from "@/components/owner/dashboard/overview-cards";
-import { RevenueChart } from "@/components/owner/dashboard/revenue-chart";
-import { ParkingOccupancy } from "@/components/owner/dashboard/parking-occupancy";
-import { RecentActivity } from "@/components/owner/dashboard/recent-activity";
-import { OperationCenter } from "@/components/owner/dashboard/operation-center";
+import { OwnerDashboard } from "@/components/owner/dashboard/OwnerDashboard";
+import { StaffDashboard } from "@/components/owner/dashboard/StaffDashboard";
 
 import { dashboardService } from "@/services/dashboard.service";
 import { DashboardSummaryResponse } from "@/types/dashboard";
@@ -19,14 +16,13 @@ import { useAuthStore } from "@/stores/auth.store";
 
 export default function Page() {
   const { user } = useAuthStore();
-  // Fallback if somehow user is undefined, though RoleGuard should prevent this
   const ownerId = user?.id;
-  // || "019d1fbc-2c1a-7c4c-b75b-bd7fc875be16"
+  const role = user?.role?.toLowerCase() || "user";
 
   const { data, isLoading, error } = useQuery<DashboardSummaryResponse>({
     queryKey: ["dashboardSummary", ownerId],
     queryFn: () => dashboardService.getDashboardSummary(ownerId),
-    enabled: !!user?.id, // Only fetch if we have a valid user id
+    enabled: !!user?.id && role === "owner", // Only fetch owner stats if role is owner
   });
 
   return (
@@ -40,58 +36,38 @@ export default function Page() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <SiteHeader />
+        {role !== "staff" && <SiteHeader />}
         <div className="max-w-[1400px] mx-auto p-6 flex-1 space-y-6 w-full @container/main">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
               <h1 className="text-3xl font-bold text-foreground tracking-tight">
-                Dashboard
+                {role === "staff" ? "Bảng điều khiển nhân viên" : "Dashboard"}
               </h1>
               <p className="text-sm text-muted-foreground">
-                Theo dõi trạng thái và hiệu suất hoạt động của hệ thống bãi đỗ xe.
+                {role === "staff" 
+                  ? "Chào mừng bạn trở lại. Theo dõi hoạt động bãi đỗ xe hôm nay."
+                  : "Theo dõi trạng thái và hiệu suất hoạt động của hệ thống bãi đỗ xe."}
               </p>
             </div>
           </div>
 
-
           <div className="relative min-h-[500px]">
-            {isLoading && (
+            {role === "owner" && isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 backdrop-blur-sm">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             )}
 
-            {error && (
+            {role === "owner" && error && (
               <div className="p-4 text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
                 Lỗi khi tải dữ liệu Dashboard. Vui lòng kiểm tra kết nối API.
               </div>
             )}
 
-            {!isLoading && data && (
-              <div className="space-y-6">
-                {/* Row 1: KPI Cards */}
-                <OverviewCards data={data.overview} />
-
-                {/* Row 2: Charts and Occupancy */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    <RevenueChart data={data.revenueChart} />
-                  </div>
-                  <div className="col-span-1">
-                    <ParkingOccupancy data={data.parkingOccupancy} />
-                  </div>
-                </div>
-
-                {/* Row 3: Activity and Operation Center */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-6">
-                  <div className="lg:col-span-2">
-                    <RecentActivity data={data.recentActivities.slice(0, 8)} />
-                  </div>
-                  <div className="col-span-1">
-                    <OperationCenter alerts={data.alerts} overview={data.overview} />
-                  </div>
-                </div>
-              </div>
+            {role === "staff" ? (
+              <StaffDashboard />
+            ) : (
+              !isLoading && data && <OwnerDashboard data={data} />
             )}
           </div>
         </div>
