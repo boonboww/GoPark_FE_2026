@@ -12,6 +12,7 @@ import {
   Filter,
   Search,
   RotateCcw,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,6 +60,42 @@ export default function ParkingLotManagementPage() {
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [isFetchingAvailable, setIsFetchingAvailable] = React.useState(false);
   const [availableMapData, setAvailableMapData] = React.useState<any>(null);
+  const [previewTime, setPreviewTime] = React.useState<number | null>(null);
+
+  // Fetch all bookings to find overdue ones
+  const { data: lotBookings = [] } = useQuery({
+    queryKey: ["lotBookings", lotId],
+    queryFn: () => {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      return bookingService.getBookingsByParkingLot({
+        lotId: lotId!,
+        startDate: format(sevenDaysAgo, "yyyy-MM-dd") + "T00:00:00Z",
+      });
+    },
+    enabled: !!lotId,
+    refetchInterval: 30_000,
+  });
+
+  const overdueSlotIds = React.useMemo(() => {
+    const now = new Date();
+    return lotBookings
+      .filter(
+        (b) =>
+          (b.status === "ACTIVE" || b.status === "PENDING") &&
+          new Date(b.endTime) < now,
+      )
+      .map((b) => b.slotId.toString());
+  }, [lotBookings]);
+
+  // Self-healing: Get all slots that TRULY have an active or pending booking
+  const validActiveSlotIds = React.useMemo(() => {
+    return new Set(
+      lotBookings
+        .filter((b) => b.status === "ACTIVE" || b.status === "PENDING")
+        .map((b) => b.slotId.toString()),
+    );
+  }, [lotBookings]);
 
   // Fetch real structure
   const { data: floorsResponse, isLoading } = useQuery({
@@ -134,6 +171,33 @@ export default function ParkingLotManagementPage() {
     zoneName?: string;
   }>({ data: null, status: "available" });
 
+  const handleSliderChange = async (hour: number) => {
+    if (!lotId || !date) return;
+    setPreviewTime(hour);
+    setIsFetchingAvailable(true);
+
+    try {
+      const targetDate = new Date(date);
+      targetDate.setHours(hour, 0, 0, 0);
+      const startTimeISO = targetDate.toISOString();
+
+      const endOfHour = new Date(targetDate);
+      endOfHour.setMinutes(59, 59, 999);
+      const endTimeISO = endOfHour.toISOString();
+
+      const response = await parkingService.getAvailableMap(
+        lotId,
+        startTimeISO,
+        endTimeISO,
+      );
+      setAvailableMapData(response?.data || response);
+    } catch (error: any) {
+      toast.error("Lỗi khi tải dự báo sơ đồ");
+    } finally {
+      setIsFetchingAvailable(false);
+    }
+  };
+
   const currentFloor = floorsData.find((f) => f.id === selectedFloor);
   const activeZones = React.useMemo(() => {
     if (!currentFloor) return [];
@@ -158,12 +222,43 @@ export default function ParkingLotManagementPage() {
   }, [availableMapData]);
 
   const handleSlotClick = async (slot: ApiSlot) => {
-    // Tìm thông tin tầng và khu vực hiện tại để hiển thị tiêu đề
     const floor = floorsData.find((f) => f.id === selectedFloor);
     const currentZoneName =
       activeZones.length === 1 ? activeZones[0].name : "Khu vực";
 
-    if (slot.status === "OCCUPIED" || slot.status === "RESERVED") {
+    const isValidActive = validActiveSlotIds.has(slot.id.toString());
+    const effectiveStatus = isValidActive ? slot.status : "AVAILABLE";
+
+    if (effectiveStatus === "OCCUPIED" || effectiveStatus === "RESERVED") {
+      // Tìm booking tương ứng trong danh sách đã load sẵn
+      const activeBooking = lotBookings.find(
+        (b) =>
+          b.slotId.toString() === slot.id.toString() &&
+          (b.status === "ACTIVE" || b.status === "PENDING"),
+      );
+
+      if (activeBooking) {
+        setSelectedTicket({
+          data: {
+            ticketCode: activeBooking.id?.toString() || "N/A",
+            customerName: activeBooking.userName || "N/A",
+            licensePlate: activeBooking.licensePlate || "N/A",
+            position: slot.code,
+            startTime: new Date(activeBooking.startTime),
+            endTime: new Date(activeBooking.endTime),
+            price: activeBooking.totalPrice || 0,
+          },
+          status: effectiveStatus.toLowerCase() as any,
+          slotId: slot.id,
+          slotCode: slot.code,
+          floorName: currentFloor?.name,
+          zoneName: currentZoneName,
+        });
+        setIsTicketOpen(true);
+        return;
+      }
+
+      // Fallback: Nếu không tìm thấy trong list local, thử gọi API trực tiếp
       try {
         const response = await bookingService.getActiveBookingBySlot(slot.id);
         const bData = response?.data || response;
@@ -188,9 +283,17 @@ export default function ParkingLotManagementPage() {
         setIsTicketOpen(true);
       } catch (error: any) {
         console.error("Error fetching slot detail:", error);
-        toast.error("Không thể lấy thông tin chi tiết booking");
+        setSelectedTicket({
+          data: null,
+          status: effectiveStatus.toLowerCase() as any,
+          slotId: slot.id,
+          slotCode: slot.code,
+          floorName: currentFloor?.name,
+          zoneName: currentZoneName,
+        });
+        setIsTicketOpen(true);
       }
-    } else if (slot.status === "AVAILABLE") {
+    } else {
       setSelectedTicket({
         data: null,
         status: "available",
@@ -211,7 +314,7 @@ export default function ParkingLotManagementPage() {
 
     try {
       setIsFetchingAvailable(true);
-      
+
       // Combine date and time
       const combine = (timeStr: string) => {
         const d = new Date(date);
@@ -223,13 +326,19 @@ export default function ParkingLotManagementPage() {
       const startISO = combine(startTime);
       const endISO = combine(endTime);
 
-      const response = await parkingService.getAvailableMap(lotId, startISO, endISO);
-      
+      const response = await parkingService.getAvailableMap(
+        lotId,
+        startISO,
+        endISO,
+      );
+
       setAvailableMapData(response?.data || response);
       setIsFilterOpen(false);
       toast.success("Đã cập nhật bản đồ chỗ trống");
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Lỗi khi tải bản đồ chỗ trống");
+      toast.error(
+        error?.response?.data?.message || "Lỗi khi tải bản đồ chỗ trống",
+      );
     } finally {
       setIsFetchingAvailable(false);
     }
@@ -254,169 +363,273 @@ export default function ParkingLotManagementPage() {
         {role !== "staff" && <SiteHeader />}
 
         <div className="max-w-[1400px] mx-auto p-6 space-y-6 w-full">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-              Quản lý Bãi đỗ xe
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Thiết lập cấu trúc, quản lý sơ đồ và giám sát chỗ đỗ xe trực tuyến.
-            </p>
-          </div>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+            <div className="space-y-1">
+              <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+                Vận hành bãi đỗ
+              </h1>
+              <p className="text-slate-500 font-medium">
+                Quản lý cấu trúc tầng, khu vực và giám sát trạng thái ô đỗ trực
+                tuyến.
+              </p>
+            </div>
 
-          {/* TOP BAR: Button on Left, Date/Time on Right */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-card p-5 rounded-xl shadow-sm border border-border">
             <div className="flex items-center gap-3">
               {!hasData ? (
                 <Button
                   onClick={() => openConfigModal("setup")}
-                  variant="default"
+                  className="bg-black hover:bg-slate-800 text-white font-bold h-12 px-6 rounded-2xl shadow-lg shadow-slate-200 transition-all"
                 >
-                  <Settings className="w-4 h-4 mr-2" /> Thiết lập Sơ đồ
+                  <Settings className="w-4 h-4 mr-2" /> Thiết lập sơ đồ đầu tiên
                 </Button>
               ) : (
                 <Button
                   onClick={() => openConfigModal("edit")}
                   variant="outline"
+                  className="h-12 px-6 rounded-2xl border-slate-200 font-bold hover:bg-slate-50 transition-all"
                 >
-                  <Settings className="w-4 h-4 mr-1" /> Quản lý Sơ
-                  đồ
+                  <Settings className="w-4 h-4 mr-2" /> Cấu hình kỹ thuật & Giá
                 </Button>
               )}
-
-            </div>
-
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              {availableMapData && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleResetFilter}
-                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 font-bold h-11 px-4 transition-all"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" /> Xoá lọc
-                </Button>
-              )}
-
-              <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={availableMapData ? "default" : "outline"}
-                    className="h-10 px-4"
-                  >
-                    <Filter className="mr-2 h-4 w-4" />
-                    {availableMapData ? "Đang lọc" : "Bộ lọc thời gian"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[320px] p-5 rounded-2xl shadow-2xl border-slate-100" align="end">
-                  <div className="space-y-5">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-black text-slate-800 tracking-tight">Cấu hình thời gian</h4>
-                      <div className="p-1.5 bg-slate-100 rounded-lg text-slate-400">
-                        <Clock className="w-4 h-4" />
-                      </div>
-                    </div>
-                    
-                    {/* Date Picker Section */}
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ngày kiểm tra</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start text-left font-bold border-slate-200 h-10 bg-slate-50"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
-                            {date ? format(date, "PPP") : "Chọn ngày"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={date}
-                            onSelect={(d) => d && setDate(d)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    {/* Time Range Section */}
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Khoảng giờ (In - Out)</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="relative">
-                          <Input
-                            type="time"
-                            value={startTime}
-                            onChange={(e) => setStartTime(e.target.value)}
-                            className="h-10 border-slate-200 bg-slate-50 font-bold px-3"
-                          />
-                        </div>
-                        <div className="relative">
-                          <Input
-                            type="time"
-                            value={endTime}
-                            onChange={(e) => setEndTime(e.target.value)}
-                            className="h-10 border-slate-200 bg-slate-50 font-bold px-3"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex flex-col gap-2">
-                      <Button 
-                        variant="default"
-                        className="w-full"
-                        onClick={handleApplyFilter}
-                        disabled={isFetchingAvailable}
-                      >
-                        {isFetchingAvailable ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Search className="w-4 h-4 mr-2" />
-                        )}
-                        Áp dụng Lọc
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full text-slate-400 hover:text-slate-600 font-bold text-xs"
-                        onClick={() => setIsFilterOpen(false)}
-                      >
-                        Đóng
-                      </Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
             </div>
           </div>
+
+          {/* TOP BAR: Button on Left, Date/Time on Right */}
 
           {/* SELECTORS: Floor dropdown + Zone pills */}
           <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
             {/* Floor selector row */}
-            <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Layers className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">
-                  Tầng
-                </span>
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Layers className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 whitespace-nowrap">
+                    Tầng
+                  </span>
+                </div>
+                <Select value={selectedFloor} onValueChange={setSelectedFloor}>
+                  <SelectTrigger className="w-[180px] h-9 bg-slate-50 border-slate-200 font-bold text-sm shadow-none focus:ring-0">
+                    <SelectValue placeholder="Chọn tầng..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {floorsData.map((floor) => (
+                      <SelectItem
+                        key={floor.id}
+                        value={floor.id}
+                        className="font-semibold"
+                      >
+                        {floor.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={selectedFloor} onValueChange={setSelectedFloor}>
-                <SelectTrigger className="w-[220px] h-9 bg-slate-50 border-slate-200 font-bold text-sm shadow-none focus:ring-0">
-                  <SelectValue placeholder="Chọn tầng..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {floorsData.map((floor) => (
-                    <SelectItem
-                      key={floor.id}
-                      value={floor.id}
-                      className="font-semibold"
+
+              <div className="flex items-center gap-2">
+                {availableMapData && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleResetFilter}
+                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 font-bold h-9 px-3 transition-all"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" /> Xoá lọc
+                  </Button>
+                )}
+
+                <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={availableMapData ? "default" : "outline"}
+                      className="h-9 px-4 font-bold text-xs gap-2"
                     >
-                      {floor.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      <Filter className="h-3.5 w-3.5" />
+                      {availableMapData ? "Đang lọc" : "Bộ lọc thời gian"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[320px] p-5 rounded-2xl shadow-2xl border-slate-100"
+                    align="end"
+                  >
+                    <div className="space-y-5">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-black text-slate-800 tracking-tight">
+                          Cấu hình thời gian
+                        </h4>
+                        <div className="p-1.5 bg-slate-100 rounded-lg text-slate-400">
+                          <Clock className="w-4 h-4" />
+                        </div>
+                      </div>
+
+                      {/* Date Picker Section */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          Ngày kiểm tra
+                        </label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-bold border-slate-200 h-10 bg-slate-50"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
+                              {date ? format(date, "PPP") : "Chọn ngày"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={date}
+                              onSelect={(d) => d && setDate(d)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      {/* Time Range Section */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          Khoảng giờ (In - Out)
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="relative">
+                            <Input
+                              type="time"
+                              value={startTime}
+                              onChange={(e) => setStartTime(e.target.value)}
+                              className="h-10 border-slate-200 bg-slate-50 font-bold px-3"
+                            />
+                          </div>
+                          <div className="relative">
+                            <Input
+                              type="time"
+                              value={endTime}
+                              onChange={(e) => setEndTime(e.target.value)}
+                              className="h-10 border-slate-200 bg-slate-50 font-bold px-3"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 flex flex-col gap-2">
+                        <Button
+                          variant="default"
+                          className="w-full"
+                          onClick={handleApplyFilter}
+                          disabled={isFetchingAvailable}
+                        >
+                          {isFetchingAvailable ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <Search className="w-4 h-4 mr-2" />
+                          )}
+                          Áp dụng Lọc
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="w-full text-slate-400 hover:text-slate-600 font-bold text-xs"
+                          onClick={() => setIsFilterOpen(false)}
+                        >
+                          Đóng
+                        </Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+
+            {/* INTEGRATED TIMELINE CONTROL - NOW INSIDE THE MAIN CARD */}
+            <div className="px-6 py-4 border-t border-slate-50 bg-slate-50/30">
+              <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                {/* Status Indicator */}
+                <div className="flex items-center gap-4 shrink-0 lg:border-r lg:border-slate-200 lg:pr-6">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-2.5 h-2.5 rounded-full ${previewTime === null ? "bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-slate-300"}`}
+                      />
+                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-900">
+                        {previewTime === null ? "Trực tiếp" : "Mô phỏng"}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-bold mt-0.5 whitespace-nowrap">
+                      {previewTime === null
+                        ? "Live data"
+                        : `${previewTime}:00 | ${format(date, "dd/MM")}`}
+                    </p>
+                  </div>
+
+                  {previewTime !== null && (
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      onClick={() => {
+                        setPreviewTime(null);
+                        setAvailableMapData(null);
+                      }}
+                      className="h-8 w-8 rounded-full bg-white hover:bg-slate-900 hover:text-white text-slate-500 transition-all shadow-sm border border-slate-100"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Larger Timeline Slider */}
+                <div className="flex-1 flex flex-col gap-4">
+                  <div className="relative h-4 flex items-center">
+                    <div className="absolute left-0 right-0 h-1.5 bg-slate-200/50 rounded-full overflow-hidden">
+                      <div
+                        className="absolute h-full bg-slate-900 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${((previewTime ?? new Date().getHours()) / 23) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="23"
+                      step="1"
+                      value={previewTime ?? new Date().getHours()}
+                      onChange={(e) =>
+                        handleSliderChange(parseInt(e.target.value))
+                      }
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                    />
+                    <div
+                      className="absolute w-5 h-5 bg-white border-2 border-slate-900 rounded-full shadow-lg transition-all duration-300 pointer-events-none z-10 flex items-center justify-center"
+                      style={{
+                        left: `calc(${((previewTime ?? new Date().getHours()) / 23) * 100}% - 10px)`,
+                      }}
+                    >
+                      <div className="w-1.5 h-1.5 bg-slate-900 rounded-full" />
+                    </div>
+                  </div>
+
+                  {/* High Visibility Hour Labels */}
+                  <div className="flex justify-between px-0.5">
+                    {[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 23].map(
+                      (h) => (
+                        <div
+                          key={h}
+                          className="flex flex-col items-center gap-1.5"
+                        >
+                          <div
+                            className={`w-0.5 rounded-full ${h % 6 === 0 ? "h-2 bg-slate-400" : "h-1 bg-slate-200"}`}
+                          />
+                          <span
+                            className={`text-[12px] font-black transition-colors ${(previewTime ?? new Date().getHours()) === h ? "text-slate-900 scale-110" : "text-slate-300"}`}
+                          >
+                            {h}h
+                          </span>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Zone pills row */}
@@ -475,31 +688,47 @@ export default function ParkingLotManagementPage() {
           <div className="flex-1 bg-card rounded-xl shadow-sm border border-border overflow-hidden flex flex-col relative w-full">
             {/* Grid header bar */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/60 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <span className="text-sm font-bold text-slate-800 ">
-                  Sơ đồ bãi đỗ
-                </span>
-                <span className="text-slate-300 font-light">—</span>
-                <span className="text-sm font-bold text-slate-800 tracking-tight">
-                  {currentFloor?.name ?? ""}
-                </span>
-                {selectedZone !== "all" &&
-                  currentFloor?.zones.find((z) => z.id === selectedZone)
-                    ?.name && (
-                    <>
-                      <span className="text-slate-300">/</span>
-                      <span className="text-sm font-bold text-slate-600">
-                        {
-                          currentFloor?.zones.find((z) => z.id === selectedZone)
-                            ?.name
-                        }
-                      </span>
-                    </>
-                  )}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[15px] font-black text-slate-900 ">
+                    Sơ đồ bãi đỗ
+                  </span>
+                  <span className="text-slate-300 font-light">—</span>
+                  <span className="text-sm font-bold text-slate-600 tracking-tight">
+                    {currentFloor?.name ?? ""}
+                  </span>
+                </div>
+
+                <div className="hidden md:flex items-center gap-3 ml-4 pl-4 border-l border-slate-200">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[15px] font-bold uppercase tracking-widest text-slate-400">
+                      Quy mô:
+                    </span>
+                    <span className="text-[15px] font-black text-slate-700">
+                      {floorsData.reduce(
+                        (acc, f) =>
+                          acc +
+                          f.zones.reduce(
+                            (az, z) => az + (z as any).totalSlots,
+                            0,
+                          ),
+                        0,
+                      )}{" "}
+                      ô đỗ
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 ml-2">
+                    <span className="text-[15px] font-bold uppercase tracking-widest text-slate-400">
+                      Cấu trúc:
+                    </span>
+                    <span className="text-[15px] font-black text-slate-700">
+                      {floorsData.length} tầng /{" "}
+                      {floorsData.reduce((acc, f) => acc + f.zones.length, 0)}{" "}
+                      khu
+                    </span>
+                  </div>
+                </div>
               </div>
-              <span className="text-[11px] font-mono text-slate-400 bg-white border border-slate-200 px-2.5 py-1 rounded-full">
-                Tự động cập nhật mỗi 30s
-              </span>
             </div>
 
             <div className="flex-1 overflow-auto bg-slate-50/40 p-4 sm:p-8 relative min-h-[460px]">
@@ -567,6 +796,8 @@ export default function ParkingLotManagementPage() {
                             onSlotClick={handleSlotClick}
                             overrideSlots={zoneSlotsMap.get(z.zoneId)}
                             isPreviewMode={!!availableMapData}
+                            overdueSlotIds={overdueSlotIds}
+                            validActiveSlotIds={validActiveSlotIds}
                           />
                         ) : (
                           <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
@@ -614,6 +845,14 @@ export default function ParkingLotManagementPage() {
                 </div>
                 <span className="text-xs font-semibold text-orange-600">
                   Đã đặt trước
+                </span>
+              </div>
+
+              {/* Overdue */}
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-full animate-pulse">
+                <div className="w-4 h-7 rounded-sm bg-red-600 border-2 border-red-700 shadow-sm shrink-0" />
+                <span className="text-xs font-semibold text-red-600">
+                  Quá giờ
                 </span>
               </div>
             </div>
@@ -665,7 +904,6 @@ export default function ParkingLotManagementPage() {
             </div>
           </DialogContent>
         </Dialog>
-
       </SidebarInset>
     </SidebarProvider>
   );

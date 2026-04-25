@@ -67,22 +67,20 @@ export function SetupWizardTab({ onClose }: any) {
       }));
       setFloors(mappedFloors);
 
-      const mappedZones: any[] = [];
       floorsData.data.forEach((f: any) => {
-        if (f.parkingZone && Array.isArray(f.parkingZone)) {
-          f.parkingZone.forEach((z: any) => {
-            const prefixMatch = z.description?.match(/Tiền tố (.*)/);
-            const prefix = prefixMatch
-              ? prefixMatch[1].trim()
-              : z.zone_name.charAt(0);
+        const rawZones = f.parkingZone || f.parkingZones || f.zones || f.parking_zones || [];
+        if (Array.isArray(rawZones)) {
+          rawZones.forEach((z: any) => {
+            const pRule = z.pricingRule?.[0] || z.pricing_rule?.[0];
             mappedZones.push({
               id: z.id.toString(),
               floorId: f.id.toString(),
               name: z.zone_name,
               count: z.total_slots,
-              prefix: prefix,
-              priceHour: 20000,
-              priceDay: 150000,
+              prefix: z.prefix || z.zone_name.charAt(0).toUpperCase(),
+              priceHour: pRule?.price_per_hour ?? 20000,
+              priceDay: pRule?.price_per_day ?? 150000,
+              ruleId: pRule?.id,
             });
           });
         }
@@ -161,35 +159,33 @@ export function SetupWizardTab({ onClose }: any) {
             floor_number: index + 1,
             description: `Khu vực ${floor.name}`,
           });
-
-          // Unwrap logic tùy BE
           currentFloorId = floorRes.data?.id || floorRes.id;
-
-          if (!currentFloorId) {
-            throw new Error(`Không lấy được ID cho tầng: ${floor.name}`);
-          }
+        } else {
+          // Cập nhật tầng cũ
+          await parkingService.updateFloor(lotId, Number(floor.id), {
+            floor_name: floor.name,
+            floor_number: index + 1,
+          });
         }
 
-        // Bước 3: Thêm Khu vực (Zone) - Bắt đầu có Slots
+        if (!currentFloorId) {
+          throw new Error(`Không lấy được ID cho tầng: ${floor.name}`);
+        }
+
+        // Bước 3: Thêm/Cập nhật Khu vực (Zone)
         const floorZones = zones.filter((z) => z.floorId === floor.id);
         for (const zone of floorZones) {
           let currentZoneId = zone.id;
           const isNewZone = String(zone.id).startsWith("z_new");
 
           if (isNewZone) {
-            if (!zone.prefix || zone.prefix.trim() === "") {
-              throw new Error(
-                `Khu vực "${zone.name}" thiếu tiền tố mã ô đỗ (Prefix)`,
-              );
-            }
-
             const zoneRes = await parkingService.createZone(
               Number(currentFloorId),
               {
                 zone_name: zone.name,
                 prefix: zone.prefix,
                 total_slots: Number(zone.count),
-                description: `Khu vực ${zone.name} - Tiền tố ${zone.prefix}`,
+                description: `Khu vực ${zone.name}`,
               },
             );
 
@@ -199,7 +195,7 @@ export function SetupWizardTab({ onClose }: any) {
               throw new Error(`Không lấy được ID cho khu vực: ${zone.name}`);
             }
 
-            // Thêm giá tiền cho zone mới
+            // Tạo pricing rule mới
             await parkingService.createPricingRule({
               price_per_hour: Number(zone.priceHour),
               price_per_day: Number(zone.priceDay),
@@ -207,11 +203,49 @@ export function SetupWizardTab({ onClose }: any) {
               parking_lot_id: Number(lotId),
               parking_floor_id: Number(currentFloorId),
             });
+          } else {
+            // Cập nhật Khu vực cũ
+            await parkingService.updateZone(
+              Number(lotId),
+              Number(currentFloorId),
+              Number(currentZoneId),
+              {
+                zone_name: zone.name,
+                prefix: zone.prefix,
+                total_slots: Number(zone.count),
+              },
+            );
+
+            // Cập nhật hoặc tạo mới Pricing Rule
+            try {
+              if (zone.ruleId) {
+                await parkingService.updatePricingRule(
+                  Number(lotId),
+                  Number(currentFloorId),
+                  Number(currentZoneId),
+                  Number(zone.ruleId),
+                  {
+                    price_per_hour: Number(zone.priceHour),
+                    price_per_day: Number(zone.priceDay),
+                  },
+                );
+              } else {
+                await parkingService.createPricingRule({
+                  price_per_hour: Number(zone.priceHour),
+                  price_per_day: Number(zone.priceDay),
+                  parking_zone_id: Number(currentZoneId),
+                  parking_lot_id: Number(lotId),
+                  parking_floor_id: Number(currentFloorId),
+                });
+              }
+            } catch (err) {
+              console.warn("Pricing rule update failed in wizard:", err);
+            }
           }
         }
       }
 
-      // Bước cuối: Generate slots cho toàn bộ lot
+      // Bước cuối: Generate slots cho toàn bộ lot để đồng bộ lại
       await parkingService.generateSlotsForLot(Number(lotId));
     },
     onSuccess: () => {

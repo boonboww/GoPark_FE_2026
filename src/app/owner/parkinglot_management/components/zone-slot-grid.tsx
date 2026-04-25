@@ -36,6 +36,8 @@ interface ZoneSlotGridProps {
   onSlotClick?: (slot: ApiSlot) => void;
   overrideSlots?: ApiSlot[];
   isPreviewMode?: boolean;
+  overdueSlotIds?: string[];
+  validActiveSlotIds?: Set<string>;
 }
 
 // ──────────────────────────────────────────────────────────
@@ -68,7 +70,14 @@ export function ZoneSlotGrid({
   onSlotClick,
   overrideSlots,
   isPreviewMode = false,
+  overdueSlotIds = [],
+  validActiveSlotIds = new Set(),
 }: ZoneSlotGridProps) {
+  // Convert overdueSlotIds to strings for safe comparison
+  const overdueStrIds = React.useMemo(() => 
+    overdueSlotIds.map(id => id.toString()), 
+    [overdueSlotIds]
+  );
   const queryClient = useQueryClient();
   const queryKey = ["zoneSlots", lotId, floorId, zoneId];
 
@@ -278,10 +287,15 @@ export function ZoneSlotGrid({
           }`}
         >
           {slots.map((apiSlot) => {
+            // Self-healing logic: only show occupied/reserved if there's a valid booking
+            const isValidActive = validActiveSlotIds.has(apiSlot.id.toString());
+            const isOverdue = isValidActive && overdueStrIds.includes(apiSlot.id.toString());
+            const effectiveStatus = isValidActive ? apiSlot.status : "AVAILABLE";
+
             const mappedSlot = {
               id: String(apiSlot.id),
               label: apiSlot.code,
-              status: mapStatus(apiSlot.status),
+              status: isOverdue ? "overdue" : mapStatus(effectiveStatus),
               ticket: undefined,
             };
             return (

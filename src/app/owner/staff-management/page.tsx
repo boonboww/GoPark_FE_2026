@@ -55,6 +55,17 @@ import {
 import { userService } from "@/services/userService";
 import { useOwnerParkingLots } from "@/hooks/useOwnerParkingLots";
 
+import { StaffCard } from "./components/StaffCard";
+import { SiteHeader } from "@/components/site-header";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 const formSchema = z.object({
   email: z.string().min(1, {
     message: "Vui lòng nhập tên định danh.",
@@ -79,6 +90,7 @@ const formSchema = z.object({
 export default function StaffManagementPage() {
   const queryClient = useQueryClient();
   const [selectedLotId, setSelectedLotId] = React.useState<string | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
   
   const { data: parkingLots } = useOwnerParkingLots();
   
@@ -131,6 +143,7 @@ export default function StaffManagementPage() {
 
       toast.success("Tạo tài khoản nhân viên thành công!");
       queryClient.invalidateQueries({ queryKey: ["staff", selectedLotId] });
+      setIsCreateDialogOpen(false);
       form.reset({
         ...form.getValues(),
         email: "",
@@ -160,37 +173,41 @@ export default function StaffManagementPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <div className="flex-1 space-y-8 p-8 pt-6">
-          <div className="flex items-center justify-between">
+        <SiteHeader />
+        <div className="max-w-[1400px] mx-auto p-6 lg:p-8 space-y-8 w-full">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
             <div className="space-y-1">
-              <h2 className="text-3xl font-bold tracking-tight">Quản lý nhân viên</h2>
-              <p className="text-muted-foreground">
-                Quản lý đội ngũ nhân viên vận hành tại các bãi đỗ xe của bạn.
+              <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+                Đội ngũ nhân sự
+              </h1>
+              <p className="text-slate-500 font-medium max-w-lg">
+                Quản lý quyền truy cập và nhân viên vận hành tại các điểm đỗ xe.
               </p>
             </div>
-          </div>
 
-          <div className="grid gap-8 lg:grid-cols-7">
-            {/* Create Staff Form */}
-            <Card className="lg:col-span-3 h-fit border-sidebar-border bg-card/50 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserPlus className="h-5 w-5 text-primary" />
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-black hover:bg-slate-800 text-white font-bold px-8 py-7 rounded-[24px] shadow-xl shadow-slate-200 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3">
+                  <UserPlus className="w-6 h-6" />
                   Thêm nhân viên mới
-                </CardTitle>
-                <CardDescription>
-                  Tạo tài khoản mới cho nhân viên. Email sẽ được tự động định dạng theo bãi xe.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px] rounded-[32px] p-8 border-none shadow-2xl">
+                <DialogHeader className="mb-6">
+                  <DialogTitle className="text-2xl font-black text-slate-900">Tạo tài khoản mới</DialogTitle>
+                  <DialogDescription className="font-medium text-slate-500">
+                    Cấp quyền truy cập cho nhân viên vận hành tại bãi đỗ xe.
+                  </DialogDescription>
+                </DialogHeader>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                     <FormField
                       control={form.control}
                       name="parkingLotId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Chọn bãi đỗ xe</FormLabel>
+                          <FormLabel className="text-xs font-bold uppercase tracking-widest text-slate-400">Chọn bãi đỗ xe</FormLabel>
                           <Select
                             onValueChange={(val) => {
                               field.onChange(val);
@@ -199,13 +216,13 @@ export default function StaffManagementPage() {
                             value={field.value}
                           >
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-transparent focus:ring-0">
                                 <SelectValue placeholder="Chọn bãi đỗ xe" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="rounded-xl border-slate-100 shadow-xl">
                               {parkingLots?.map((lot) => (
-                                <SelectItem key={lot.id} value={lot.id.toString()}>
+                                <SelectItem key={lot.id} value={lot.id.toString()} className="rounded-lg">
                                   {lot.name}
                                 </SelectItem>
                               ))}
@@ -221,11 +238,11 @@ export default function StaffManagementPage() {
                       name="fullName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Họ và tên</FormLabel>
+                          <FormLabel className="text-xs font-bold uppercase tracking-widest text-slate-400">Họ và tên</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                              <Input placeholder="Nguyễn Văn A" className="pl-9" {...field} />
+                              <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                              <Input placeholder="Nguyễn Văn A" className="h-12 pl-12 rounded-xl bg-slate-50 border-transparent focus:ring-0" {...field} />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -233,53 +250,52 @@ export default function StaffManagementPage() {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tên định danh (Email prefix)</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                              <Input placeholder="hung" className="pl-9" {...field} />
-                            </div>
-                          </FormControl>
-                          <p className="text-[11px] text-muted-foreground mt-1">
-                             Hệ thống sẽ lưu thành: staff.{selectedLotId || "[id]"}.{field.value || "[tên]"}@gopark.com
-                          </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-bold uppercase tracking-widest text-slate-400">Tên định danh</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Input placeholder="hung" className="h-12 pl-10 rounded-xl bg-slate-50 border-transparent focus:ring-0 text-sm" {...field} />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Mật khẩu</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                              <Input type="password" placeholder="******" className="pl-9" {...field} />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                      <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-bold uppercase tracking-widest text-slate-400">Mật khẩu</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Input type="password" placeholder="******" className="h-12 pl-10 rounded-xl bg-slate-50 border-transparent focus:ring-0 text-sm" {...field} />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
                     <FormField
                       control={form.control}
                       name="phoneNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Số điện thoại</FormLabel>
+                          <FormLabel className="text-xs font-bold uppercase tracking-widest text-slate-400">Số điện thoại</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                              <Input placeholder="0987654321" className="pl-9" {...field} />
+                              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                              <Input placeholder="0987654321" className="h-12 pl-12 rounded-xl bg-slate-50 border-transparent focus:ring-0" {...field} />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -287,96 +303,83 @@ export default function StaffManagementPage() {
                       )}
                     />
 
-                    <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                    <Button type="submit" className="w-full h-14 rounded-2xl bg-black hover:bg-slate-800 text-white font-bold shadow-lg shadow-slate-200 mt-4" disabled={form.formState.isSubmitting}>
                       {form.formState.isSubmitting ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Đang xử lý...
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Đang tạo...
                         </>
                       ) : (
-                        "Tạo tài khoản"
+                        "Tạo tài khoản nhân viên"
                       )}
                     </Button>
                   </form>
                 </Form>
-              </CardContent>
-            </Card>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-            {/* Staff List */}
-            <Card className="lg:col-span-4 border-sidebar-border bg-card/50 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div>
-                  <CardTitle>Danh sách nhân viên</CardTitle>
-                  <CardDescription>
+          {/* Filters and List */}
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-[32px] border border-slate-100 shadow-sm">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm nhân viên..."
+                  className="w-full h-12 pl-12 pr-4 bg-slate-50 border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-black/5 transition-all text-sm font-medium"
+                />
+              </div>
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-2xl border border-transparent">
+                  <Building2 className="h-4 w-4 text-slate-400" />
+                  <Select value={selectedLotId || ""} onValueChange={setSelectedLotId}>
+                    <SelectTrigger className="w-[200px] border-none bg-transparent shadow-none focus:ring-0 font-bold text-xs">
+                      <SelectValue placeholder="Lọc theo bãi" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-100 shadow-xl">
+                      {parkingLots?.map((lot) => (
+                        <SelectItem key={lot.id} value={lot.id.toString()} className="text-xs font-medium">
+                          {lot.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {isLoadingStaff ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-64 bg-slate-50 rounded-[24px] animate-pulse border border-slate-100" />
+                ))}
+              </div>
+            ) : staffList && staffList.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {staffList.map((staff) => (
+                  <StaffCard 
+                    key={staff.id} 
+                    staff={staff} 
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="flex h-[400px] flex-col items-center justify-center space-y-4 rounded-[40px] bg-slate-50/50 border-2 border-dashed border-slate-200">
+                <div className="w-20 h-20 bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center justify-center mb-2">
+                   <User className="h-10 w-10 text-slate-200" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-slate-800">Chưa có nhân viên</h3>
+                  <p className="text-slate-500 font-medium max-w-xs mt-2">
                     {selectedLotId 
-                      ? `Nhân viên tại ${parkingLots?.find(l => l.id.toString() === selectedLotId)?.name}`
-                      : "Vui lòng chọn bãi đỗ xe để xem danh sách"}
-                  </CardDescription>
+                      ? "Bãi đỗ này chưa được phân công nhân viên vận hành."
+                      : "Vui lòng chọn bãi đỗ xe để xem danh sách nhân sự."}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                   <Building2 className="h-4 w-4 text-muted-foreground" />
-                   <Select value={selectedLotId || ""} onValueChange={setSelectedLotId}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Lọc theo bãi" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {parkingLots?.map((lot) => (
-                          <SelectItem key={lot.id} value={lot.id.toString()}>
-                            {lot.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                   </Select>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoadingStaff ? (
-                  <div className="flex h-[300px] items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                ) : staffList && staffList.length > 0 ? (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nhân viên</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead className="text-right">Thao tác</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {staffList.map((staff) => (
-                          <TableRow key={staff.id}>
-                            <TableCell>
-                              <div className="font-medium">{staff.profile?.name || "N/A"}</div>
-                              <div className="text-xs text-muted-foreground">{staff.profile?.phone || "N/A"}</div>
-                            </TableCell>
-                            <TableCell>
-                              <code className="rounded bg-muted px-1 py-0.5 text-xs">{staff.email}</code>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:bg-destructive/10"
-                                onClick={() => handleDelete(staff.id, staff.profile?.name || "Nhân viên")}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="flex h-[300px] flex-col items-center justify-center space-y-2 rounded-md border border-dashed">
-                    <Search className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-muted-foreground">Chưa có nhân viên nào tại bãi này.</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              </div>
+            )}
           </div>
         </div>
       </SidebarInset>

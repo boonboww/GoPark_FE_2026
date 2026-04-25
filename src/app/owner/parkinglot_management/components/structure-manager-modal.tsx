@@ -144,19 +144,44 @@ export function StructureManagerTab() {
 
       // 3. Update Pricing
       try {
-        const ruleId = Number(payload.rule_id ?? payload.id);
-        await parkingService.updatePricingRule(
-          lotId as number,
-          Number(payload.floorId),
-          Number(payload.id),
-          ruleId,
-          {
+        const ruleId = Number(payload.rule_id);
+        const hasValidRuleId = !isNaN(ruleId) && ruleId > 0;
+
+        if (hasValidRuleId) {
+          await parkingService.updatePricingRule(
+            lotId as number,
+            Number(payload.floorId),
+            Number(payload.id),
+            ruleId,
+            {
+              price_per_hour: Number(payload.priceHour),
+              price_per_day: Number(payload.priceDay),
+            },
+          );
+        } else {
+          // Nếu không có ruleId, tạo mới
+          await parkingService.createPricingRule({
             price_per_hour: Number(payload.priceHour),
             price_per_day: Number(payload.priceDay),
-          },
-        );
+            parking_zone_id: Number(payload.id),
+            parking_lot_id: Number(lotId),
+            parking_floor_id: Number(payload.floorId),
+          });
+        }
       } catch (err) {
-        console.warn("Pricing rule update failed (might not exist):", err);
+        console.warn("Pricing rule operation failed:", err);
+        // Fallback: Thử tạo mới nếu update lỗi 404
+        try {
+          await parkingService.createPricingRule({
+            price_per_hour: Number(payload.priceHour),
+            price_per_day: Number(payload.priceDay),
+            parking_zone_id: Number(payload.id),
+            parking_lot_id: Number(lotId),
+            parking_floor_id: Number(payload.floorId),
+          });
+        } catch (e) {
+          console.error("Create fallback failed:", e);
+        }
       }
     },
     onSuccess: () => {
@@ -311,11 +336,10 @@ export function StructureManagerTab() {
     setEditingZone(zone.id);
 
     // Lấy ruleId từ pricing_rule (nếu BE trả về) hoặc dùng zone.id làm fallback
-    const ruleId = zone.pricing_rule?.[0]?.id || zone.id;
-    const priceHour =
-      zone.pricing_rule?.[0]?.price_per_hour ?? zone.priceHour ?? 20000;
-    const priceDay =
-      zone.pricing_rule?.[0]?.price_per_day ?? zone.priceDay ?? 150000;
+    const pRule = zone.pricingRule?.[0] || zone.pricing_rule?.[0];
+    const ruleId = pRule?.id;
+    const priceHour = pRule?.price_per_hour ?? zone.priceHour ?? 20000;
+    const priceDay = pRule?.price_per_day ?? zone.priceDay ?? 150000;
 
     setZoneForm({
       floorId,
@@ -358,7 +382,7 @@ export function StructureManagerTab() {
             ) : (
               <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
             )}
-            Sync tất cả Slots
+            Đồng bộ tất cả ô đỗ
           </Button>
           <Button
             onClick={() => {
@@ -469,7 +493,12 @@ export function StructureManagerTab() {
         ) : (
           floors.map((floor: any) => {
             const isExpanded = expandedFloor === floor.id;
-            const zones: any[] = floor.parkingZone ?? [];
+            const zones: any[] =
+              floor.parkingZones ||
+              floor.parkingZone ||
+              floor.zones ||
+              floor.parking_zones ||
+              [];
 
             return (
               <div
@@ -495,7 +524,8 @@ export function StructureManagerTab() {
                       <p className="text-xs text-slate-400">
                         {zones.length} khu vực ·{" "}
                         {zones.reduce(
-                          (a: number, z: any) => a + (z.total_slots || 0),
+                          (a: number, z: any) =>
+                            a + (z.total_slots || z.totalSlots || 0),
                           0,
                         )}{" "}
                         chỗ đỗ
@@ -518,7 +548,7 @@ export function StructureManagerTab() {
                       ) : (
                         <RefreshCw className="w-3 h-3 mr-1" />
                       )}
-                      Sync tầng
+                      Đồng bộ tầng
                     </Button>
                     <Button
                       variant="outline"
@@ -802,7 +832,7 @@ export function StructureManagerTab() {
                                 ) : (
                                   <Zap className="w-3 h-3 mr-1" />
                                 )}
-                                Sync
+                                Đồng bộ sơ đồ
                               </Button>
                               <Button
                                 variant="outline"

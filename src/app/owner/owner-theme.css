@@ -1,5 +1,6 @@
 @layer base {
   .theme-owner {
+    font-family: var(--font-roboto), sans-serif !important;
     /* === Tasko/Donezo Style: Emerald 800 + Slate Blue === */
     
     /* Background: Slate-blue very light (like the reference) */

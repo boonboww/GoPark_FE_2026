@@ -1,19 +1,37 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, List } from "lucide-react";
-import ParkingLotList from "../account/ParkingLotList";
+import { Plus } from "lucide-react";
+import ParkingLotList from "./components/ParkingLotList";
 import { useOwnerParkingLots } from "@/hooks/useOwnerParkingLots";
-import { CreateLotModal } from "../parkinglot_management/components/create-lot-modal";
+import { CreateLotModal as CreateParkingLotDialog } from "../parkinglot_management/components/create-lot-modal";
+import EditParkingLotDialog from "../account/EditParkingLotDialog";
+import { useRouter } from "next/navigation";
+import { useCustomerStore } from "@/stores/customer.store";
+import { ParkingLotType } from "@/types/owner";
 
 export default function MyParkingLotsPage() {
+  const router = useRouter();
+  const setLotId = useCustomerStore((s) => s.setLotId);
   const { data: parkingLots = [], isLoading: isLoadingLots } =
     useOwnerParkingLots();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = React.useState(false);
+  const [editingLot, setEditingLot] = React.useState<ParkingLotType | null>(
+    null,
+  );
+
+  const handleManageLot = (lotId: number) => {
+    setLotId(lotId);
+    router.push("/owner/parkinglot_management");
+  };
+
+  const handleEditLot = (lot: ParkingLotType) => {
+    setEditingLot(lot);
+  };
 
   return (
     <SidebarProvider
@@ -27,39 +45,35 @@ export default function MyParkingLotsPage() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8 w-full">
+        <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-10 w-full">
           {/* Header Section */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div className="space-y-1">
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-                Bãi đỗ của tôi
-              </h1>
-              <p className="text-slate-500 font-medium max-w-lg">
-                Danh sách các bãi đỗ xe bạn đang sở hữu và vận hành trên hệ
-                thống
-              </p>
-            </div>
+          <div className="flex flex-col space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="space-y-1">
+                <div className="flex items-center gap-4">
+                  <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+                    Bãi đỗ của tôi
+                  </h1>
+                  <div className="px-3 py-1 bg-slate-100 rounded-full border border-slate-200">
+                    <span className="text-[18px] font-black text-slate-500">
+                      {parkingLots.length} bãi
+                    </span>
+                  </div>
+                </div>
+                <p className="text-slate-500 font-medium max-w-lg">
+                  Quản lý và theo dõi hiệu suất các điểm đỗ xe trong hệ thống
+                  của bạn.
+                </p>
+              </div>
 
-            <Button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-6 rounded-2xl shadow-lg shadow-slate-200 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Thêm bãi đỗ mới
-            </Button>
-          </div>
-
-          {/* Stats Summary (Optional - can be added later) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">
-                Tổng số bãi
-              </p>
-              <p className="text-3xl font-black text-slate-900">
-                {parkingLots.length}
-              </p>
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-black hover:bg-slate-800 text-white font-bold px-8 py-7 rounded-[24px] shadow-xl shadow-slate-200 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3"
+              >
+                <Plus className="w-6 h-6" />
+                Thêm bãi đỗ mới
+              </Button>
             </div>
-            {/* Add more stats if needed */}
           </div>
 
           {/* List Section */}
@@ -68,15 +82,22 @@ export default function MyParkingLotsPage() {
               <ParkingLotList
                 parkingLots={parkingLots}
                 isLoading={isLoadingLots}
+                onManage={handleManageLot}
+                onEdit={handleEditLot}
               />
             </div>
           </div>
         </div>
 
-        {/* Create Modal */}
-        <CreateLotModal
+        <CreateParkingLotDialog
           isOpen={isCreateModalOpen}
           onClose={() => setIsCreateModalOpen(false)}
+        />
+
+        <EditParkingLotDialog
+          parkingLot={editingLot}
+          open={!!editingLot}
+          onOpenChange={(open) => !open && setEditingLot(null)}
         />
       </SidebarInset>
     </SidebarProvider>

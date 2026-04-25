@@ -29,6 +29,9 @@ export const Slot = ({ slot, onClick, orientation = "top", size = "normal" }: an
     if (status === "occupied") {
       return { background: `linear-gradient(to top, #3b82f6 ${progress}%, #93c5fd ${progress}%)` };
     }
+    if (status === "overdue") {
+      return { background: "#ef4444" };
+    }
     return {};
   };
 
@@ -36,6 +39,7 @@ export const Slot = ({ slot, onClick, orientation = "top", size = "normal" }: an
     switch (status) {
       case "occupied": return "border-blue-600 bg-blue-100 text-blue-900";
       case "reserved": return "border-orange-500 bg-orange-500 text-white shadow-md";
+      case "overdue": return "border-red-700 bg-red-600 text-white shadow-lg animate-pulse ring-2 ring-red-500 ring-offset-1";
       case "available": default: return "border-dashed border-slate-300 bg-white text-slate-500 hover:border-slate-400 hover:text-slate-700";
     }
   };

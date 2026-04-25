@@ -32,6 +32,7 @@ class BookingService {
       if (rawStatus === "ONGOING") mappedStatus = "ACTIVE";
       else if (rawStatus === "COMPLETED") mappedStatus = "COMPLETED";
       else if (rawStatus === "CANCELLED") mappedStatus = "CANCELLED";
+      else if (rawStatus === "CONFIRMED") mappedStatus = "PENDING";
 
       return {
         id: item.id?.toString() || "",
