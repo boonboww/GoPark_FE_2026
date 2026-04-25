@@ -50,11 +50,11 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
   const getStatusBadge = (status: TransactionLog['status']) => {
     switch (status) {
       case 'PAID':
-        return <Badge className="bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 border-emerald-200">Đã thanh toán</Badge>;
+        return <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 transition-colors">Đã thanh toán</Badge>;
       case 'PENDING':
-        return <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 border-amber-200">Chờ xử lý</Badge>;
+        return <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-200 transition-colors">Chờ xử lý</Badge>;
       case 'FAILED':
-        return <Badge className="bg-rose-500/15 text-rose-600 hover:bg-rose-500/25 border-rose-200">Thất bại</Badge>;
+        return <Badge variant="destructive" className="bg-destructive/10 text-destructive hover:bg-destructive/20 border-destructive/20 transition-colors">Thất bại</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -136,7 +136,7 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
                   topParkingLots.map((lot) => (
                     <TableRow key={lot.id}>
                       <TableCell className="font-medium">{lot.name}</TableCell>
-                      <TableCell className="text-emerald-600 font-medium">
+                      <TableCell className="text-primary font-medium">
                         {formatCurrency(lot.totalRevenue)}
                       </TableCell>
                       <TableCell className="text-right">
@@ -144,7 +144,7 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
                           <span className="text-sm font-medium">{lot.occupancyRate}%</span>
                           <div className="w-12 bg-secondary h-1.5 rounded-full overflow-hidden">
                             <div 
-                              className={`h-full ${lot.occupancyRate > 90 ? 'bg-rose-500' : lot.occupancyRate > 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} 
+                              className={`h-full ${lot.occupancyRate > 90 ? 'bg-destructive' : lot.occupancyRate > 70 ? 'bg-amber-500' : 'bg-primary'}`} 
                               style={{ width: `${lot.occupancyRate}%` }} 
                             />
                           </div>

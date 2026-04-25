@@ -25,13 +25,13 @@ export function ParkingOccupancy({ data }: { data?: DashboardSummaryResponse['pa
           let alertBadge = null;
 
           if (occupancyRate >= 95) {
-            statusColor = "bg-rose-500";
+            statusColor = "bg-destructive";
             alertBadge = <Badge variant="destructive" className="ml-auto text-[10px] h-5">Quá tải</Badge>;
           } else if (occupancyRate >= 80) {
             statusColor = "bg-amber-500";
             alertBadge = <Badge variant="outline" className="ml-auto text-[10px] h-5 text-amber-500 border-amber-500">Sắp đầy</Badge>;
           } else {
-             alertBadge = <Badge variant="outline" className="ml-auto text-[10px] h-5 text-emerald-500 border-emerald-500">Trống</Badge>;
+             alertBadge = <Badge variant="outline" className="ml-auto text-[10px] h-5 text-primary border-primary/30 bg-primary/5">Trống</Badge>;
           }
 
           return (

@@ -100,9 +100,10 @@ export function get<T>(
  * POST request helper
  */
 export function post<T>(endpoint: string, data?: unknown): Promise<T> {
+  const body = data instanceof FormData ? data : JSON.stringify(data);
   return apiClient<T>(endpoint, {
     method: "POST",
-    body: JSON.stringify(data),
+    body: body as BodyInit,
   });
 }
 
@@ -110,9 +111,10 @@ export function post<T>(endpoint: string, data?: unknown): Promise<T> {
  * PUT request helper
  */
 export function put<T>(endpoint: string, data?: unknown): Promise<T> {
+  const body = data instanceof FormData ? data : JSON.stringify(data);
   return apiClient<T>(endpoint, {
     method: "PUT",
-    body: JSON.stringify(data),
+    body: body as BodyInit,
   });
 }
 
@@ -120,9 +122,10 @@ export function put<T>(endpoint: string, data?: unknown): Promise<T> {
  * PATCH request helper
  */
 export function patch<T>(endpoint: string, data?: unknown): Promise<T> {
+  const body = data instanceof FormData ? data : JSON.stringify(data);
   return apiClient<T>(endpoint, {
     method: "PATCH",
-    body: JSON.stringify(data),
+    body: body as BodyInit,
   });
 }
 

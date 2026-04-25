@@ -28,7 +28,11 @@ import { FormAddCustomer } from "./form_add_customer";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useCustomerStore } from "@/stores/customer.store";
 
+import { useAuthStore } from "@/stores/auth.store";
+
 export default function CustomerManagementPage() {
+  const { user } = useAuthStore();
+  const role = user?.role?.toLowerCase() || "user";
   const { customers, isLoading, isFetching, isError } = useCustomers();
   const { searchText, setSearchText, lotId } = useCustomerStore();
 
@@ -43,7 +47,7 @@ export default function CustomerManagementPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <SiteHeader />
+        {role !== "staff" && <SiteHeader />}
         <div className="max-w-[1400px] mx-auto p-6 space-y-6 w-full">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold text-foreground tracking-tight">
@@ -58,7 +62,7 @@ export default function CustomerManagementPage() {
             <CardContent className="p-6">
               <div className="flex flex-col gap-6">
                 {/* Toolbar */}
-              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2 flex-1 max-w-sm relative">
                     {isFetching && !isLoading ? (
                       <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
@@ -72,7 +76,7 @@ export default function CustomerManagementPage() {
                       onChange={(e) => setSearchText(e.target.value)}
                     />
                   </div>
-                  <Sheet>
+                  {/* <Sheet>
                     <SheetTrigger asChild>
                       <Button className="flex items-center gap-2">
                         <Plus className="h-4 w-4" />
@@ -82,7 +86,7 @@ export default function CustomerManagementPage() {
                     <SheetContent className="w-[400px] sm:w-[600px] sm:max-w-[calc(100vw-2rem)]">
                       <FormAddCustomer />
                     </SheetContent>
-                  </Sheet>
+                  </Sheet> */}
                 </div>
 
                 {/* Table */}

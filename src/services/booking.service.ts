@@ -54,6 +54,20 @@ class BookingService {
       };
     });
   }
+
+  /**
+   * Scan QR Code for Check-in/Check-out
+   * POST /api/v1/booking/scan
+   */
+  async scanBooking(content: string, gateId: string, image?: File): Promise<any> {
+    const formData = new FormData();
+    formData.append("content", content);
+    formData.append("gateId", gateId);
+    if (image) {
+      formData.append("image", image);
+    }
+    return post<any>(`/booking/scan`, formData);
+  }
 }
 
 export const bookingService = new BookingService();

@@ -21,7 +21,7 @@ import { DashboardSummaryResponse } from "@/types/dashboard"
 const chartConfig = {
   revenue: {
     label: "Doanh thu (VNĐ)",
-    color: "hsl(var(--primary))",
+    color: "var(--primary)",
   },
 } satisfies ChartConfig
 

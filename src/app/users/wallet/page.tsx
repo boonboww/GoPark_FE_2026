@@ -21,6 +21,8 @@ export default function WalletDashboardPage() {
   const { data: balance, isLoading: isFetchingWallet, isError: isWalletError, refetch: refetchWallet } = useWallet();
   const { data: transactions, isLoading: isFetchingTransactions } = useWalletTransactions();
   const [isActivating, setIsActivating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const handleActivateWallet = async () => {
     setIsActivating(true);
@@ -206,35 +208,69 @@ export default function WalletDashboardPage() {
           {isFetchingTransactions ? (
             <Loader2 className="h-8 w-8 animate-spin mx-auto" />
           ) : transactions && transactions.length > 0 ? (
-            transactions.map((tx: any) => {
-              const isDeposit = tx.type === 'DEPOSIT' || Number(tx.amount) > 0;
+            <>
+              {transactions
+                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                .map((tx: any) => {
+                  const isDeposit = tx.type === 'DEPOSIT' || Number(tx.amount) > 0;
 
-              return (
-                <div key={tx.id} className="flex justify-between p-4 border-b">
-                  <div>
-                    <p className="font-semibold">
-                      {tx.type === 'PAYMENT'
-                        ? 'Thanh toán đỗ xe'
-                        : tx.type === 'DEPOSIT'
-                        ? 'Nạp tiền VNPAY'
-                        : tx.type}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(tx.created_at || tx.createdAt).toLocaleString('vi-VN')}
-                    </p>
-                  </div>
+                  return (
+                    <div key={tx.id} className="flex justify-between p-4 border-b">
+                      <div>
+                        <p className="font-semibold">
+                          {tx.type === 'PAYMENT'
+                            ? 'Thanh toán đỗ xe'
+                            : tx.type === 'DEPOSIT'
+                            ? 'Nạp tiền VNPAY'
+                            : tx.type === 'REFUND'
+                            ? 'Hoàn tiền'
+                            : tx.type === 'WITHDRAW'
+                            ? 'Rút tiền'
+                            : tx.type}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(tx.created_at || tx.createdAt).toLocaleString('vi-VN')}
+                        </p>
+                      </div>
 
-                  <div className="text-right">
-                    <p className={`font-bold ${isDeposit ? 'text-green-600' : 'text-red-500'}`}>
-                      {isDeposit ? '+' : ''}{Number(tx.amount).toLocaleString('vi-VN')} ₫
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Số dư: {Number(tx.balance_after).toLocaleString('vi-VN')} ₫
-                    </p>
+                      <div className="text-right">
+                        <p className={`font-bold ${isDeposit ? 'text-green-600' : 'text-red-500'}`}>
+                          {isDeposit ? '+' : ''}{Number(tx.amount).toLocaleString('vi-VN')} ₫
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Số dư: {Number(tx.balance_after).toLocaleString('vi-VN')} ₫
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              
+              {Math.ceil(transactions.length / itemsPerPage) > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <span className="text-sm text-gray-500">
+                    Trang {currentPage} / {Math.ceil(transactions.length / itemsPerPage)}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Trước
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((p) => Math.min(Math.ceil(transactions.length / itemsPerPage), p + 1))}
+                      disabled={currentPage === Math.ceil(transactions.length / itemsPerPage)}
+                    >
+                      Tiếp
+                    </Button>
                   </div>
                 </div>
-              );
-            })
+              )}
+            </>
           ) : (
             <p className="text-center text-gray-500">Bạn chưa có giao dịch nào</p>
           )}

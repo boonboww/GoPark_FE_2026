@@ -1,0 +1,88 @@
+@layer base {
+  .theme-owner {
+    /* === Tasko/Donezo Style: Emerald 800 + Slate Blue === */
+    
+    /* Background: Slate-blue very light (like the reference) */
+    --background: oklch(0.957 0.008 240);
+    
+    /* Card: Pure white */
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.13 0.02 260);
+    
+    /* Primary: Deep Emerald 800 (#1a5c38 approx) */
+    --primary: oklch(0.39 0.12 163);
+    --primary-foreground: oklch(1 0 0);
+    --ring: oklch(0.39 0.12 163);
+    
+    /* Muted/Accent: Neutral grey for hovers */
+    --muted: oklch(0.963 0.003 247);
+    --muted-foreground: oklch(0.55 0.015 250);
+    --accent: oklch(0.955 0.005 247);
+    --accent-foreground: oklch(0.25 0.01 260);
+    
+    /* Border: Very light, barely visible */
+    --border: oklch(0.91 0.006 250);
+    --input: oklch(0.91 0.006 250);
+    
+    /* Foreground text */
+    --foreground: oklch(0.13 0.02 260);
+    
+    /* Sidebar: White background */
+    --sidebar: oklch(1 0 0);
+    --sidebar-foreground: oklch(0.45 0.015 250);
+    --sidebar-border: oklch(0.91 0.006 250);
+    
+    /* Sidebar Active (Pill) - Deep Emerald */
+    --sidebar-primary: oklch(0.39 0.12 163);
+    --sidebar-primary-foreground: oklch(1 0 0);
+    --sidebar-ring: oklch(0.39 0.12 163);
+    
+    /* Sidebar Hover */
+    --sidebar-accent: oklch(0.955 0.005 247);
+    --sidebar-accent-foreground: oklch(0.25 0.01 260);
+    
+    /* Destructive stays red */
+    --destructive: oklch(0.577 0.245 27.325);
+    
+    /* Chart Colors - Emerald palette inspired by reference charts */
+    --chart-1: oklch(0.39 0.12 163);   /* Deep Emerald 800 */
+    --chart-2: oklch(0.52 0.14 163);   /* Emerald 600 */
+    --chart-3: oklch(0.65 0.16 163);   /* Emerald 500 */
+    --chart-4: oklch(0.78 0.14 163);   /* Emerald 400 */
+    --chart-5: oklch(0.88 0.10 163);   /* Emerald 300 - light */
+  }
+
+  .dark .theme-owner {
+    /* Dark mode: Near-black base like Time Tracker & Download cards */
+    --background: oklch(0.15 0.015 163);
+    --card: oklch(0.19 0.018 163);
+    --card-foreground: oklch(0.95 0 0);
+    
+    --primary: oklch(0.65 0.16 163);
+    --primary-foreground: oklch(0.13 0.02 260);
+    --ring: oklch(0.65 0.16 163);
+    
+    --muted: oklch(0.23 0.02 163);
+    --muted-foreground: oklch(0.65 0.01 250);
+    --accent: oklch(0.23 0.02 163);
+    
+    --border: oklch(0.28 0.02 163);
+    --input: oklch(0.28 0.02 163);
+    --foreground: oklch(0.95 0 0);
+    
+    --sidebar: oklch(0.19 0.018 163);
+    --sidebar-foreground: oklch(0.75 0.01 250);
+    --sidebar-border: oklch(0.28 0.02 163);
+    --sidebar-primary: oklch(0.65 0.16 163);
+    --sidebar-primary-foreground: oklch(0.13 0.02 260);
+    --sidebar-accent: oklch(0.23 0.02 163);
+    --sidebar-accent-foreground: oklch(0.95 0 0);
+    
+    /* Chart Colors - dark mode */
+    --chart-1: oklch(0.65 0.16 163);
+    --chart-2: oklch(0.75 0.14 163);
+    --chart-3: oklch(0.82 0.12 163);
+    --chart-4: oklch(0.55 0.13 163);
+    --chart-5: oklch(0.45 0.11 163);
+  }
+}

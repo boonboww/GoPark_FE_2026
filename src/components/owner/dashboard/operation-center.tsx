@@ -47,14 +47,14 @@ export function OperationCenter({ alerts, overview }: OperationCenterProps) {
             <div className="flex items-center gap-2">
               <span className={cn(
                 "text-lg font-bold",
-                (overview?.revenueGrowth ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500"
+                (overview?.revenueGrowth ?? 0) >= 0 ? "text-primary" : "text-destructive"
               )}>
                 {(overview?.revenueGrowth ?? 0) >= 0 ? "+" : ""}{overview?.revenueGrowth}%
               </span>
               {(overview?.revenueGrowth ?? 0) >= 0 ? (
-                <IconTrendingUp size={18} className="text-emerald-500" />
+                <IconTrendingUp size={18} className="text-primary" />
               ) : (
-                <IconTrendingDown size={18} className="text-rose-500" />
+                <IconTrendingDown size={18} className="text-destructive" />
               )}
             </div>
           </div>
@@ -63,14 +63,14 @@ export function OperationCenter({ alerts, overview }: OperationCenterProps) {
             <div className="flex items-center gap-2">
               <span className={cn(
                 "text-lg font-bold",
-                (overview?.bookingsGrowth ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500"
+                (overview?.bookingsGrowth ?? 0) >= 0 ? "text-primary" : "text-destructive"
               )}>
                 {(overview?.bookingsGrowth ?? 0) >= 0 ? "+" : ""}{overview?.bookingsGrowth}%
               </span>
               {(overview?.bookingsGrowth ?? 0) >= 0 ? (
-                <IconTrendingUp size={18} className="text-emerald-500" />
+                <IconTrendingUp size={18} className="text-primary" />
               ) : (
-                <IconTrendingDown size={18} className="text-rose-500" />
+                <IconTrendingDown size={18} className="text-destructive" />
               )}
             </div>
           </div>
@@ -80,14 +80,14 @@ export function OperationCenter({ alerts, overview }: OperationCenterProps) {
         <div className="flex-1">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-semibold">Cảnh báo vận hành</h4>
-            {hasAlerts && <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{alerts.length}</span>}
+            {hasAlerts && <span className="bg-destructive text-destructive-foreground text-[10px] px-1.5 py-0.5 rounded-full font-bold">{alerts.length}</span>}
           </div>
           
           {hasAlerts ? (
             <div className="flex flex-col gap-3 max-h-[160px] overflow-y-auto pr-1">
               {alerts.map((alert) => (
-                <div key={alert.id} className="p-3 bg-rose-500/10 border border-rose-200 rounded-lg flex gap-3 text-sm text-rose-600 dark:text-rose-400 animate-in fade-in slide-in-from-right-2 duration-300">
-                  <IconAlertTriangle className="shrink-0 text-rose-500 mt-0.5" size={18} />
+                <div key={alert.id} className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex gap-3 text-sm text-destructive animate-in fade-in slide-in-from-right-2 duration-300">
+                  <IconAlertTriangle className="shrink-0 text-destructive mt-0.5" size={18} />
                   <div className="flex flex-col">
                     <span className="font-semibold line-clamp-1">{alert.lotName}</span>
                     <span className="opacity-90 text-xs">{alert.message}</span>
@@ -96,12 +96,12 @@ export function OperationCenter({ alerts, overview }: OperationCenterProps) {
               ))}
             </div>
           ) : (
-            <div className="p-4 border border-emerald-200 bg-emerald-500/5 rounded-xl flex flex-col items-center justify-center text-center gap-2 py-8">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+            <div className="p-4 border border-primary/20 bg-primary/5 rounded-xl flex flex-col items-center justify-center text-center gap-2 py-8">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                 <IconCircleCheck size={24} />
               </div>
               <div>
-                <span className="font-semibold text-emerald-600 block text-sm">Hệ thống an toàn</span>
+                <span className="font-semibold text-primary block text-sm">Hệ thống an toàn</span>
                 <span className="text-xs text-muted-foreground">Không có xe nào đỗ quá giờ.</span>
               </div>
             </div>

@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { ParkingLotType } from "@/types/owner";
+import EditParkingLotDialog from "./EditParkingLotDialog";
+import ParkingLotDetailDialog from "./ParkingLotDetailDialog";
 
 interface ParkingLotListProps {
   parkingLots: ParkingLotType[];
@@ -12,6 +14,14 @@ export default function ParkingLotList({
   parkingLots,
   isLoading,
 }: ParkingLotListProps) {
+  const [selectedLot, setSelectedLot] = useState<ParkingLotType | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const handleCardClick = (lot: ParkingLotType) => {
+    setSelectedLot(lot);
+    setIsDetailDialogOpen(true);
+  };
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -50,54 +60,70 @@ export default function ParkingLotList({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {parkingLots.map((lot) => (
-        <div
-          key={lot.id}
-          className="bg-card rounded-xl shadow-sm border border-border overflow-hidden hover:shadow-md hover:border-primary/50 transition-all group"
-        >
-          <div className="p-6">
-            <h3
-              className="text-lg font-bold text-foreground mb-3 group-hover:text-primary transition-colors line-clamp-1"
-              title={lot.name}
-            >
-              {lot.name}
-            </h3>
-
-            <div className="flex items-start gap-2 text-muted-foreground mb-5 h-10">
-              <svg
-                className="w-5 h-5 flex-shrink-0 mt-0.5 text-muted-foreground/60"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {parkingLots.map((lot) => (
+          <div
+            key={lot.id}
+            onClick={() => handleCardClick(lot)}
+            className="bg-card rounded-xl shadow-sm border border-border overflow-hidden hover:shadow-md hover:border-primary/50 transition-all group cursor-pointer"
+          >
+            <div className="p-6">
+              <h3
+                className="text-lg font-bold text-foreground mb-3 group-hover:text-primary transition-colors line-clamp-1"
+                title={lot.name}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                ></path>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                ></path>
-              </svg>
-              <p className="text-sm line-clamp-2">{lot.address}</p>
-            </div>
+                {lot.name}
+              </h3>
 
-            <div className="pt-4 border-t border-border flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">
-                Tổng số chỗ
-              </span>
-              <span className="inline-flex items-center justify-center px-3 py-1 text-sm font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
-                {lot.totalSlots}
-              </span>
+              <div className="flex items-start gap-2 text-muted-foreground mb-5 h-10">
+                <svg
+                  className="w-5 h-5 flex-shrink-0 mt-0.5 text-muted-foreground/60"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  ></path>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  ></path>
+                </svg>
+                <p className="text-sm line-clamp-2">{lot.address}</p>
+              </div>
+
+              <div className="pt-4 border-t border-border flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Tổng số chỗ
+                </span>
+                <span className="inline-flex items-center justify-center px-3 py-1 text-sm font-bold bg-primary/10 text-primary rounded-full border border-primary/20">
+                  {lot.totalSlots}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      <ParkingLotDetailDialog
+        parkingLot={selectedLot}
+        open={isDetailDialogOpen}
+        onOpenChange={setIsDetailDialogOpen}
+        onEditClick={() => setIsEditDialogOpen(true)}
+      />
+
+      <EditParkingLotDialog
+        parkingLot={selectedLot}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+      />
+    </>
   );
 }

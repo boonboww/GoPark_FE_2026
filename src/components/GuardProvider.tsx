@@ -1,8 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth.store";
+import { useCustomerStore } from "@/stores/customer.store";
+import { getStaffLotId } from "@/lib/utils";
 import { toast } from "sonner";
 
 // Các trang PUBLIC không cần đăng nhập
@@ -59,7 +61,14 @@ export function GuardProvider({ children }: { children: React.ReactNode }) {
       if (pathname === "/auth/login" || pathname === "/auth/register") {
         if (role === "admin") {
           router.replace("/admin");
-        } else if (role === "owner") {
+        } else if (role === "owner" || role === "staff") {
+          // If staff, auto-set their parking lot ID
+          if (role === "staff") {
+            const lotId = getStaffLotId(user?.email);
+            if (lotId) {
+              useCustomerStore.getState().setLotId(lotId);
+            }
+          }
           router.replace("/owner");
         } else {
           router.replace("/");
@@ -78,12 +87,21 @@ export function GuardProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
-      // -- Trang dành riêng cho OWNER
-      if (pathname.startsWith("/owner") && role !== "owner" && role !== "admin") {
-        toast.error(`Xin lỗi, trang này chỉ dành cho Chủ Bãi (Owner)! (Role: ${role})`);
+      // -- Trang dành riêng cho OWNER & STAFF (Common dashboard area)
+      if (pathname.startsWith("/owner") && role !== "owner" && role !== "staff" && role !== "admin") {
+        toast.error(`Xin lỗi, trang này chỉ dành cho Chủ Bãi hoặc Nhân viên! (Role: ${role})`);
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsAuthorized(false);
         router.replace(role === "admin" ? "/admin" : "/");
+        return;
+      }
+
+      // -- Trang chỉ OWNER mới được vào (Chặn STAFF)
+      const ownerOnlyRoutes = ["/owner/staff-management", "/owner/analytics", "/owner/reports", "/owner/wallet"];
+      if (ownerOnlyRoutes.some(route => pathname.startsWith(route)) && role === "staff") {
+        toast.error("Bạn không có quyền truy cập chức năng này!");
+        setIsAuthorized(false);
+        router.replace("/owner");
         return;
       }
 
@@ -92,7 +110,14 @@ export function GuardProvider({ children }: { children: React.ReactNode }) {
         if (role === "admin") {
           router.replace("/admin");
           return;
-        } else if (role === "owner") {
+        } else if (role === "owner" || role === "staff") {
+          // Ensure lotId is set for staff even if they didn't go through login redirect
+          if (role === "staff") {
+            const lotId = getStaffLotId(user?.email);
+            if (lotId) {
+              useCustomerStore.getState().setLotId(lotId);
+            }
+          }
           router.replace("/owner");
           return;
         }

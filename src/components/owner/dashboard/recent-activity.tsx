@@ -74,7 +74,7 @@ export function RecentActivity({ data }: { data?: DashboardSummaryResponse['rece
                     <Badge variant="outline" className="text-blue-500 border-blue-200 bg-blue-500/10">Đang đỗ</Badge>
                   )}
                   {booking.status === "OVERSTAY" && (
-                    <Badge variant="destructive" className="bg-rose-500">Quá giờ</Badge>
+                    <Badge variant="destructive">Quá giờ</Badge>
                   )}
                   {booking.status === "PENDING" && (
                     <Badge variant="outline" className="text-amber-500 border-amber-200 bg-amber-500/10">Chờ xác nhận</Badge>
@@ -83,7 +83,7 @@ export function RecentActivity({ data }: { data?: DashboardSummaryResponse['rece
                     <Badge variant="outline" className="text-amber-500 border-amber-200 bg-amber-500/10">Sắp tới</Badge>
                   )}
                   {booking.status === "COMPLETED" && (
-                    <Badge variant="outline" className="text-emerald-500 border-emerald-200 bg-emerald-500/10">Hoàn thành</Badge>
+                    <Badge variant="outline" className="text-primary border-primary/20 bg-primary/10">Hoàn thành</Badge>
                   )}
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground text-sm">
