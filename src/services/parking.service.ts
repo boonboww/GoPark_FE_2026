@@ -320,6 +320,34 @@ class ParkingService {
   async getSlotAvailability(slotId: number, date: string) {
     return get<any>(`/parking-lots/slots/${slotId}/availability?date=${date}`);
   }
+
+  /**
+   * Tạo bãi đỗ xe mới
+   * POST /parking-lots
+   */
+  async createParkingLot(payload: {
+    name: string;
+    address: string;
+    lat: number;
+    lng: number;
+    description?: string;
+    images?: File[];
+  }) {
+    const formData = new FormData();
+    formData.append("name", payload.name);
+    formData.append("address", payload.address);
+    formData.append("lat", payload.lat.toString());
+    formData.append("lng", payload.lng.toString());
+    if (payload.description) formData.append("description", payload.description);
+
+    if (payload.images && payload.images.length > 0) {
+      payload.images.forEach((file) => {
+        formData.append("images", file);
+      });
+    }
+
+    return post<any>("/parking-lots", formData);
+  }
 }
 
 export const parkingService = new ParkingService();

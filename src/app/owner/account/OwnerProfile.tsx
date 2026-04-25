@@ -17,7 +17,17 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Phone, Mail, MapPin, Camera, Lock, Edit3, Save, Eye, Loader2 } from "lucide-react";
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Camera,
+  Lock,
+  Edit3,
+  Save,
+  Eye,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 interface OwnerProfileProps {
@@ -27,10 +37,7 @@ interface OwnerProfileProps {
 
 type EditMode = "none" | "profile" | "password" | "avatar";
 
-export default function OwnerProfile({
-  profile,
-  onViewParkingLots,
-}: OwnerProfileProps) {
+export default function OwnerProfile({ profile }: OwnerProfileProps) {
   const [editMode, setEditMode] = useState<EditMode>("none");
   const [formData, setFormData] = useState({
     name: profile?.name || "",
@@ -71,10 +78,17 @@ export default function OwnerProfile({
   // ─── Mutation: Change Password ───────────────────────────────────────────────
   const changePasswordMutation = useMutation({
     mutationFn: (data: { currentPassword: string; newPassword: string }) =>
-      changePassword({ currentPassword: data.currentPassword, newPassword: data.newPassword }),
+      changePassword({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      }),
     onSuccess: () => {
       toast.success("Đổi mật khẩu thành công!");
-      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
       setEditMode("none");
     },
     onError: (err: Error) => {
@@ -87,9 +101,7 @@ export default function OwnerProfile({
       <Card className="w-full flex items-center justify-center p-12 border-none shadow-none bg-transparent">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-          <p className="text-muted-foreground font-medium">
-            Đang tải hồ sơ...
-          </p>
+          <p className="text-muted-foreground font-medium">Đang tải hồ sơ...</p>
         </div>
       </Card>
     );
@@ -101,7 +113,10 @@ export default function OwnerProfile({
       toast.error("Tên không được để trống.");
       return;
     }
-    updateProfileMutation.mutate({ name: formData.name, phone: formData.phone });
+    updateProfileMutation.mutate({
+      name: formData.name,
+      phone: formData.phone,
+    });
   };
 
   const handleSavePassword = (e: React.FormEvent) => {
@@ -159,8 +174,14 @@ export default function OwnerProfile({
               </div>
               <div className="grid gap-2">
                 <Label>Email</Label>
-                <Input value={profile.email} disabled className="bg-muted/50 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">Email không thể thay đổi.</p>
+                <Input
+                  value={profile.email}
+                  disabled
+                  className="bg-muted/50 text-muted-foreground"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Email không thể thay đổi.
+                </p>
               </div>
             </div>
             <div className="flex gap-3 justify-end pt-2">
@@ -196,7 +217,10 @@ export default function OwnerProfile({
                   placeholder="••••••••"
                   value={passwordData.currentPassword}
                   onChange={(e) =>
-                    setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                    setPasswordData({
+                      ...passwordData,
+                      currentPassword: e.target.value,
+                    })
                   }
                   disabled={changePasswordMutation.isPending}
                 />
@@ -209,7 +233,10 @@ export default function OwnerProfile({
                   placeholder="••••••••"
                   value={passwordData.newPassword}
                   onChange={(e) =>
-                    setPasswordData({ ...passwordData, newPassword: e.target.value })
+                    setPasswordData({
+                      ...passwordData,
+                      newPassword: e.target.value,
+                    })
                   }
                   disabled={changePasswordMutation.isPending}
                 />
@@ -222,7 +249,10 @@ export default function OwnerProfile({
                   placeholder="••••••••"
                   value={passwordData.confirmPassword}
                   onChange={(e) =>
-                    setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                    setPasswordData({
+                      ...passwordData,
+                      confirmPassword: e.target.value,
+                    })
                   }
                   disabled={changePasswordMutation.isPending}
                 />
@@ -329,7 +359,10 @@ export default function OwnerProfile({
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-4">
                 <Button
                   onClick={() => {
-                    setFormData({ name: profile.name, phone: profile.phone || "" });
+                    setFormData({
+                      name: profile.name,
+                      phone: profile.phone || "",
+                    });
                     setEditMode("profile");
                   }}
                   variant="default"
@@ -358,14 +391,6 @@ export default function OwnerProfile({
                   orientation="vertical"
                   className="h-8 mx-1 hidden md:block"
                 />
-                <Button
-                  onClick={onViewParkingLots}
-                  variant="secondary"
-                  size="sm"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Xem bãi đỗ xe
-                </Button>
               </div>
             </div>
           </div>
@@ -375,19 +400,27 @@ export default function OwnerProfile({
 
   const getTitle = () => {
     switch (editMode) {
-      case "profile": return "Chỉnh sửa thông tin";
-      case "password": return "Đổi mật khẩu";
-      case "avatar": return "Đổi ảnh đại diện";
-      default: return "Thông tin tài khoản";
+      case "profile":
+        return "Chỉnh sửa thông tin";
+      case "password":
+        return "Đổi mật khẩu";
+      case "avatar":
+        return "Đổi ảnh đại diện";
+      default:
+        return "Thông tin tài khoản";
     }
   };
 
   const getDescription = () => {
     switch (editMode) {
-      case "profile": return "Cập nhật tên và số điện thoại của bạn.";
-      case "password": return "Chọn mật khẩu mạnh để bảo vệ tài khoản.";
-      case "avatar": return "Tải ảnh đại diện chuyên nghiệp cho hồ sơ.";
-      default: return "Quản lý thông tin cá nhân của bạn.";
+      case "profile":
+        return "Cập nhật tên và số điện thoại của bạn.";
+      case "password":
+        return "Chọn mật khẩu mạnh để bảo vệ tài khoản.";
+      case "avatar":
+        return "Tải ảnh đại diện chuyên nghiệp cho hồ sơ.";
+      default:
+        return "Quản lý thông tin cá nhân của bạn.";
     }
   };
 

@@ -36,15 +36,11 @@ import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 import { TicketDetail, TicketData } from "./ticket-detail";
-import {
-  MockFloor,
-  MockZone,
-  MockSlot,
-  getMockTicket,
-} from "./components/mock-data";
+import { bookingService } from "@/services/booking.service";
 import { SetupWizardTab } from "./components/setup-wizard-modal";
 import { StructureManagerTab } from "./components/structure-manager-modal";
 import { ZoneSlotGrid, ApiSlot } from "./components/zone-slot-grid";
+import { CreateLotModal } from "./components/create-lot-modal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useQuery } from "@tanstack/react-query";
@@ -98,14 +94,7 @@ export default function ParkingLotManagementPage() {
           slots: [],
         })),
       };
-    }) as (MockFloor & {
-      floorId: number;
-      zones: (MockZone & {
-        zoneId: number;
-        floorId: number;
-        totalSlots: number;
-      })[];
-    })[];
+    });
   }, [floorsResponse]);
 
   const [selectedFloor, setSelectedFloor] = React.useState("");
@@ -161,33 +150,46 @@ export default function ParkingLotManagementPage() {
       const zones = f.parkingZones || f.zones || f.parking_zones || [];
       for (const zone of zones) {
         const slots = zone.slot || zone.slots || [];
-        // Chỉ lấy các slot còn trống
-        map.set(zone.id, slots.filter((s: any) => s.status === "AVAILABLE"));
+        // Hiển thị tất cả các slot theo trạng thái mà BE trả về (đã tính toán theo thời gian)
+        map.set(zone.id, slots);
       }
     }
     return map;
   }, [availableMapData]);
 
-  const handleSlotClick = (slot: ApiSlot) => {
+  const handleSlotClick = async (slot: ApiSlot) => {
     // Tìm thông tin tầng và khu vực hiện tại để hiển thị tiêu đề
-    const floor = floorsData.find(f => f.id === selectedFloor);
-    const zone = floor?.zones.find(z => z.id === selectedZone || floor.zones.some(sz => sz.id === slot.id.toString())); 
-    // Note: Trong thực tế ApiSlot nên trả về zone info, nếu không ta dựa vào state hiện tại
-    const currentZoneName = activeZones.length === 1 ? activeZones[0].name : "Khu vực";
+    const floor = floorsData.find((f) => f.id === selectedFloor);
+    const currentZoneName =
+      activeZones.length === 1 ? activeZones[0].name : "Khu vực";
 
     if (slot.status === "OCCUPIED" || slot.status === "RESERVED") {
-      const status = slot.status === "OCCUPIED" ? "occupied" : "reserved";
-      const mockTicket = getMockTicket(slot.code, status);
+      try {
+        const response = await bookingService.getActiveBookingBySlot(slot.id);
+        const bData = response?.data || response;
 
-      setSelectedTicket({
-        data: mockTicket,
-        status: status,
-        slotId: slot.id,
-        slotCode: slot.code,
-        floorName: currentFloor?.name,
-        zoneName: currentZoneName
-      });
-      setIsTicketOpen(true);
+        setSelectedTicket({
+          data: {
+            ticketCode: bData.id?.toString() || "N/A",
+            customerName:
+              bData.user?.profile?.name || bData.user?.email || "N/A",
+            licensePlate: bData.vehicle?.plate_number || "N/A",
+            position: slot.code,
+            startTime: new Date(bData.start_time),
+            endTime: new Date(bData.end_time),
+            price: bData.invoice?.[0]?.total || 0,
+          },
+          status: slot.status.toLowerCase() as any,
+          slotId: slot.id,
+          slotCode: slot.code,
+          floorName: currentFloor?.name,
+          zoneName: currentZoneName,
+        });
+        setIsTicketOpen(true);
+      } catch (error: any) {
+        console.error("Error fetching slot detail:", error);
+        toast.error("Không thể lấy thông tin chi tiết booking");
+      }
     } else if (slot.status === "AVAILABLE") {
       setSelectedTicket({
         data: null,
@@ -195,7 +197,7 @@ export default function ParkingLotManagementPage() {
         slotId: slot.id,
         slotCode: slot.code,
         floorName: currentFloor?.name,
-        zoneName: currentZoneName
+        zoneName: currentZoneName,
       });
       setIsTicketOpen(true);
     }
@@ -263,22 +265,25 @@ export default function ParkingLotManagementPage() {
 
           {/* TOP BAR: Button on Left, Date/Time on Right */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-card p-5 rounded-xl shadow-sm border border-border">
-            {!hasData ? (
-              <Button
-                onClick={() => openConfigModal("setup")}
-                variant="default"
-              >
-                <Settings className="w-4 h-4 mr-2" /> Thiết lập Sơ đồ
-              </Button>
-            ) : (
-              <Button
-                onClick={() => openConfigModal("edit")}
-                variant="outline"
-              >
-                <Settings className="w-4 h-4 mr-1" /> Quản lý Sơ
-                đồ
-              </Button>
-            )}
+            <div className="flex items-center gap-3">
+              {!hasData ? (
+                <Button
+                  onClick={() => openConfigModal("setup")}
+                  variant="default"
+                >
+                  <Settings className="w-4 h-4 mr-2" /> Thiết lập Sơ đồ
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => openConfigModal("edit")}
+                  variant="outline"
+                >
+                  <Settings className="w-4 h-4 mr-1" /> Quản lý Sơ
+                  đồ
+                </Button>
+              )}
+
+            </div>
 
             <div className="flex items-center gap-3 w-full md:w-auto">
               {availableMapData && (
@@ -660,6 +665,7 @@ export default function ParkingLotManagementPage() {
             </div>
           </DialogContent>
         </Dialog>
+
       </SidebarInset>
     </SidebarProvider>
   );

@@ -5,6 +5,8 @@ import {
   IconChartBar,
   IconDashboard,
   IconHelp,
+  IconLayoutGrid,
+  IconList,
   IconListDetails,
   IconMessageCircle,
   IconReport,
@@ -36,9 +38,14 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Quản lý bãi đỗ xe",
+      title: "Bãi đỗ của tôi",
+      url: "/owner/my-parking-lots",
+      icon: IconList,
+    },
+    {
+      title: "Sơ đồ bãi đỗ",
       url: "/owner/parkinglot_management",
-      icon: IconListDetails,
+      icon: IconLayoutGrid,
     },
     {
       title: "Lịch sử Booking",

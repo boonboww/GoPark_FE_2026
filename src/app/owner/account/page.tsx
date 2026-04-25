@@ -2,21 +2,13 @@
 
 import React from "react";
 import OwnerProfile from "./OwnerProfile";
-import ParkingLotList from "./ParkingLotList";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useAccountPage } from "./hooks/useAccountPage";
 
 export default function OwnerAccountPage() {
-  const {
-    profile,
-    parkingLots,
-    showParkingLots,
-    isLoadingLots,
-    handleViewParkingLots,
-  } = useAccountPage();
+  const { profile } = useAccountPage();
 
   return (
     <SidebarProvider
@@ -36,31 +28,12 @@ export default function OwnerAccountPage() {
               Tài Khoản
             </h1>
             <p className="text-sm text-muted-foreground">
-              Quản lý thông tin hồ sơ và danh sách các bãi đỗ xe của bạn.
+              Quản lý thông tin hồ sơ và bảo mật tài khoản của bạn.
             </p>
           </div>
 
           <div className="space-y-6">
-            <OwnerProfile
-              profile={profile}
-              onViewParkingLots={handleViewParkingLots}
-            />
-
-            {showParkingLots && (
-              <Card className="border-border bg-card shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-xl font-semibold">
-                    Bãi đỗ xe của tôi
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ParkingLotList
-                    parkingLots={parkingLots}
-                    isLoading={isLoadingLots}
-                  />
-                </CardContent>
-              </Card>
-            )}
+            <OwnerProfile profile={profile} />
           </div>
         </div>
       </SidebarInset>

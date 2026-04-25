@@ -99,18 +99,7 @@ export function NavUser({
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href={
-                        authUser?.role === "OWNER"
-                          ? "/owner/chat"
-                          : "/users/chat"
-                      }
-                    >
-                      <IconMessageCircle />
-                      Tin nhắn
-                    </Link>
-                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild></DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link
                       href={

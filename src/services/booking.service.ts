@@ -1,4 +1,4 @@
-import { get } from "@/lib/api";
+import { get, post } from "@/lib/api";
 import { Booking } from "@/types/booking";
 
 interface GetBookingsParams {
@@ -67,6 +67,14 @@ class BookingService {
       formData.append("image", image);
     }
     return post<any>(`/booking/scan`, formData);
+  }
+
+  /**
+   * Lấy booking đang hoạt động của 1 slot
+   * GET /api/v1/booking/active/slot/:slotId
+   */
+  async getActiveBookingBySlot(slotId: number): Promise<any> {
+    return get<any>(`/booking/active/slot/${slotId}`);
   }
 }
 

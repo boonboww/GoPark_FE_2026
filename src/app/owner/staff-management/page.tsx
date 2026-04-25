@@ -348,8 +348,8 @@ export default function StaffManagementPage() {
                         {staffList.map((staff) => (
                           <TableRow key={staff.id}>
                             <TableCell>
-                              <div className="font-medium">{staff.profile.name}</div>
-                              <div className="text-xs text-muted-foreground">{staff.profile.phone || "N/A"}</div>
+                              <div className="font-medium">{staff.profile?.name || "N/A"}</div>
+                              <div className="text-xs text-muted-foreground">{staff.profile?.phone || "N/A"}</div>
                             </TableCell>
                             <TableCell>
                               <code className="rounded bg-muted px-1 py-0.5 text-xs">{staff.email}</code>
@@ -359,7 +359,7 @@ export default function StaffManagementPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="text-destructive hover:bg-destructive/10"
-                                onClick={() => handleDelete(staff.id, staff.profile.name)}
+                                onClick={() => handleDelete(staff.id, staff.profile?.name || "Nhân viên")}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>

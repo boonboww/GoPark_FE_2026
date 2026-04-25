@@ -41,7 +41,6 @@ export function BookingDataTable() {
     undefined,
   );
   const [searchText, setSearchText] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState("ALL");
 
   const debouncedSearch = useDebounce(searchText, 500);
 
@@ -66,14 +65,11 @@ export function BookingDataTable() {
     endDate,
   });
 
-  // Apply status range filtering locally
+  // Chỉ hiển thị các booking đã hoàn thành (COMPLETED)
   const data = React.useMemo(() => {
-    let res = serverData || [];
-    if (statusFilter !== "ALL") {
-      res = res.filter((item) => item.status === statusFilter);
-    }
-    return res;
-  }, [serverData, statusFilter]);
+    const res = serverData || [];
+    return res.filter((item) => item.status === "COMPLETED");
+  }, [serverData]);
 
   const columns: ColumnDef<Booking>[] = [
     {
@@ -218,12 +214,11 @@ export function BookingDataTable() {
             />
           </div>
 
-          {(searchText || statusFilter !== "ALL" || dateRange) && (
+          {(searchText || dateRange) && (
             <Button
               variant="ghost"
               onClick={() => {
                 setSearchText("");
-                setStatusFilter("ALL");
                 setDateRange(undefined);
               }}
               className="h-11 text-slate-500 font-bold hover:text-rose-600 hover:bg-rose-50 rounded-xl"
