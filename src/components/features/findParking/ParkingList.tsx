@@ -93,7 +93,7 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
       <Button
         variant="secondary"
         size="icon"
-        className="absolute top-1/2 -translate-y-1/2 left-4 z-[999] shadow-md rounded-full bg-white dark:bg-[#064e3b] dark:text-white dark:hover:bg-[#10b981]"
+        className="absolute top-1/2 -translate-y-1/2 left-4 z-999 shadow-md rounded-full bg-white dark:bg-[#064e3b] dark:text-white dark:hover:bg-[#10b981]"
         onClick={() => setIsOpen(true)}
         title="Mở danh sách"
       >
@@ -128,7 +128,7 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
   };
 
   return (
-    <div className={`bg-background dark:bg-black border-r dark:border-white/10 h-full flex flex-col overflow-hidden transition-all duration-300 ease-in-out z-40 relative ${isFullScreen ? "w-full absolute inset-0 z-50" : "w-[350px] lg:w-[400px] shrink-0"}`}>
+    <div className={`bg-background dark:bg-black border-r dark:border-white/10 h-full flex flex-col overflow-hidden transition-all duration-300 ease-in-out z-40 relative ${isFullScreen ? "w-full absolute inset-0 z-50" : "w-87.5 lg:w-100 shrink-0"}`}>
       <div className="p-4 border-b dark:border-white/10 flex items-center justify-between">
         <div className="font-medium text-lg dark:text-white">
           {directionLot ? "Chỉ đường" : `Kết quả tìm kiếm (${parkingLots.length})`}
@@ -207,7 +207,7 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
                       {routeInfo.steps && routeInfo.steps.length > 0 && (
                         <div className="mt-4 border-t pt-4">
                           <h4 className="font-semibold text-sm mb-3">Chi tiết lộ trình (<span className="text-primary">{routeInfo.steps.filter(s => s.maneuver?.type === 'turn' || ['left', 'right', 'sharp right', 'sharp left', 'slight left', 'slight right'].includes(s.maneuver?.modifier)).length}</span> ngã rẽ)</h4>
-                          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                          <div className="space-y-3 max-h-75 overflow-y-auto pr-1">
                             {routeInfo.steps.map((step, idx) => (
                               <div key={idx} className="flex gap-3 text-sm items-start">
                                 <div className="mt-0.5 shrink-0 bg-secondary/30 p-1.5 rounded text-primary">
@@ -271,9 +271,9 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
               onClick={() => onSelectLot?.(lot)}
             >
               <div className="flex h-full">
-                <div className={`relative shrink-0 ${viewMode === "grid" ? "w-1/3 min-w-[120px]" : "w-[120px]"}`}>
+                <div className={`relative shrink-0 ${viewMode === "grid" ? "w-1/3 min-w-30" : "w-30"}`}>
                   <img
-                    src={lot.image || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=400&h=200&q=80"}
+                    src={lot.imageUrl || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=400&h=200&q=80"}
                     alt={lot.name}
                     className="h-full w-full object-cover"
                   />

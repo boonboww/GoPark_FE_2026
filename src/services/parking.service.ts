@@ -182,10 +182,10 @@ class ParkingService {
 
   /**
    * Lấy cấu trúc bãi đỗ xe (Tầng -> Khu vực -> Slots)
-   * GET /parking-lots/:id/structure (Giả định endpoint này tồn tại để load UI)
+   * Backward-compatible alias cho endpoint map hiện có.
    */
   async getParkingLotStructure(lotId: number) {
-    return get<any>(`/parking-lots/${lotId}/structure`);
+    return this.getParkingLotMap(lotId);
   }
 
   /**

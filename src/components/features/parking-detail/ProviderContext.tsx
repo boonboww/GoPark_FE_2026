@@ -2,7 +2,7 @@
 
 import { get } from "@/lib/api";
 import { useParams } from "next/navigation";
-import {  use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ParkingContext } from "./ParkingContext";
 
 function ParkingProvider({children} : {children : React.ReactNode}) {
@@ -13,11 +13,10 @@ function ParkingProvider({children} : {children : React.ReactNode}) {
     
     const params = useParams();
     const parkingLotId = params.id;
-    console.log("Parking Lot ID:", parkingLotId);
+
     useEffect(()=>{
-        get(`/parking-lots/map/${parkingLotId}`)
+        get(`/parking-lots/public/${parkingLotId}`)
         .then((res : any) => {
-            console.log(res.data);
             setDataLot(res.data);
         }).catch((error : any)=>{
             console.log(error);

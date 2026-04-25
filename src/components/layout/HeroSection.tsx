@@ -57,19 +57,56 @@ const formatDistance = (distanceKm: number | null) => {
   return `${distanceKm.toFixed(1)} km`;
 };
 
+const normalizeSlotStatus = (status?: string) => {
+  const normalized = (status || "").toUpperCase();
+  if (normalized === "BOOKED") return "RESERVED";
+  return normalized;
+};
+
+const countSlotsInStructure = (structure: any): number => {
+  const floors = structure?.parkingFloor || structure || [];
+  if (!Array.isArray(floors)) return 0;
+
+  return floors.reduce((total: number, floor: any) => {
+    const zones = floor?.parkingZones || floor?.zones || floor?.parking_zone || floor?.parking_zones || [];
+    if (!Array.isArray(zones)) return total;
+
+    const zoneSlots = zones.reduce((zoneTotal: number, zone: any) => {
+      const slots = zone?.slot || zone?.slots || zone?.parkingSlots || zone?.parking_slots || [];
+      return zoneTotal + (Array.isArray(slots) ? slots.length : 0);
+    }, 0);
+
+    return total + zoneSlots;
+  }, 0);
+};
+
+const hasStructureHierarchy = (structure: any): boolean => {
+  const floors = structure?.parkingFloor || structure || [];
+  if (!Array.isArray(floors) || floors.length === 0) return false;
+
+  return floors.some((floor: any) => {
+    const zones = floor?.parkingZones || floor?.zones || floor?.parking_zone || floor?.parking_zones || [];
+    return Array.isArray(zones);
+  });
+};
+
 const getSlotStatusClass = (status?: string) => {
-  if (status === "OCCUPIED") {
+  const normalizedStatus = normalizeSlotStatus(status);
+
+  if (normalizedStatus === "OCCUPIED") {
     return "bg-blue-500 border-blue-600 text-white shadow-sm";
   }
-  if (status === "RESERVED") {
+  if (normalizedStatus === "RESERVED") {
     return "bg-orange-500 border-orange-600 text-white shadow-sm";
   }
   return "bg-white dark:bg-stone-800 border-dashed border-gray-300 dark:border-stone-600 text-gray-700 dark:text-gray-200";
 };
 
 const getSlotBadge = (status?: string) => {
-  if (status === "OCCUPIED") return "Xe đang đỗ";
-  if (status === "RESERVED") return "Đã đặt trước";
+  const normalizedStatus = normalizeSlotStatus(status);
+
+  if (normalizedStatus === "OCCUPIED") return "Xe đang đỗ";
+  if (normalizedStatus === "RESERVED") return "Đã đặt trước";
   return "Chỗ trống";
 };
 
@@ -148,6 +185,7 @@ const normalizeOwner = (lot: Record<string, any>): ParkingLotOwner | null => {
 // Mock Data
 const mockAllParkings = [
   {
+    id: 1,
     name: "GoPark Complex Quận Cẩm Lệ",
     address: "18, Hòa Nam 6, Hòa Nam, Đà Nẵng",
     status: "Mở cửa",
@@ -168,6 +206,7 @@ const mockAllParkings = [
     bgImage: "book.png",
   },
   {
+    id: 2,
     name: "Bãi đỗ xe Trung tâm Vincom",
     address: "910A Ngô Quyền, Sơn Trà, Đà Nẵng",
     status: "Đang đông",
@@ -187,6 +226,7 @@ const mockAllParkings = [
     bgImage: "book.png", 
   },
   {
+    id: 3,
     name: "Bãi đỗ xe Sân bay Quốc tế",
     address: "Sân bay Đà Nẵng, Hải Châu, Đà Nẵng",
     status: "Mở cửa",
@@ -263,30 +303,11 @@ const HeroSection = () => {
                 { label: "Hoạt động", sub: lot.operating_days || "Thứ 2 - CN", icon: Clock, color: "text-amber-500" },
                 { label: "Trạng thái", sub: (!lot.status || lot.status === "ACTIVE" || lot.available_slots > 0) ? "Sẵn sàng" : "Đã đầy", icon: Shield, color: "text-purple-500" }
               ],
-              bgImage: lot.image || "book.png",
+              bgImage: (typeof lot.image === 'string' && lot.image.startsWith('{') ? (() => { try { const p = JSON.parse(lot.image); return p.thumbnail || p.gallery?.[0] || 'book.png'; } catch { return lot.image; } })() : (typeof lot.image === 'object' ? lot.image?.thumbnail || lot.image?.gallery?.[0] || 'book.png' : lot.image)) || "book.png",
               owner: normalizeOwner(lot),
             };
           });
-
-          const hydratedParkings = await Promise.all(
-            mappedParkings.map(async (lot) => {
-              try {
-                const detailRes = await parkingService.getParkingLotMap(lot.id);
-                const detailData = detailRes?.data ?? detailRes ?? null;
-                const detailOwner = detailData ? normalizeOwner(detailData) : null;
-
-                return {
-                  ...lot,
-                  owner: detailOwner || lot.owner,
-                };
-              } catch (detailError) {
-                console.warn(`Không lấy được dữ liệu map cho bãi đỗ ${lot.id}:`, detailError);
-                return lot;
-              }
-            }),
-          );
-
-          setParkings(hydratedParkings);
+          setParkings(mappedParkings);
         }
       } catch (err) {
         console.error("Lỗi lấy dữ liệu bãi đỗ:", err);
@@ -339,43 +360,23 @@ const HeroSection = () => {
     if (!selectedLayoutLotId) return;
     if (layoutStructureByLotId[selectedLayoutLotId]) return;
 
-    const fetchStructure = async () => {
-      try {
-        setLayoutLoading(true);
-        setLayoutError(null);
-        const res = await parkingService.getParkingLotMap(selectedLayoutLotId);
-        const structure = res?.data ?? res ?? null;
-        if (structure) {
-          setLayoutStructureByLotId((prev) => ({
-            ...prev,
-            [selectedLayoutLotId]: structure,
-          }));
-        } else {
-          setLayoutError("Bãi đỗ này chưa có sơ đồ cấu trúc.");
-        }
-      } catch (error) {
-        try {
-          const fallback = await parkingService.getParkingLotStructure(selectedLayoutLotId);
-          const fallbackStructure = fallback?.data ?? fallback ?? null;
-          if (fallbackStructure) {
-            setLayoutStructureByLotId((prev) => ({
-              ...prev,
-              [selectedLayoutLotId]: fallbackStructure,
-            }));
-            return;
-          }
-        } catch (fallbackError) {
-          console.error("Lỗi lấy sơ đồ bãi đỗ:", fallbackError);
-        }
+    setLayoutLoading(false);
+    setLayoutError(null);
 
-        setLayoutError("Không tải được sơ đồ bãi đỗ.");
-      } finally {
-        setLayoutLoading(false);
-      }
-    };
+    const selectedLot = parkings.find((lot) => lot.id === selectedLayoutLotId);
+    const existingStructure = selectedLot?.parkingFloor;
+    const hasHierarchy = hasStructureHierarchy(existingStructure);
 
-    fetchStructure();
-  }, [activeTab, selectedLayoutLotId, layoutStructureByLotId]);
+    if (existingStructure && hasHierarchy) {
+      setLayoutStructureByLotId((prev) => ({
+        ...prev,
+        [selectedLayoutLotId]: existingStructure,
+      }));
+      return;
+    }
+
+    setLayoutError("Bãi đỗ này chưa có cấu trúc tầng/khu vực.");
+  }, [activeTab, selectedLayoutLotId, layoutStructureByLotId, parkings]);
 
   const selectedLayoutLot = useMemo(() => {
     return parkings.find((lot) => lot.id === selectedLayoutLotId) || null;
@@ -546,7 +547,7 @@ const HeroSection = () => {
 
                   <div className="space-y-5">
                     {(selectedLayoutStructure?.parkingFloor || selectedLayoutStructure || []).map((floor: any, floorIndex: number) => {
-                      const zones = floor.parkingZones || floor.zones || floor.parking_zone || [];
+                      const zones = floor.parkingZones || floor.zones || floor.parking_zone || floor.parking_zones || [];
 
                       return (
                         <div key={floor.id || floorIndex} className="rounded-[2rem] bg-white/90 dark:bg-stone-800/90 border border-black/5 dark:border-white/10 p-5 shadow-sm">
@@ -560,7 +561,9 @@ const HeroSection = () => {
 
                           <div className="space-y-5">
                             {zones.map((zone: any) => {
-                              const slots = (zone.slot || zone.slots || []).slice().sort((a: any, b: any) => Number(a.id) - Number(b.id));
+                              const slots = (zone.slot || zone.slots || zone.parkingSlots || zone.parking_slots || [])
+                                .slice()
+                                .sort((a: any, b: any) => Number(a.id) - Number(b.id));
 
                               return (
                                 <div key={zone.id} className="flex flex-col lg:flex-row gap-4 lg:items-start">
@@ -572,12 +575,13 @@ const HeroSection = () => {
                                   <div className="flex-1 overflow-x-auto pb-1">
                                     <div className="flex gap-3 flex-wrap min-w-90">
                                       {slots.map((slot: any) => {
-                                        const isAvailable = slot.status === "AVAILABLE";
+                                        const slotStatus = normalizeSlotStatus(slot.status);
+                                        const isAvailable = slotStatus === "AVAILABLE";
 
                                         return (
                                           <div
                                             key={slot.id}
-                                            className={`min-w-18 h-20 rounded-2xl border-2 p-2 flex flex-col justify-between transition-all ${getSlotStatusClass(slot.status)}`}
+                                            className={`min-w-18 h-20 rounded-2xl border-2 p-2 flex flex-col justify-between transition-all ${getSlotStatusClass(slotStatus)}`}
                                           >
                                             <div className="flex items-center justify-between gap-2">
                                               <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">{slot.code || slot.name || "Slot"}</span>
@@ -588,11 +592,16 @@ const HeroSection = () => {
                                               )}
                                             </div>
                                             <div className="text-[11px] font-semibold leading-tight">
-                                              {getSlotBadge(slot.status)}
+                                              {getSlotBadge(slotStatus)}
                                             </div>
                                           </div>
                                         );
                                       })}
+                                      {slots.length === 0 && (
+                                        <div className="min-h-18 rounded-2xl border border-dashed border-gray-300 dark:border-stone-700 px-4 py-3 text-xs text-gray-500 dark:text-gray-400 bg-white/60 dark:bg-stone-900/50 flex items-center">
+                                          Khu vực này đã có cấu trúc, nhưng chưa có dữ liệu vị trí đỗ chi tiết trong API public.
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
