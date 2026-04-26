@@ -1,10 +1,11 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MapPin, Clock, Ticket, BadgeCheck, Zap, Navigation, Plus, User as UserIcon, Search, Settings, Send, PhoneCall, Shield, Home, Car, ChevronDown, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { MapPin, Clock, Ticket, BadgeCheck, Zap, Navigation, Plus, User as UserIcon, Search, Settings, Send, PhoneCall, Shield, Home, Car, ChevronDown, X, ChevronLeft, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
 import { parkingService } from "@/services/parking.service";
 import { ParkingMap } from "@/components/features/findParking/ParkingMap";
+import { useSearchParams } from "next/navigation";
 
 type ParkingLotRecord = Record<string, any> & {
   id: number;
@@ -223,7 +224,7 @@ const mockAllParkings = [
       { label: "Chỗ trống", sub: "12 rảnh", icon: Shield, color: "text-emerald-500" },
       { label: "Hoạt động", sub: "8:00 - 22:00", icon: Zap, color: "text-amber-500" },
     ],
-    bgImage: "book.png", 
+    bgImage: "book.png",
   },
   {
     id: 3,
@@ -264,6 +265,17 @@ const HeroSection = () => {
   const [locationLoading, setLocationLoading] = useState(false);
   const [hasRequestedLocation, setHasRequestedLocation] = useState(false);
 
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+
+  // Tự động chuyển tab dựa trên tham số URL
+  useEffect(() => {
+    const validTabs = ["all", "layout", "nearby"];
+    if (tabParam && validTabs.includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -272,7 +284,7 @@ const HeroSection = () => {
         setLoading(true);
         const res = await parkingService.getAllParkingLots();
         const data = res.data || (Array.isArray(res) ? res : []);
-        
+
         if (data.length > 0) {
           const mappedParkings = data.map((lot: Record<string, any>) => {
             const openTimeStr = lot.open_time ? new Date(lot.open_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : null;
@@ -442,7 +454,7 @@ const HeroSection = () => {
 
   return (
     <section className="relative w-full min-h-screen bg-[#F0F2F5] dark:bg-stone-900 overflow-hidden font-sans p-4 sm:p-6 md:p-10 flex flex-col">
-      
+
       {/* BACKGROUND GRADIENT/DECORATION */}
       <div className="absolute top-0 left-0 w-full h-[60vh] bg-linear-to-br from-gray-200 to-gray-100 dark:from-stone-800 dark:to-stone-900 -z-10 rounded-b-[3rem] md:rounded-b-[4rem]" />
 
@@ -459,7 +471,7 @@ const HeroSection = () => {
           >
             Gần tôi
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab("layout")}
             className={`px-4 sm:px-6 py-2 cursor-pointer rounded-full text-xs sm:text-sm font-semibold transition whitespace-nowrap ${activeTab === "layout" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white font-medium"}`}
           >
@@ -491,26 +503,26 @@ const HeroSection = () => {
         <div className="flex-1 w-full mx-auto z-10 mt-6 animate-in fade-in slide-in-from-bottom-8">
           <div className="bg-white/60 dark:bg-stone-900/60 backdrop-blur-2xl rounded-[2rem] xl:rounded-[3rem] shadow-xl border border-white/40 dark:border-white/10 p-6 lg:p-10 flex flex-col min-h-[60vh]">
             <div className="flex flex-col xl:flex-row justify-between gap-4 xl:items-end mb-8 shrink-0">
-               <div>
-                 <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
-                   <Car className="text-blue-500 w-8 h-8" /> Sơ đồ bãi đỗ
-                 </h2>
-                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Xem cấu trúc tầng, khu vực và vị trí đỗ của từng bãi.</p>
-               </div>
-               <div className="flex items-center gap-3">
-                 <select
-                   value={selectedLayoutLotId ?? ""}
-                   onChange={(e) => setSelectedLayoutLotId(Number(e.target.value))}
-                   className="bg-white dark:bg-stone-800 border border-gray-200 dark:border-stone-700 rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm outline-none"
-                 >
-                   {parkings.map((lot) => (
-                     <option key={lot.id} value={lot.id}>{lot.name}</option>
-                   ))}
-                 </select>
-                 <button onClick={() => setActiveTab('all')} className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/20 transition">
-                   <X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-                 </button>
-               </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+                  <Car className="text-blue-500 w-8 h-8" /> Sơ đồ bãi đỗ
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Xem cấu trúc tầng, khu vực và vị trí đỗ của từng bãi.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <select
+                  value={selectedLayoutLotId ?? ""}
+                  onChange={(e) => setSelectedLayoutLotId(Number(e.target.value))}
+                  className="bg-white dark:bg-stone-800 border border-gray-200 dark:border-stone-700 rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm outline-none"
+                >
+                  {parkings.map((lot) => (
+                    <option key={lot.id} value={lot.id}>{lot.name}</option>
+                  ))}
+                </select>
+                <button onClick={() => setActiveTab('all')} className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/20 transition">
+                  <X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-auto custom-scrollbar">

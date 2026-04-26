@@ -38,36 +38,32 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
   const [extraAmount, setExtraAmount] = useState(0);
   const [loadingPrice, setLoadingPrice] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // State lưu thông tin đơn giá thực tế từ BE
+
   const [pricingInfo, setPricingInfo] = useState({
     pricePerHour: 0,
     priceDay: 0,
     zoneName: ""
   });
 
-  
   useEffect(() => {
     if (!isOpen || !booking) return;
 
-    // 1. Khởi tạo giờ nếu chưa có
     if (!newEndTime) {
       const initialTime = dayjs(booking.end_time).add(1, 'hour').format("YYYY-MM-DDTHH:mm");
       setNewEndTime(initialTime);
     }
 
-    // 2. Gọi API Preview giá
     const fetchPreviewPrice = async () => {
       const isValidTime = newEndTime && dayjs(newEndTime).isAfter(dayjs(booking.end_time));
-      
+
       if (isValidTime) {
         setLoadingPrice(true);
         try {
           const res = (await patch(`/booking/${booking.id}/extend`, {
             new_end_time: dayjs(newEndTime).toISOString(),
-            isPreview: true 
-          })) as any; 
-          
+            isPreview: true
+          })) as any;
+
           if (res?.data) {
             setExtraAmount(res.data.extraAmount || 0);
             setPricingInfo({
@@ -87,7 +83,7 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
       }
     };
 
-    const timer = setTimeout(fetchPreviewPrice, 300); // Debounce 300ms để tránh gọi API liên tục khi chọn giờ
+    const timer = setTimeout(fetchPreviewPrice, 300);
     return () => clearTimeout(timer);
 
   }, [newEndTime, booking, isOpen]);
@@ -118,65 +114,97 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[450px] p-6 rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-bold">Gia hạn thời gian đỗ</DialogTitle>
+      <DialogContent className="sm:max-w-[460px] p-0 rounded-3xl overflow-hidden border border-gray-300 shadow-2xl bg-white max-h-[95vh] overflow-y-auto">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle className="text-xl font-bold text-gray-800">Gia hạn thời gian đỗ</DialogTitle>
         </DialogHeader>
-      
-        {/* Thông tin giờ cũ */}
-        <div className="grid grid-cols-2 gap-4 mb-4 mt-2">
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 opacity-60">
-            <p className="text-[10px] text-gray-400 font-bold uppercase">Giờ vào</p>
-            <p className="font-bold text-gray-400">{dayjs(booking.start_time).format("HH:mm - DD/MM")}</p>
-          </div>
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 opacity-60">
-            <p className="text-[10px] text-gray-400 font-bold uppercase">Giờ ra cũ</p>
-            <p className="font-bold text-gray-400">{dayjs(booking.end_time).format("HH:mm - DD/MM")}</p>
-          </div>
-        </div>
 
-        {/* Input chọn giờ mới */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold text-gray-500 uppercase pl-1">NGÀY RA MỚI</label>
-            <input
-              type="date"
-              min={oldEndTimeDate}
-              value={newEndTime ? newEndTime.split('T')[0] : ""}
-              onChange={(e) => setNewEndTime(`${e.target.value}T${getHH(newEndTime)}:${getMM(newEndTime)}`)}
-              className="w-full h-12 px-4 bg-white border border-[#E9ECEF] rounded-[12px] font-bold text-sm focus:border-blue-500 outline-none"
-            />
+        <div className="p-6 pt-0 space-y-4">
+          {/* Section 1: Pricing Info */}
+          <div className="bg-blue-50 p-4 rounded-2xl flex items-center gap-4 border border-blue-100">
+            <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+              <span className="text-blue-600 font-black text-lg">P</span>
+            </div>
+            <div>
+              <p className="text-blue-600 text-xs font-bold uppercase tracking-wider mb-0.5">
+                ĐƠN GIÁ KHU VỰC: {pricingInfo.zoneName || "..."}
+              </p>
+              <p className="text-gray-800 text-base font-medium">
+                Giá giờ/ngày: {pricingInfo.pricePerHour.toLocaleString()}đ / {pricingInfo.priceDay.toLocaleString()}đ
+              </p>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold text-gray-500 uppercase pl-1">GIỜ RA MỚI</label>
-            <div className="flex gap-2">
-              <Select 
-                value={getHH(newEndTime)} 
+          {/* Section 2: Current Times */}
+          <div className="border-2 border-dashed border-gray-300 rounded-2xl p-4 grid grid-cols-2 gap-4 bg-white">
+            <div>
+              <p className="text-xs text-gray-700 font-bold uppercase mb-0.5">GIỜ VÀO</p>
+              <p className="font-bold text-gray-900 text-base">
+                {dayjs(booking.start_time).format("HH:mm - DD/MM")}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-700 font-bold uppercase mb-0.5">GIỜ RA CŨ</p>
+              <p className="font-bold text-gray-900 text-base">
+                {dayjs(booking.end_time).format("HH:mm - DD/MM")}
+              </p>
+            </div>
+          </div>
+
+          {/* Section 3 & 4: Date & Time Input (Fixed Grid 2:1:1) */}
+          <div className="grid grid-cols-4 gap-4 items-end">
+            <div className="col-span-2 space-y-1.5">
+              <label className="text-xs font-bold text-gray-800 uppercase tracking-wide ml-1 text-left block">NGÀY RA MỚI</label>
+              <input
+                type="date"
+                min={oldEndTimeDate}
+                value={newEndTime ? newEndTime.split('T')[0] : ""}
+                onChange={(e) => setNewEndTime(`${e.target.value}T${getHH(newEndTime)}:${getMM(newEndTime)}`)}
+                className="w-full h-11 px-3 bg-white border border-gray-400 rounded-2xl font-bold text-gray-900 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition-all cursor-pointer text-base"
+              />
+            </div>
+
+            <div className="col-span-1 space-y-1.5">
+              <label className="text-xs font-bold text-gray-800 uppercase tracking-wide ml-1 text-left block">GIỜ</label>
+              <Select
+                value={getHH(newEndTime)}
                 onValueChange={(val) => setNewEndTime(`${newEndTime.split('T')[0]}T${val}:${getMM(newEndTime)}`)}
               >
-                <SelectTrigger className="h-12 rounded-[12px] font-bold flex-1">
+                <SelectTrigger className="h-11 rounded-2xl font-bold border-gray-400 text-gray-900 focus:ring-4 focus:ring-blue-100 text-base bg-white px-3 flex justify-between shadow-sm">
                   <SelectValue placeholder="Giờ" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white rounded-xl border-2 border-gray-300 shadow-xl z-[9999] opacity-100 !bg-opacity-100">
                   {HOURS.map((h) => (
-                    <SelectItem key={h} value={h} disabled={dayjs(`${newEndTime.split('T')[0]}T${h}:${getMM(newEndTime)}`).isBefore(dayjs(booking.end_time))}>
+                    <SelectItem 
+                      key={h} 
+                      value={h} 
+                      disabled={dayjs(`${newEndTime.split('T')[0]}T${h}:${getMM(newEndTime)}`).isBefore(dayjs(booking.end_time))}
+                      className="font-bold text-gray-900 focus:bg-blue-50 focus:text-blue-700 cursor-pointer"
+                    >
                       {h}h
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              
-              <Select 
-                value={getMM(newEndTime)} 
+            </div>
+
+            <div className="col-span-1 space-y-1.5">
+              <label className="text-xs font-bold text-gray-800 uppercase tracking-wide ml-1 text-left block">PHÚT</label>
+              <Select
+                value={getMM(newEndTime)}
                 onValueChange={(val) => setNewEndTime(`${newEndTime.split('T')[0]}T${getHH(newEndTime)}:${val}`)}
               >
-                <SelectTrigger className="h-12 rounded-[12px] font-bold flex-1">
+                <SelectTrigger className="h-11 rounded-2xl font-bold border-gray-400 text-gray-900 focus:ring-4 focus:ring-blue-100 text-base bg-white px-3 flex justify-between shadow-sm">
                   <SelectValue placeholder="Phút" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white rounded-xl border-2 border-gray-300 shadow-xl z-[9999] opacity-100 !bg-opacity-100">
                   {MINUTES.map((m) => (
-                    <SelectItem key={m} value={m} disabled={dayjs(`${newEndTime.split('T')[0]}T${getHH(newEndTime)}:${m}`).isBefore(dayjs(booking.end_time))}>
+                    <SelectItem 
+                      key={m} 
+                      value={m} 
+                      disabled={dayjs(`${newEndTime.split('T')[0]}T${getHH(newEndTime)}:${m}`).isBefore(dayjs(booking.end_time)) }
+                      className="font-bold text-gray-900 focus:bg-blue-50 focus:text-blue-700 cursor-pointer"
+                    >
                       {m}
                     </SelectItem>
                   ))}
@@ -184,55 +212,53 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
               </Select>
             </div>
           </div>
-        </div>
 
-        {/* PHẦN HIỂN THỊ ĐƠN GIÁ */}
-        <div className="space-y-3 mb-6">
-            <div className="px-4 py-2 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <div className="flex justify-between text-[11px] text-gray-500 mb-1">
-                  <span>Đơn giá khu vực: <strong className="text-gray-700">{pricingInfo.zoneName}</strong></span>
-                </div>
-                <div className="flex justify-between text-[11px] text-gray-500 italic">
-                  <span>Giá giờ/ngày:</span>
-                  <span className="font-bold">
-                    {pricingInfo.pricePerHour.toLocaleString()}đ / {pricingInfo.priceDay.toLocaleString()}đ
-                  </span>
-                </div>
-                <div className="flex justify-between text-[11px] text-gray-500 mt-1 pt-1 border-t border-gray-200">
-                  <span>Thời gian thêm:</span>
-                  <span className="font-bold">
-                    {newEndTime && dayjs(newEndTime).isAfter(dayjs(booking.end_time)) 
-                    ? `${dayjs(newEndTime).diff(dayjs(booking.end_time), 'minute')} phút` 
-                    : "0 phút"}
-                  </span>
-                </div>
+          {/* Section 5: Summary Card */}
+          <div className="bg-blue-50 p-4 rounded-3xl space-y-3 border border-blue-100">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-800 font-semibold">Thời gian thêm:</span>
+              <span className="font-bold text-gray-900">
+                {newEndTime && dayjs(newEndTime).isAfter(dayjs(booking.end_time))
+                  ? `${dayjs(newEndTime).diff(dayjs(booking.end_time), 'minute')} phút`
+                  : "0 phút"}
+              </span>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-blue-600 font-bold uppercase">Kết thúc mới</p>
-                  <p className="text-lg font-black text-blue-900">
-                    {newEndTime ? dayjs(newEndTime).format("HH:mm - DD/MM/YYYY") : "Chưa chọn"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-blue-600 font-bold uppercase">Tiền cộng thêm</p>
-                  <p className="text-lg font-black text-blue-900">
-                    {loadingPrice ? "..." : `+${extraAmount.toLocaleString()}đ`}
-                  </p>
-                </div>
-            </div>
-        </div>
+            <div className="h-[1px] bg-gray-300 w-full" />
 
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-200">Hủy</button>
-          <button 
-            onClick={handleExtend}
-            disabled={loadingPrice || isSubmitting || !newEndTime || dayjs(newEndTime).isBefore(dayjs(booking.end_time))}
-            className="flex-[2] bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:bg-blue-300 transition-all"
-          >
-            {isSubmitting ? "Đang xử lý..." : "Xác nhận gia hạn"}
-          </button>
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">KẾT THÚC MỚI</span>
+              <span className="font-bold text-blue-700 text-lg">
+                {newEndTime ? dayjs(newEndTime).format("HH:mm - DD/MM/YYYY") : "Chưa chọn"}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">TIỀN CỘNG THÊM</span>
+              <span className="font-bold text-amber-700 text-2xl">
+                {loadingPrice ? "..." : `+${extraAmount.toLocaleString()}đ`}
+              </span>
+            </div>
+          </div>
+
+          {/* Section 6: Footer Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={onClose}
+              className="flex-1 bg-gray-200 text-gray-800 py-3.5 rounded-2xl font-bold hover:bg-gray-300 transition-colors active:scale-95 text-base"
+            >
+              Hủy
+            </button>
+            <button
+              onClick={handleExtend}
+              disabled={loadingPrice || isSubmitting || !newEndTime || dayjs(newEndTime).isBefore(dayjs(booking.end_time))}
+              className="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:bg-blue-300 disabled:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2 text-base"
+            >
+              {isSubmitting ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : "Xác nhận gia hạn"}
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

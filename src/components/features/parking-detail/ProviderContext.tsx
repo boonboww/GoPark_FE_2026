@@ -17,6 +17,7 @@ function ParkingProvider({children} : {children : React.ReactNode}) {
     useEffect(()=>{
         get(`/parking-lots/public/${parkingLotId}`)
         .then((res : any) => {
+            console.log(res.data);
             setDataLot(res.data);
         }).catch((error : any)=>{
             console.log(error);
