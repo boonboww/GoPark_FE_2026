@@ -1,4 +1,4 @@
-import { get } from "@/lib/api";
+import { get, post } from "@/lib/api";
 import { Booking } from "@/types/booking";
 
 interface GetBookingsParams {
@@ -32,6 +32,7 @@ class BookingService {
       if (rawStatus === "ONGOING") mappedStatus = "ACTIVE";
       else if (rawStatus === "COMPLETED") mappedStatus = "COMPLETED";
       else if (rawStatus === "CANCELLED") mappedStatus = "CANCELLED";
+      else if (rawStatus === "CONFIRMED") mappedStatus = "PENDING";
 
       return {
         id: item.id?.toString() || "",
@@ -67,6 +68,14 @@ class BookingService {
       formData.append("image", image);
     }
     return post<any>(`/booking/scan`, formData);
+  }
+
+  /**
+   * Lấy booking đang hoạt động của 1 slot
+   * GET /api/v1/booking/active/slot/:slotId
+   */
+  async getActiveBookingBySlot(slotId: number): Promise<any> {
+    return get<any>(`/booking/active/slot/${slotId}`);
   }
 }
 

@@ -14,7 +14,25 @@ interface Suggestion {
   display_name: string;
 }
 
-export function TopFilter({ onSearch }: { onSearch?: (dst: {lng: number, lat: number, name: string} | null) => void }) {
+export interface ParkingFilters {
+  city: string;
+  priceSort: string;
+}
+
+export interface NearMeFilter {
+  origin: { lat: number; lng: number };
+  radiusKm: number;
+}
+
+export function TopFilter({
+  onSearch,
+  onFilterChange,
+  onNearMeChange,
+}: {
+  onSearch?: (dst: {lng: number, lat: number, name: string} | null) => void;
+  onFilterChange?: (filters: ParkingFilters) => void;
+  onNearMeChange?: (filter: NearMeFilter | null) => void;
+}) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -23,6 +41,11 @@ export function TopFilter({ onSearch }: { onSearch?: (dst: {lng: number, lat: nu
   const [isSearching, setIsSearching] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedPriceSort, setSelectedPriceSort] = useState("");
+  const [nearMeRadius, setNearMeRadius] = useState("2");
+  const [nearMeFilter, setNearMeFilter] = useState<NearMeFilter | null>(null);
+  const [isLocatingNearMe, setIsLocatingNearMe] = useState(false);
   const searchTimeout = useRef<NodeJS.Timeout>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -119,8 +142,81 @@ export function TopFilter({ onSearch }: { onSearch?: (dst: {lng: number, lat: nu
     }
   }
 
+  const handleApplyFilters = () => {
+    if (selectedCity) {
+      setNearMeFilter(null);
+      onNearMeChange?.(null);
+    }
+
+    onFilterChange?.({
+      city: selectedCity,
+      priceSort: selectedPriceSort,
+    });
+    setShowAdvanced(false);
+  };
+
+  const handleResetFilters = () => {
+    setSelectedCity("");
+    setSelectedPriceSort("");
+    onFilterChange?.({
+      city: "",
+      priceSort: "",
+    });
+    setShowAdvanced(false);
+  };
+
+  const handleToggleNearMe = () => {
+    if (nearMeFilter) {
+      setNearMeFilter(null);
+      onNearMeChange?.(null);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      alert("Trình duyệt không hỗ trợ Geolocation");
+      return;
+    }
+
+    setIsLocatingNearMe(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const filter = {
+          origin: {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          },
+          radiusKm: Number(nearMeRadius),
+        };
+
+        setSelectedCity("");
+        onFilterChange?.({ city: "", priceSort: selectedPriceSort });
+        setNearMeFilter(filter);
+        onNearMeChange?.(filter);
+        setIsLocatingNearMe(false);
+      },
+      (error) => {
+        console.error("Không thể lấy vị trí của bạn:", error);
+        alert("Không thể lấy vị trí hiện tại.");
+        setIsLocatingNearMe(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
+
+  useEffect(() => {
+    if (!nearMeFilter) return;
+
+    const updated = {
+      ...nearMeFilter,
+      radiusKm: Number(nearMeRadius),
+    };
+    setNearMeFilter(updated);
+    onNearMeChange?.(updated);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nearMeRadius]);
+
   return (
-    <div className="flex flex-col z-20 relative bg-background dark:bg-[#10b981] shadow-sm z-50 border-b transition-colors dark:border-[#059669]">
+    <div className="flex flex-col relative bg-background dark:bg-[#10b981] shadow-sm z-50 border-b transition-colors dark:border-[#059669]">
       <div className="flex items-center justify-between px-4 py-2 h-14 gap-4 relative z-50 bg-background dark:bg-[#10b981]">
         {/* Nút về trang chủ */}
         <Link href="/">
@@ -151,8 +247,8 @@ export function TopFilter({ onSearch }: { onSearch?: (dst: {lng: number, lat: nu
 
           {/* Autocomplete dropdown */}
           {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 bg-background dark:bg-[#064e3b] dark:text-white border shadow-lg rounded-xl overflow-hidden z-[60]">
-              <ul className="py-1 max-h-[300px] overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-1.5 bg-background dark:bg-[#064e3b] dark:text-white border shadow-lg rounded-xl overflow-hidden z-60">
+              <ul className="py-1 max-h-75 overflow-y-auto">
                 {suggestions.map((sug, i) => (
                   <li 
                     key={i}
@@ -170,6 +266,30 @@ export function TopFilter({ onSearch }: { onSearch?: (dst: {lng: number, lat: nu
 
         {/* Cụm công cụ (Theme + Lọc nâng cao) */}
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 rounded-full border border-input bg-background/90 dark:bg-black/30 px-2 py-1">
+            <Button
+              variant={nearMeFilter ? "default" : "outline"}
+              onClick={handleToggleNearMe}
+              type="button"
+              disabled={isLocatingNearMe || !!selectedCity}
+              className="rounded-full h-8 px-3 text-xs"
+            >
+              {isLocatingNearMe ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <MapPin className="h-3.5 w-3.5 mr-1" />}
+              {nearMeFilter ? "Đang lọc gần tôi" : "Gần tôi"}
+            </Button>
+            <select
+              value={nearMeRadius}
+              onChange={(e) => setNearMeRadius(e.target.value)}
+              className="border rounded-md px-2 py-1 text-xs bg-transparent dark:border-white/30 outline-none h-7"
+              disabled={!!selectedCity}
+            >
+              <option value="1" className="dark:bg-[#064e3b]">1km</option>
+              <option value="2" className="dark:bg-[#064e3b]">2km</option>
+              <option value="5" className="dark:bg-[#064e3b]">5km</option>
+              <option value="30" className="dark:bg-[#064e3b]">30km</option>
+            </select>
+          </div>
+
           {mounted && (
             <Button
               variant="ghost"
@@ -201,37 +321,32 @@ export function TopFilter({ onSearch }: { onSearch?: (dst: {lng: number, lat: nu
         <div className="absolute top-14 right-0 lg:right-4 p-3 bg-background dark:bg-[#064e3b] border dark:border-white/20 shadow-xl rounded-b-xl lg:rounded-xl animate-in fade-in slide-in-from-top-2 dark:text-white z-40 w-full sm:w-auto">
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Lọc theo thành phố */}
-            <div className="flex flex-col gap-1.5 min-w-[150px]">
+            <div className="flex flex-col gap-1.5 min-w-37.5">
                <label className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground dark:text-white/80">
                  <Building className="h-3.5 w-3.5" /> Thành phố
                </label>
-               <select className="border rounded-md px-2 py-1.5 text-sm bg-transparent dark:border-white/30 outline-none focus:border-primary dark:focus:border-white h-8">
+               <select
+                 value={selectedCity}
+                 onChange={(e) => setSelectedCity(e.target.value)}
+                 className="border rounded-md px-2 py-1.5 text-sm bg-transparent dark:border-white/30 outline-none focus:border-primary dark:focus:border-white h-8"
+               >
                  <option value="" className="dark:bg-[#064e3b]">Chọn TP...</option>
                  <option value="hcm" className="dark:bg-[#064e3b]">Hồ Chí Minh</option>
                  <option value="hn" className="dark:bg-[#064e3b]">Hà Nội</option>
                  <option value="dn" className="dark:bg-[#064e3b]">Đà Nẵng</option>
                </select>
             </div>
-            
-            {/* Khoảng cách */}
-            <div className="flex flex-col gap-1.5 min-w-[160px]">
-               <label className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground dark:text-white/80">
-                 <MapPin className="h-3.5 w-3.5" /> Khoảng cách
-               </label>
-               <select className="border rounded-md px-2 py-1.5 text-sm bg-transparent dark:border-white/30 outline-none focus:border-primary dark:focus:border-white h-8">
-                 <option value="" className="dark:bg-[#064e3b]">Tất cả</option>
-                 <option value="1" className="dark:bg-[#064e3b]">Gần tôi (Bán kính 1km)</option>
-                 <option value="2" className="dark:bg-[#064e3b]">Bán kính 2km</option>
-                 <option value="5" className="dark:bg-[#064e3b]">Bán kính 5km</option>
-               </select>
-            </div>
 
             {/* Sắp xếp giá */}
-            <div className="flex flex-col gap-1.5 min-w-[180px]">
+            <div className="flex flex-col gap-1.5 min-w-45">
                <label className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground dark:text-white/80">
                  <DollarSign className="h-3.5 w-3.5" /> Giá tiền
                </label>
-               <select className="border rounded-md px-2 py-1.5 text-sm bg-transparent dark:border-white/30 outline-none focus:border-primary dark:focus:border-white h-8">
+               <select
+                 value={selectedPriceSort}
+                 onChange={(e) => setSelectedPriceSort(e.target.value)}
+                 className="border rounded-md px-2 py-1.5 text-sm bg-transparent dark:border-white/30 outline-none focus:border-primary dark:focus:border-white h-8"
+               >
                  <option value="" className="dark:bg-[#064e3b]">Mặc định</option>
                  <option value="asc" className="dark:bg-[#064e3b]">Thấp đến cao</option>
                  <option value="desc" className="dark:bg-[#064e3b]">Cao đến thấp</option>
@@ -240,8 +355,8 @@ export function TopFilter({ onSearch }: { onSearch?: (dst: {lng: number, lat: nu
           </div>
           
           <div className="flex justify-end gap-2 mt-4 pt-3 border-t dark:border-white/10">
-            <Button size="sm" variant="ghost" onClick={() => setShowAdvanced(false)} className="h-8 dark:text-white hover:bg-muted dark:hover:bg-white/10" type="button">Hủy</Button>
-            <Button size="sm" onClick={() => setShowAdvanced(false)} className="h-8 dark:bg-white dark:text-[#064e3b] dark:hover:bg-gray-200" type="button">Áp dụng</Button>
+            <Button size="sm" variant="ghost" onClick={handleResetFilters} className="h-8 dark:text-white hover:bg-muted dark:hover:bg-white/10" type="button">Đặt lại</Button>
+            <Button size="sm" onClick={handleApplyFilters} className="h-8 dark:bg-white dark:text-[#064e3b] dark:hover:bg-gray-200" type="button">Áp dụng</Button>
           </div>
         </div>
       )}

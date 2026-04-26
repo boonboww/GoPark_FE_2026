@@ -151,6 +151,8 @@ export function ParkingMap({
   directionRoute,
   isNavigating,
   compact = false,
+  focusTarget,
+  userLocation,
 }: { 
   destination?: {lng: number, lat: number, name: string} | null,
   parkingLots?: any[],
@@ -159,6 +161,8 @@ export function ParkingMap({
   directionRoute?: {coordinates: [number, number][]} | null,
   isNavigating?: boolean,
   compact?: boolean
+  focusTarget?: { lat: number; lng: number; zoom?: number; name?: string } | null,
+  userLocation?: { lat: number; lng: number } | null,
 }) {
   const mapRef = useRef<MapRef>(null);
   const [mapStyle, setMapStyle] = useState<StyleKey>("default");
@@ -214,6 +218,22 @@ export function ParkingMap({
       }
     }
   }, [directionRoute, isNavigating, compact]);
+
+  useEffect(() => {
+    if (compact) return;
+    if (!focusTarget || !mapRef.current) return;
+
+    mapRef.current.flyTo({
+      center: [focusTarget.lng, focusTarget.lat],
+      zoom: focusTarget.zoom ?? 13,
+      duration: 1400,
+    });
+  }, [focusTarget, compact]);
+
+  useEffect(() => {
+    if (!userLocation) return;
+    setMyLocation([userLocation.lng, userLocation.lat]);
+  }, [userLocation]);
 
   // Handle Navigation mode
   useEffect(() => {
@@ -407,7 +427,7 @@ export function ParkingMap({
             </button>
           </div>
           
-          <img src={selectedParkingLot.image || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=400&h=200&q=80"} alt={selectedParkingLot.name} className="w-full h-32 object-cover rounded-xl mb-3 shadow-inner" />
+          <img src={selectedParkingLot.imageUrl || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=400&h=200&q=80"} alt={selectedParkingLot.name} className="w-full h-32 object-cover rounded-xl mb-3 shadow-inner" />
           
           <div className="space-y-1.5 text-sm mb-4 text-muted-foreground">
             <p className="flex items-center gap-2"><MapPin className="size-4 shrink-0 text-indigo-500" /> <span className="line-clamp-2">{selectedParkingLot.address}</span></p>

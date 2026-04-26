@@ -5,6 +5,8 @@ import {
   IconChartBar,
   IconDashboard,
   IconHelp,
+  IconLayoutGrid,
+  IconList,
   IconListDetails,
   IconMessageCircle,
   IconReport,
@@ -36,9 +38,14 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Quản lý bãi đỗ xe",
+      title: "Bãi đỗ của tôi",
+      url: "/owner/my-parking-lots",
+      icon: IconList,
+    },
+    {
+      title: "Quản lý bãi đỗ",
       url: "/owner/parkinglot_management",
-      icon: IconListDetails,
+      icon: IconLayoutGrid,
     },
     {
       title: "Lịch sử Booking",
@@ -115,15 +122,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5 group-data-[collapsible=icon]:!hidden hover:bg-transparent"
             >
               <a href="/owner" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                  <svg
-                    viewBox="0 0 24 24"
-                    className="w-5 h-5 text-primary-foreground fill-current"
-                  >
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" />
-                  </svg>
-                </div>
-                <span className="text-base font-bold text-foreground">
+                <span className="text-[25px] font-bold text-foreground ml-3">
                   GoPark
                 </span>
               </a>

@@ -228,10 +228,17 @@ export function BookingForm() {
     
 
     const vehicle = bookingDetails.vehicle;
+    const auth = useAuthStore.getState();
+    const currentUserId = auth?.user?.id;
+
+    if (!vehicle) {
+      alert("Vui lòng chọn xe ô tô. Nếu bạn chưa có xe, hãy thêm xe trong trang cá nhân.");
+      return;
+    }
 
     console.log(startTime, endTime)
     const bookingData = {
-      user_id: String(vehicle.user.id),
+      user_id: String(currentUserId || vehicle?.user?.id),
       vehicle_id: vehicle.id,
       slot_id: selectedSpot?.slot.id,
       parking_lot_id: dataLot.id,
@@ -248,9 +255,6 @@ export function BookingForm() {
       console.log("Dữ liệu Booking vừa tạo:", saved);
 
       const bookingId = saved?.id || saved?.data?.id;
-      // Lấy thông tin user hiện tại
-      const auth = useAuthStore.getState();
-      const currentUserId = auth?.user?.id;
       // Round tổng tiền lên đơn vị VND
       const amount = Math.round(totalPrice || 0);
 
@@ -488,12 +492,13 @@ export function BookingForm() {
                 </SelectContent> */}
 
 
-                <SelectContent>
+                <SelectContent className="bg-white rounded-xl border-2 border-gray-200 shadow-xl z-[9999] opacity-100 !bg-opacity-100">
                   {HOURS.map((h) => (
                     <SelectItem 
                       key={h} 
                       value={h} 
                       disabled={checkIsPastHour(h, startTime.split('T')[0], today)}
+                      className="font-bold text-gray-900 focus:bg-green-50 focus:text-green-700 cursor-pointer"
                     >
                       {h}h
                     </SelectItem>
@@ -518,12 +523,13 @@ export function BookingForm() {
                   ))}
                 </SelectContent> */}
 
-                <SelectContent>
+                <SelectContent className="bg-white rounded-xl border-2 border-gray-200 shadow-xl z-[9999] opacity-100 !bg-opacity-100">
                   {MINUTES.map((m) => (
                     <SelectItem 
                       key={m} 
                       value={m} 
                       disabled={checkIsPastMinute(m, startTime.split('T')[0], getHH(startTime), today)}
+                      className="font-bold text-gray-900 focus:bg-green-50 focus:text-green-700 cursor-pointer"
                     >
                       {m}
                     </SelectItem>
@@ -574,12 +580,13 @@ export function BookingForm() {
                   ))}
                 </SelectContent> */}
 
-                <SelectContent>
+                <SelectContent className="bg-white rounded-xl border-2 border-gray-200 shadow-xl z-[9999] opacity-100 !bg-opacity-100">
                   {HOURS.map((h) => (
                     <SelectItem 
                       key={h} 
                       value={h} 
                       disabled={checkIsBeforeStartHour(h, startTime.split('T')[0], endTime.split('T')[0], getHH(startTime))}
+                      className="font-bold text-gray-900 focus:bg-green-50 focus:text-green-700 cursor-pointer"
                     >
                       {h}h
                     </SelectItem>
@@ -598,9 +605,15 @@ export function BookingForm() {
                 <SelectTrigger className="h-14 rounded-[20px] border-[#E9ECEF] font-bold text-[#0A1F1C] flex-1">
                   <SelectValue placeholder="Phút" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white rounded-xl border-2 border-gray-200 shadow-xl z-[9999] opacity-100 !bg-opacity-100">
                   {MINUTES.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                    <SelectItem 
+                      key={m} 
+                      value={m}
+                      className="font-bold text-gray-900 focus:bg-green-50 focus:text-green-700 cursor-pointer"
+                    >
+                      {m}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

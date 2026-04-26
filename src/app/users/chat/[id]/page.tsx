@@ -319,8 +319,8 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
         <div className="flex items-center gap-3">
           <button
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            onClick={() => router.push('/users/chat')}
-            title="Quay lại danh sách chat"
+            onClick={() => router.back()}
+            title="Quay lại"
           >
             <ArrowLeft size={18} className="text-gray-600 dark:text-gray-300" />
           </button>

@@ -8,7 +8,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Loader2 } from "lucide-react";
 
 import { OwnerDashboard } from "@/components/owner/dashboard/OwnerDashboard";
-import { StaffDashboard } from "@/components/owner/dashboard/StaffDashboard";
+import { StaffDashboard }  from "@/components/owner/dashboard/StaffDashboard";
 
 import { dashboardService } from "@/services/dashboard.service";
 import { DashboardSummaryResponse } from "@/types/dashboard";

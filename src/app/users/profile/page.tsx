@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";   
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader } from "@/components/ui/loader";
 import { apiClient } from "@/lib/api";
 import { ocrService } from "@/services/ocr.service";
@@ -19,6 +19,7 @@ import { uploadAvatarToSupabase } from "@/services/storage.service";
 import { useWallet } from "@/hooks/useWallet";
 import { QRCodeSVG } from "qrcode.react";
 import { ExtendBookingModal } from "@/components/features/parking-detail/ExtendBookingModal";
+import dayjs from "dayjs";
 
 
 interface UserProfile {
@@ -594,8 +595,6 @@ export default function ProfilePage() {
 
   if (!isMounted) return null;
 
-  
-
   return (
     <div className="container mx-auto p-4 lg:p-8 max-w-7xl">
       <div className="mb-6 flex items-center gap-4">
@@ -824,34 +823,50 @@ export default function ProfilePage() {
           <span className="font-medium text-slate-700">Ô tô ({v.type})</span>
         </div>
 
-        {latestBooking && (
-          <div className="flex flex-col gap-2 mt-2">
-            {/* Trạng thái đặt chỗ */}
-            <div className="inline-flex items-center bg-green-100/50 border border-green-200 px-3 py-1.5 rounded-lg shadow-sm w-fit">
-              <span className="relative flex h-2 w-2 mr-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              <span className="text-xs font-semibold text-green-700">
-                {latestBooking.status.toLowerCase() === "ongoing" ? "Đang đỗ tại bãi" : "Đã có lịch đặt chỗ"}
-              </span>
-            </div>
+                              {latestBooking && (
+                                <div className="flex flex-col gap-2 mt-2">
+                                  {/* Trạng thái đặt chỗ */}
+                                  <div className="inline-flex items-center bg-green-100/50 border border-green-200 px-3 py-1.5 rounded-lg shadow-sm w-fit">
+                                    <span className="relative flex h-2 w-2 mr-2.5">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                    </span>
+                                    <span className="text-xs font-semibold text-green-700">
+                                      {latestBooking.status.toLowerCase() === "ongoing" ? "Đang đỗ tại bãi" : "Đã có lịch đặt chỗ"}
+                                    </span>
+                                  </div>
 
-            {/* Nút Gia hạn: Chỉ hiển thị khi xe đang ở trạng thái 'ongoing' */}
-            {(latestBooking.status.toLowerCase() === "ongoing" || 
-              latestBooking.status.toLowerCase() === "confirmed") && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => handleOpenExtend(latestBooking)}
-                className="w-fit text-[11px] h-7 border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1 shadow-sm"
-              >
-                <Clock className="w-3 h-3" /> Gia hạn thêm giờ
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
+                                  {/* Cảnh báo sắp hết hạn (còn dưới 10 phút) */}
+                                  {latestBooking.status.toLowerCase() === "ongoing" && (
+                                    (() => {
+                                      const minutesLeft = dayjs(latestBooking.end_time).diff(dayjs(), 'minute');
+                                      if (minutesLeft > 0 && minutesLeft <= 10) {
+                                        return (
+                                          <div className="text-[10px] font-bold text-red-600 animate-pulse bg-red-50 px-2 py-1 rounded border border-red-100 w-fit flex items-center gap-1">
+                                            ⚠️ Sắp hết hạn (còn {minutesLeft} phút)
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    })()
+                                  )}
+
+
+                                  {/* Nút Gia hạn: Chỉ hiển thị khi xe đang ở trạng thái 'ongoing' */}
+                                  {(latestBooking.status.toLowerCase() === "ongoing" || 
+                                    latestBooking.status.toLowerCase() === "confirmed") && (
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={() => handleOpenExtend(latestBooking)}
+                                      className="w-fit text-[11px] h-7 border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1 shadow-sm"
+                                    >
+                                      <Clock className="w-3 h-3" /> Gia hạn thêm giờ
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
 
       {/* Các nút điều khiển ẩn hiện khi hover */}
       <div className="flex items-center gap-2 absolute top-0 right-0 z-10 sm:invisible group-hover:visible transition-all">
@@ -865,13 +880,13 @@ export default function ProfilePage() {
     </div>
   </div>
 
-  <div className="mt-3 text-xs text-slate-400 flex items-center gap-1">
-    <Info className="w-3.5 h-3.5" />
-    <span className="line-clamp-1">
-      {latestBooking ? "Trình mã Book QR xanh khi ra/vào bãi đỗ." : "Trình mã QR khi ra/vào bãi."}
-    </span>
-  </div>
-</div>
+                        <div className="mt-3 text-xs text-slate-400 flex items-center gap-1">
+                          <Info className="w-3.5 h-3.5" />
+                          <span className="line-clamp-1">
+                            {latestBooking ? "Trình mã Book QR xanh khi ra/vào bãi đỗ." : "Trình mã QR khi ra/vào bãi."}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   )})}
                 </div>
@@ -1192,5 +1207,3 @@ export default function ProfilePage() {
 
   );
 }
-
-

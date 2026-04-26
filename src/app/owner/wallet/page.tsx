@@ -164,194 +164,178 @@ export default function OwnerWalletPage() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
+        <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 w-full">
+          {/* COMPACT TOP STATS - 100% VIETNAMESE */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="relative overflow-hidden border-none shadow-lg bg-slate-900 p-5 group">
+              <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl transition-all group-hover:bg-emerald-500/20" />
+              <div className="flex flex-col justify-between h-full space-y-4">
+                <div className="flex items-center justify-between relative z-10">
+                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Số dư khả dụng</p>
+                  <Wallet className="h-4 w-4 text-emerald-500/50" />
+                </div>
+                <div className="relative z-10">
+                  <h3 className="text-3xl font-black text-white tracking-tighter">
+                    {isFetchingWallet ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-white/20" />
+                    ) : (
+                      <>
+                        {(balance || 0).toLocaleString("vi-VN")}
+                        <span className="text-lg font-medium text-emerald-500/60 ml-1">₫</span>
+                      </>
+                    )}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Ví đang hoạt động</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
 
-        <div className="max-w-6xl mx-auto p-6 space-y-6 w-full">
-          {/* Header Section */}
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground flex items-center gap-3">
-              Ví tiền
-            </h1>
-            <p className="text-sm text-muted-foreground w-full">
-              Quản lý doanh thu và yêu cầu chuyển tiền về tài khoản ngân hàng.
-            </p>
+            <Card className="bg-white border-slate-100 shadow-sm p-5 hover:border-slate-200 transition-all">
+               <div className="flex items-center justify-between">
+                  <div className="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                     <ArrowUpRight className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase">Thu nhập</span>
+               </div>
+               <div className="mt-5">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Doanh thu hôm nay</p>
+                  <h3 className="text-2xl font-black text-slate-900 mt-1">
+                    +1.200.000 <span className="text-sm font-bold text-slate-400">₫</span>
+                  </h3>
+               </div>
+            </Card>
+
+            <Card className="bg-white border-slate-100 shadow-sm p-5 hover:border-slate-200 transition-all">
+               <div className="flex items-center justify-between">
+                  <div className="h-9 w-9 rounded-xl bg-slate-50 flex items-center justify-center">
+                     <ArrowDownLeft className="h-4 w-4 text-slate-400" />
+                  </div>
+                  <span className="text-[9px] font-black text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full uppercase">Đã rút</span>
+               </div>
+               <div className="mt-5">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tổng tiền đã rút</p>
+                  <h3 className="text-2xl font-black text-slate-900 mt-1">
+                    45.000.000 <span className="text-sm font-bold text-slate-400">₫</span>
+                  </h3>
+               </div>
+            </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-            {/* Left Column: Stats & Form (4/12) */}
-            <div className="lg:col-span-5 xl:col-span-4 space-y-6 md:space-y-8">
-              <Card className="bg-card border-border shadow-sm">
-                <CardHeader>
-                  <div className="flex items-center justify-between pb-2">
-                    <CardDescription className="text-muted-foreground font-semibold uppercase tracking-widest text-xs">
-                      Tổng doanh thu hiện có
-                    </CardDescription>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <CardTitle className="text-4xl font-bold tracking-tight text-foreground mt-2">
-                    {isFetchingWallet ? (
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    ) : isWalletError ? (
-                      <span className="text-2xl text-muted-foreground">
-                        Chưa kích hoạt
-                      </span>
-                    ) : (
-                      <div className="flex items-baseline gap-1">
-                        {(balance || 0).toLocaleString("vi-VN")}
-                        <span className="text-xl font-medium text-muted-foreground ml-1">
-                          ₫
-                        </span>
-                      </div>
-                    )}
-                  </CardTitle>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* BALANCED TRANSFER INTERFACE - 5 COLS */}
+            <div className="lg:col-span-12 xl:col-span-5 space-y-6">
+              <Card className="border-none shadow-xl overflow-hidden bg-white ring-1 ring-slate-100">
+                <CardHeader className="bg-slate-900 px-6 py-5">
+                   <div className="flex items-center justify-between">
+                     <div className="space-y-1">
+                        <CardTitle className="text-white text-lg font-black tracking-tight">Rút tiền nhanh 24/7</CardTitle>
+                        <CardDescription className="text-emerald-400 text-[10px] uppercase font-black tracking-widest">Giao dịch an toàn • GoPark Business</CardDescription>
+                     </div>
+                     <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center">
+                        <Landmark className="text-white/40 w-5 h-5" />
+                     </div>
+                   </div>
                 </CardHeader>
-                <CardContent>
-                  {isWalletError ? (
-                    <Button
-                      onClick={handleActivateWallet}
-                      disabled={isActivating}
-                      variant="default"
-                      className="w-full h-11"
-                    >
-                      {isActivating ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Wallet className="mr-2 h-4 w-4" />
-                      )}
-                      Kích hoạt ví ngay
-                    </Button>
-                  ) : (
-                    <div className="flex items-center justify-between bg-muted rounded-xl p-3 border border-border">
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-background flex items-center justify-center border border-border">
-                          <Banknote className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div className="space-y-0.5">
-                          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-                            Trạng thái ví
-                          </p>
-                          <p className="text-sm text-foreground font-medium">
-                            Đang hoạt động
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-foreground">
-                        Verified
-                      </Badge>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
 
-              {/* Withdraw Form Card */}
-              <Card className="border-border bg-card">
-                <CardHeader className="border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-                        <ArrowDownLeft className="h-4 w-4 text-muted-foreground" />
-                        Rút tiền
-                      </CardTitle>
-                      <CardDescription className="text-sm mt-1">
-                        Yêu cầu chuyển doanh thu về ngân hàng
-                      </CardDescription>
+                <CardContent className="p-7 space-y-7">
+                  {/* BANK LOGO GRID */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                       <div className="w-1 h-3 bg-emerald-500 rounded-full" />
+                       <Label className="text-slate-900 font-black text-[11px] uppercase tracking-widest pl-1">Chọn ngân hàng thụ hưởng</Label>
                     </div>
-                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center border border-border">
-                      <Landmark className="h-4 w-4 text-muted-foreground" />
+                    <div className="grid grid-cols-5 gap-3">
+                       {[
+                         { id: "VCB", name: "Vietcombank" },
+                         { id: "TCB", name: "Techcombank" },
+                         { id: "MB", name: "MB Bank" },
+                         { id: "BIDV", name: "BIDV" },
+                         { id: "ICB", name: "VietinBank" },
+                         { id: "ACB", name: "ACB" },
+                         { id: "VPB", name: "VPBank" },
+                         { id: "STB", name: "Sacombank" },
+                         { id: "TPB", name: "TPBank" },
+                         { id: "HDB", name: "HDBank" },
+                       ].map((bank) => (
+                         <button
+                           key={bank.id}
+                           onClick={() => setBankName(bank.name)}
+                           className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 ${
+                             bankName === bank.name 
+                             ? "border-emerald-500 bg-emerald-50 shadow-md scale-105" 
+                             : "border-slate-50 bg-slate-50/50 hover:border-slate-200 hover:bg-white"
+                           }`}
+                         >
+                            <img 
+                              src={`https://api.vietqr.io/img/${bank.id}.png`} 
+                              alt={bank.name}
+                              className={`h-7 w-auto object-contain ${bankName === bank.name ? "" : "grayscale opacity-60"}`}
+                            />
+                         </button>
+                       ))}
                     </div>
                   </div>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-slate-700 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2">
-                      <Banknote className="h-3 w-3 text-emerald-500" /> Số tiền
-                      muốn rút
-                    </Label>
-                    <div className="relative group">
-                      <Input
-                        type="number"
-                        placeholder="Tối thiểu 100.000"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="h-14 border-slate-200 rounded-2xl focus-visible:ring-emerald-500 pl-5 pr-12 font-black text-xl text-slate-900 group-hover:border-slate-300 transition-all shadow-sm"
-                      />
-                      <span className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg select-none">
-                        ₫
-                      </span>
+
+                  {/* INPUT FIELDS */}
+                  <div className="space-y-5">
+                    <div className="grid gap-2">
+                       <Label className="text-slate-900 font-black text-[11px] uppercase tracking-widest pl-1">Số tài khoản</Label>
+                       <Input
+                         placeholder="Ví dụ: 1903..."
+                         value={accountNumber}
+                         onChange={(e) => setAccountNumber(e.target.value)}
+                         className="h-13 border-slate-200 rounded-xl font-bold text-base focus-visible:ring-emerald-500 shadow-sm"
+                       />
                     </div>
-                    <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-1 pl-1">
-                      <Info className="h-3 w-3" /> Hạn mức rút tối thiểu là
-                      100.000 ₫
-                    </p>
+                    <div className="grid gap-2">
+                       <Label className="text-slate-900 font-black text-[11px] uppercase tracking-widest pl-1">Họ tên chủ tài khoản</Label>
+                       <Input
+                         placeholder="NGUYEN VAN A"
+                         value={accountHolder}
+                         onChange={(e) => setAccountHolder(e.target.value.toUpperCase())}
+                         className="h-13 border-slate-200 rounded-xl font-black text-base uppercase focus-visible:ring-emerald-500 shadow-sm"
+                       />
+                    </div>
+                    <div className="grid gap-2">
+                       <Label className="text-slate-900 font-black text-[11px] uppercase tracking-widest pl-1">Số tiền cần rút</Label>
+                       <div className="relative group">
+                         <Input
+                           type="number"
+                           placeholder="Tối thiểu 100.000"
+                           value={amount}
+                           onChange={(e) => setAmount(e.target.value)}
+                           className="h-16 border-slate-200 rounded-2xl font-black text-2xl pl-6 pr-12 focus-visible:ring-emerald-500 bg-slate-50 group-hover:bg-white transition-all shadow-inner"
+                         />
+                         <span className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-xl">₫</span>
+                       </div>
+                       <div className="flex justify-between items-center px-1">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider italic">* Phí chuyển khoản: 0₫</p>
+                          <button 
+                            onClick={() => setAmount((balance || 0).toString())}
+                            className="text-[10px] text-emerald-600 font-black uppercase tracking-widest hover:underline"
+                          >
+                            Rút hết số dư
+                          </button>
+                       </div>
+                    </div>
                   </div>
 
-                  <Separator className="bg-slate-100" />
-
-                  <div className="space-y-4 pt-1">
-                    <div className="grid gap-2">
-                      <Label className="text-slate-700 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2">
-                        Ngân hàng thụ hưởng
-                      </Label>
-                      <Select value={bankName} onValueChange={setBankName}>
-                        <SelectTrigger className="h-12 border-slate-200 rounded-xl bg-slate-50/30 hover:bg-white transition-colors">
-                          <SelectValue placeholder="Chọn ngân hàng" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {VIETNAM_BANKS.map((bank) => (
-                            <SelectItem key={bank} value={bank}>
-                              {bank}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label className="text-slate-700 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2">
-                        Số tài khoản
-                      </Label>
-                      <Input
-                        placeholder="Nhập số tài khoản"
-                        value={accountNumber}
-                        onChange={(e) => setAccountNumber(e.target.value)}
-                        className="h-12 border-slate-200 rounded-xl bg-slate-50/30 focus-visible:bg-white transition-all shadow-sm"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label className="text-slate-700 font-bold text-[11px] uppercase tracking-wider flex items-center gap-2">
-                        Tên chủ tài khoản
-                      </Label>
-                      <Input
-                        placeholder="VD: NGUYEN VAN A"
-                        value={accountHolder}
-                        onChange={(e) =>
-                          setAccountHolder(e.target.value.toUpperCase())
-                        }
-                        className="h-12 border-slate-200 rounded-xl bg-slate-50/30 focus-visible:bg-white transition-all shadow-sm uppercase font-black"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="p-6 pt-0">
                   <Button
-                    variant="default"
-                    className="w-full h-12"
+                    className="w-full h-14 bg-slate-900 hover:bg-black text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 disabled:opacity-50"
                     onClick={handleWithdraw}
-                    disabled={isLoading || !amount || parseInt(amount) < 100000}
+                    disabled={isLoading || !amount || parseInt(amount) < 100000 || !bankName || !accountNumber}
                   >
-                    {isLoading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <ChevronRight className="mr-2 h-4 w-4" />
-                    )}
-                    Gửi yêu cầu rút tiền
+                    {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : "Xác nhận giao dịch"}
                   </Button>
-                </CardFooter>
+                </CardContent>
               </Card>
             </div>
 
-            {/* Right Column: Enhanced Transactions History (8/12) */}
-            <div className="lg:col-span-7 xl:col-span-8">
+            {/* REBALANCED TRANSACTION HISTORY - 7 COLS */}
+            <div className="lg:col-span-12 xl:col-span-7">
               <PaginatedTransactionHistory
                 allTransactions={allTransactions}
                 isLoading={isFetchingTransactions}
@@ -430,16 +414,15 @@ function PaginatedTransactionHistory({
       >
         <CardHeader className="border-b border-border flex-none px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <History className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <History className="h-6 w-6 text-slate-400" />
               Lịch sử biến động
             </CardTitle>
-            <CardDescription className="text-xs">
-              Tổng {activeData.length} giao dịch — đang xem trang {currentPage}/
-              {totalPages}
+            <CardDescription className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Tổng {activeData.length} giao dịch — Trang {currentPage}/{totalPages}
             </CardDescription>
           </div>
-          <TabsList className="bg-slate-100 rounded-lg p-1 h-10 w-fit shrink-0">
+          <TabsList className="bg-slate-100 rounded-xl p-1 h-12 w-fit shrink-0">
             {[
               { value: "all", label: "Tất cả" },
               { value: "income", label: "Thu nhập" },
@@ -448,11 +431,11 @@ function PaginatedTransactionHistory({
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
-                className="rounded-md text-[11px] font-bold px-3 gap-1.5"
+                className="rounded-lg text-sm font-black px-5 gap-2 transition-all data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm"
               >
                 {tab.label}
                 {badgeCounts[tab.value] > 0 && (
-                  <span className="inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-slate-200/80 text-slate-600 text-[9px] font-black">
+                  <span className={`inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full text-[10px] font-black transition-colors ${activeTab === tab.value ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-500'}`}>
                     {badgeCounts[tab.value]}
                   </span>
                 )}
