@@ -76,241 +76,30 @@ interface Filters {
   sortBy: string;
 }
 
-// ─── Hằng số cấu hình ────────────────────────────────────────────────────────
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 /** Cấu hình trạng thái bãi đỗ */
 const statusConfig: Record<ParkingLotStatus, { label: string; className: string; dot: string }> = {
-  active: {
+  ACTIVE: {
     label: "Hoạt động",
     className: "bg-green-100 text-green-800 border-green-200",
     dot: "bg-green-500",
   },
-  pending: {
+  PENDING: {
     label: "Chờ duyệt",
     className: "bg-yellow-100 text-yellow-800 border-yellow-200",
     dot: "bg-yellow-500",
   },
-  suspended: {
-    label: "Tạm ngưng",
+  INACTIVE: {
+    label: "Ngưng hoạt động",
     className: "bg-orange-100 text-orange-800 border-orange-200",
     dot: "bg-orange-500",
   },
-  closed: {
+  CLOSED: {
     label: "Đã đóng",
     className: "bg-red-100 text-red-800 border-red-200",
     dot: "bg-red-500",
   },
 };
-
-// Labels moved to detail dialog or simplified
-
-// ─── Dữ liệu mẫu ────────────────────────────────────────────────────────────
-
-const mockParkingLots: ParkingLot[] = [
-  {
-    _id: "pl1",
-    name: "Bãi đỗ xe Times City",
-    address: "458 Minh Khai, Hai Bà Trưng, Hà Nội",
-    description: "Bãi đỗ xe hiện đại nằm trong khu đô thị Times City với hệ thống camera giám sát 24/7.",
-    owner: { _id: "o1", userName: "Trần Quốc Bảo", email: "tranquocbao@gmail.com", phoneNumber: "0901 111 222" },
-    status: "active",
-    type: "underground",
-    totalSlots: 120,
-    availableSlots: 45,
-    occupiedSlots: 75,
-    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 15000, pricePerDay: 100000 }],
-    rating: 4.5,
-    totalReviews: 234,
-    totalBookings: 1520,
-    totalRevenue: 228000000,
-    openTime: "06:00",
-    closeTime: "23:00",
-    amenities: ["covered", "cctv", "security", "lighting"],
-    zones: [
-      { name: "A", totalSlots: 40, availableSlots: 15 },
-      { name: "B", totalSlots: 40, availableSlots: 18 },
-      { name: "C", totalSlots: 40, availableSlots: 12 },
-    ],
-    createdAt: "2025-04-10T08:00:00Z",
-    updatedAt: "2026-03-13T10:00:00Z",
-  },
-  {
-    _id: "pl2",
-    name: "Bãi đỗ xe Vincom Đồng Khởi",
-    address: "72 Lê Thánh Tôn, Quận 1, TP. Hồ Chí Minh",
-    description: "Bãi đỗ xe cao cấp tại trung tâm Quận 1 với dịch vụ valet parking.",
-    owner: { _id: "o1", userName: "Trần Quốc Bảo", email: "tranquocbao@gmail.com", phoneNumber: "0901 111 222" },
-    status: "active",
-    type: "multi-level",
-    totalSlots: 200,
-    availableSlots: 82,
-    occupiedSlots: 118,
-    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 25000, pricePerDay: 180000 }],
-    rating: 4.7,
-    totalReviews: 456,
-    totalBookings: 3200,
-    totalRevenue: 576000000,
-    openTime: "00:00",
-    closeTime: "23:59",
-    amenities: ["covered", "cctv", "security", "ev_charging", "valet", "lighting"],
-    zones: [
-      { name: "Tầng 1", totalSlots: 50, availableSlots: 20 },
-      { name: "Tầng 2", totalSlots: 50, availableSlots: 22 },
-      { name: "Tầng 3", totalSlots: 50, availableSlots: 18 },
-      { name: "Tầng 4", totalSlots: 50, availableSlots: 22 },
-    ],
-    createdAt: "2025-04-10T08:00:00Z",
-    updatedAt: "2026-03-13T14:30:00Z",
-  },
-  {
-    _id: "pl3",
-    name: "Bãi đỗ xe Thảo Điền",
-    address: "12 Quốc Hương, Quận 2, TP. Hồ Chí Minh",
-    owner: { _id: "o1", userName: "Trần Quốc Bảo", email: "tranquocbao@gmail.com", phoneNumber: "0901 111 222" },
-    status: "pending",
-    type: "outdoor",
-    totalSlots: 50,
-    availableSlots: 50,
-    occupiedSlots: 0,
-    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 10000, pricePerDay: 80000 }],
-    rating: 0,
-    totalReviews: 0,
-    totalBookings: 0,
-    totalRevenue: 0,
-    openTime: "06:00",
-    closeTime: "22:00",
-    amenities: ["lighting"],
-    createdAt: "2026-03-01T08:00:00Z",
-    updatedAt: "2026-03-01T08:00:00Z",
-  },
-  {
-    _id: "pl4",
-    name: "Bãi đỗ xe Royal City",
-    address: "72A Nguyễn Trãi, Thanh Xuân, Hà Nội",
-    description: "Bãi đỗ xe rộng rãi tại Royal City với nhiều tiện ích hiện đại.",
-    owner: { _id: "o2", userName: "Nguyễn Thị Hương", email: "nguyenthihuong@gmail.com", phoneNumber: "0938 333 444" },
-    status: "active",
-    type: "underground",
-    totalSlots: 300,
-    availableSlots: 120,
-    occupiedSlots: 180,
-    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 20000, pricePerDay: 150000 }],
-    rating: 4.8,
-    totalReviews: 623,
-    totalBookings: 4500,
-    totalRevenue: 675000000,
-    openTime: "00:00",
-    closeTime: "23:59",
-    amenities: ["covered", "cctv", "security", "ev_charging", "car_wash", "disabled_access", "lighting"],
-    zones: [
-      { name: "B1", totalSlots: 100, availableSlots: 40 },
-      { name: "B2", totalSlots: 100, availableSlots: 45 },
-      { name: "B3", totalSlots: 100, availableSlots: 35 },
-    ],
-    createdAt: "2025-07-22T10:30:00Z",
-    updatedAt: "2026-03-13T12:00:00Z",
-  },
-  {
-    _id: "pl5",
-    name: "Bãi đỗ xe Lotte Mart Q7",
-    address: "469 Nguyễn Hữu Thọ, Quận 7, TP. Hồ Chí Minh",
-    owner: { _id: "o2", userName: "Nguyễn Thị Hương", email: "nguyenthihuong@gmail.com", phoneNumber: "0938 333 444" },
-    status: "active",
-    type: "indoor",
-    totalSlots: 150,
-    availableSlots: 68,
-    occupiedSlots: 82,
-    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 12000, pricePerDay: 80000 }],
-    rating: 4.0,
-    totalReviews: 189,
-    totalBookings: 980,
-    totalRevenue: 78400000,
-    openTime: "07:00",
-    closeTime: "22:00",
-    amenities: ["covered", "cctv", "security", "lighting"],
-    createdAt: "2025-07-22T10:30:00Z",
-    updatedAt: "2026-03-12T16:00:00Z",
-  },
-  {
-    _id: "pl6",
-    name: "Bãi đỗ xe Quận 10",
-    address: "200 Cách Mạng Tháng 8, Quận 10, TP. Hồ Chí Minh",
-    owner: { _id: "o3", userName: "Lê Văn Cường", email: "levancuong@yahoo.com", phoneNumber: "0912 555 666" },
-    status: "suspended",
-    type: "outdoor",
-    totalSlots: 60,
-    availableSlots: 60,
-    occupiedSlots: 0,
-    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 8000, pricePerDay: 60000 }],
-    rating: 3.2,
-    totalReviews: 45,
-    totalBookings: 120,
-    totalRevenue: 9600000,
-    openTime: "06:00",
-    closeTime: "21:00",
-    amenities: ["lighting"],
-    createdAt: "2025-10-05T09:00:00Z",
-    updatedAt: "2026-02-28T10:00:00Z",
-  },
-  {
-    _id: "pl7",
-    name: "ParkSmart Quận 1",
-    address: "15 Lê Duẩn, Quận 1, TP. Hồ Chí Minh",
-    description: "Hệ thống bãi đỗ xe thông minh ParkSmart với công nghệ IoT tiên tiến.",
-    owner: { _id: "o4", userName: "Phạm Đức Duy", email: "phamducduy@gmail.com", phoneNumber: "0976 777 888" },
-    status: "active",
-    type: "multi-level",
-    totalSlots: 250,
-    availableSlots: 95,
-    occupiedSlots: 155,
-    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 30000, pricePerDay: 200000 }],
-    rating: 4.9,
-    totalReviews: 789,
-    totalBookings: 5600,
-    totalRevenue: 1120000000,
-    openTime: "00:00",
-    closeTime: "23:59",
-    amenities: ["covered", "cctv", "security", "ev_charging", "car_wash", "valet", "disabled_access", "lighting"],
-    zones: [
-      { name: "Tầng 1", totalSlots: 60, availableSlots: 20 },
-      { name: "Tầng 2", totalSlots: 60, availableSlots: 25 },
-      { name: "Tầng 3", totalSlots: 60, availableSlots: 20 },
-      { name: "Tầng 4", totalSlots: 40, availableSlots: 15 },
-      { name: "Tầng 5", totalSlots: 30, availableSlots: 15 },
-    ],
-    createdAt: "2025-01-15T14:00:00Z",
-    updatedAt: "2026-03-13T16:00:00Z",
-  },
-  {
-    _id: "pl8",
-    name: "Bãi đỗ xe Bitexco",
-    address: "2 Hải Triều, Quận 1, TP. Hồ Chí Minh",
-    description: "Bãi đỗ xe sang trọng ngay tại tòa nhà Bitexco Financial Tower.",
-    owner: { _id: "o5", userName: "Hoàng Minh Tuấn", email: "hoangminhtuan@outlook.com", phoneNumber: "0889 999 000" },
-    status: "active",
-    type: "underground",
-    totalSlots: 300,
-    availableSlots: 130,
-    occupiedSlots: 170,
-    pricePerHour: [{ zonename: "Khu vực chung", pricePerHour: 35000, pricePerDay: 250000 }],
-    rating: 4.9,
-    totalReviews: 1023,
-    totalBookings: 6800,
-    totalRevenue: 1700000000,
-    openTime: "00:00",
-    closeTime: "23:59",
-    amenities: ["covered", "cctv", "security", "ev_charging", "valet", "disabled_access", "lighting"],
-    zones: [
-      { name: "B1", totalSlots: 100, availableSlots: 40 },
-      { name: "B2", totalSlots: 100, availableSlots: 50 },
-      { name: "B3", totalSlots: 100, availableSlots: 40 },
-    ],
-    createdAt: "2025-08-30T16:00:00Z",
-    updatedAt: "2026-03-13T15:00:00Z",
-  },
-];
 
 // ─── Hàm tiện ích ─────────────────────────────────────────────────────────────
 
@@ -397,55 +186,6 @@ export default function ParkingLotsPage() {
     } catch (err) {
       console.error("Lỗi khi tải danh sách bãi đỗ:", err);
       setParkingLotsError(err instanceof Error ? err.message : "Lỗi không xác định");
-      // Dùng dữ liệu mẫu khi API chưa sẵn sàng
-      setUsingMockData(true);
-      // Map mock data to new interface for compatibility
-      const mappedMock: ParkingLotItem[] = mockParkingLots.map(lot => ({
-        id: parseInt(lot._id.replace("pl", "")),
-        name: lot.name,
-        location: lot.address,
-        description: lot.description || "",
-        status: lot.status.toUpperCase(),
-        type: lot.type,
-        occupiedSlots: lot.occupiedSlots,
-        owner: {
-          id: parseInt(lot.owner._id.replace("o", "")),
-          name: lot.owner.userName,
-          phone: lot.owner.phoneNumber,
-          gender: null,
-          image: null
-        },
-        availableSpaces: {
-          totalSlots: lot.totalSlots,
-          availableSlots: lot.availableSlots
-        },
-        totalSpaces: lot.totalSlots,
-        pricePerHour: (lot.pricePerHour || []).map(p => ({
-          zonename: p.zonename,
-          pricePerHour: (p as any).pricePerHour || (p as any).priceperhour,
-          pricePerDay: (p as any).pricePerDay || (p as any).priceperday
-        })),
-        averageRating: lot.rating.toString(),
-        totalReviews: lot.totalReviews,
-        totalBookings: lot.totalBookings,
-        totalRevenue: formatCompactCurrency(lot.totalRevenue),
-        openTime: lot.openTime,
-        closeTime: lot.closeTime,
-        amenities: lot.amenities,
-        zones: (lot.zones || []).map((z, i) => ({
-          id: i + 1,
-          name: z.name,
-          totalSlots: z.totalSlots,
-          availableSlots: z.availableSlots
-        }))
-      }));
-      setParkingLots(mappedMock);
-      setParkingLotStats({
-        totalParkingLots: mockParkingLots.length,
-        activeParkingLots: mockParkingLots.filter(l => l.status === "active").length,
-        availableSpacesParkingSlot: `${mockParkingLots.reduce((s, l) => s + l.availableSlots, 0)}/${mockParkingLots.reduce((s, l) => s + l.totalSlots, 0)}`,
-        averageRating: (mockParkingLots.reduce((s, l) => s + l.rating, 0) / mockParkingLots.length).toFixed(1)
-      });
     }
   };
 
@@ -677,8 +417,8 @@ export default function ParkingLotsPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {paginatedLots.map((lot) => {
-                const currentStatus = lot.status.toLowerCase() as ParkingLotStatus;
-                const stConf = statusConfig[currentStatus] || statusConfig.active;
+                const currentStatus = lot.status.toUpperCase() as ParkingLotStatus;
+                const stConf = statusConfig[currentStatus] || statusConfig.ACTIVE;
                 const occupancy = getOccupancyPercent(lot.availableSpaces.totalSlots - lot.availableSpaces.availableSlots, lot.availableSpaces.totalSlots);
                 const occColor = getOccupancyColor(occupancy);
 
@@ -872,8 +612,8 @@ export default function ParkingLotsPage() {
           </DialogHeader>
 
           {selectedLot && ((lot: ParkingLotItem) => {
-            const currentStatus = lot.status.toLowerCase() as ParkingLotStatus;
-            const stConf = statusConfig[currentStatus] || statusConfig.active;
+            const currentStatus = lot.status.toUpperCase() as ParkingLotStatus;
+            const stConf = statusConfig[currentStatus] || statusConfig.ACTIVE;
             const occupancy = getOccupancyPercent(lot.availableSpaces.totalSlots - lot.availableSpaces.availableSlots, lot.availableSpaces.totalSlots);
             const occColor = getOccupancyColor(occupancy);
 

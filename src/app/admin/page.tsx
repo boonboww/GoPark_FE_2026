@@ -69,6 +69,7 @@ export default function AdminDashboard() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [totalActivities, setTotalActivities] = useState(0);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -99,8 +100,11 @@ export default function AdminDashboard() {
     return matchesSearch && matchesType && matchesStatus;
   });
 
-  const totalPages = Math.ceil(filteredActivities.length / itemsPerPage);
-  const currentActivities = filteredActivities.slice(
+  const displayTotal = totalActivities > 0 ? totalActivities : filteredActivities.length;
+  const totalPages = Math.ceil(displayTotal / itemsPerPage);
+  
+  // If backend paginates, we might not need to slice, but we slice just in case the backend returns all items.
+  const currentActivities = totalActivities > 0 ? filteredActivities : filteredActivities.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -110,11 +114,14 @@ export default function AdminDashboard() {
         setDashboardLoading(true);
 
         // Fetch all data using adminService
-        const [statsData, activitiesData, statusData] = await Promise.all([
+        const [statsData, activitiesResponse, statusData] = await Promise.all([
           adminService.getOverviewStats(),
-          adminService.getRecentActivities(),
+          adminService.getRecentActivities(currentPage, itemsPerPage),
           adminService.getSystemStatus().catch(() => null), // Optional, fallback handled below
         ]);
+
+        const activitiesData = activitiesResponse.data || [];
+        setTotalActivities(activitiesResponse.total || activitiesData.length);
 
         setDashboardData(
           statsData, 
@@ -128,10 +135,8 @@ export default function AdminDashboard() {
     };
 
   useEffect(() => {
-    if (!stats) {
-      fetchData();
-    }
-  }, []);
+    fetchData();
+  }, [currentPage, itemsPerPage]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -442,74 +447,90 @@ export default function AdminDashboard() {
               </div>
 
               {/* Pagination Controls */}
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
-                <div className="flex items-center gap-4">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    Hiển thị {currentActivities.length} <span className="opacity-50 mx-0.5">/</span> {filteredActivities.length} kết quả
-                  </p>
-                  <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden md:block" />
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-400 uppercase">Dòng mỗi trang:</span>
-                    <Select
-                      value={itemsPerPage.toString()}
-                      onValueChange={(val) => {
-                        setItemsPerPage(Number(val));
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <SelectTrigger className="h-8 w-[70px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-xs font-bold px-2 text-slate-900 shadow-none">
-                        <SelectValue placeholder="5" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="5">5</SelectItem>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="20">20</SelectItem>
-                      </SelectContent>
-                    </Select>
+              {displayTotal > 0 && (
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                    Hiển thị <span className="font-medium text-slate-900 dark:text-white">{Math.min(displayTotal, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(displayTotal, currentPage * itemsPerPage)}</span> trong <span className="font-medium text-slate-900 dark:text-white">{displayTotal}</span> kết quả
                   </div>
-                </div>
-
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="w-7 h-7 rounded-lg hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                    </Button>
-                    
-                    <div className="flex items-center gap-0.5 px-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
-                        .map((page, index, array) => (
-                        <React.Fragment key={page}>
-                          {index > 0 && array[index - 1] !== page - 1 && <span className="text-slate-300 text-xs px-0.5">...</span>}
-                          <Button
-                            variant={currentPage === page ? "default" : "ghost"}
-                            className={`w-7 h-7 text-xs font-bold rounded-lg transition-all ${currentPage === page ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200 dark:shadow-none" : "text-slate-500 hover:bg-white dark:hover:bg-slate-700"}`}
-                            onClick={() => setCurrentPage(page)}
-                          >
-                            {page}
-                          </Button>
-                        </React.Fragment>
-                      ))}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2 mr-2 md:mr-4 border-r border-slate-200 dark:border-slate-700 pr-2 md:pr-4">
+                      <span className="text-sm text-slate-500 dark:text-slate-400">Dòng mỗi trang:</span>
+                      <Select
+                        value={itemsPerPage.toString()}
+                        onValueChange={(val) => {
+                          setItemsPerPage(Number(val));
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="h-8 w-[70px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm shadow-none">
+                          <SelectValue placeholder="5" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="20">20</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      className="w-7 h-7 rounded-lg hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="h-8 w-8 p-0 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                     >
-                      <ChevronRight className="w-3.5 h-3.5" />
+                      <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                    </Button>
+                    
+                    {(() => {
+                      const pages = [];
+                      for (let i = 1; i <= totalPages; i++) {
+                        if (
+                          i === 1 ||
+                          i === totalPages ||
+                          (i >= currentPage - 1 && i <= currentPage + 1)
+                        ) {
+                          pages.push(i);
+                        } else if (i === currentPage - 2 || i === currentPage + 2) {
+                          pages.push("...");
+                        }
+                      }
+                      
+                      return pages.filter((p, idx, arr) => p !== "..." || arr[idx - 1] !== "...").map((page, idx) => (
+                        typeof page === "number" ? (
+                          <Button
+                            key={idx}
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className={`h-8 w-8 p-0 text-sm ${
+                              currentPage === page 
+                                ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" 
+                                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                            }`}
+                          >
+                            {page}
+                          </Button>
+                        ) : (
+                          <span key={idx} className="text-slate-400 dark:text-slate-500 px-1">...</span>
+                        )
+                      ));
+                    })()}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage >= totalPages || totalPages === 0}
+                      className="h-8 w-8 p-0 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                    >
+                      <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
                     </Button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
