@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
-import { Map, MapControls, useMap, MapMarker, MarkerContent, MapRoute, MarkerLabel, MapRef } from "@/components/ui/map";
+import { Map, MapControls, useMap, MapMarker, MarkerContent, MapRoute, MapArea, MarkerLabel, MapRef } from "@/components/ui/map";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, Mountain, LocateFixed, Layers, Route, Clock, Loader2, MapPin } from 'lucide-react';
 
@@ -154,7 +154,7 @@ export function ParkingMap({
   focusTarget,
   userLocation,
 }: { 
-  destination?: {lng: number, lat: number, name: string} | null,
+  destination?: {lng: number, lat: number, name: string, geojson?: any} | null,
   parkingLots?: any[],
   selectedParkingLot?: any | null,
   setSelectedParkingLot?: (lot: any) => void,
@@ -324,6 +324,30 @@ export function ParkingMap({
     fetchRoutes();
   }, [myLocation, destination, compact]);
 
+  // Handle zooming to destination area if geojson exists
+  useEffect(() => {
+    if (compact || !destination?.geojson || !mapRef.current) return;
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const maplibregl = (window as any).maplibregl;
+    if (maplibregl) {
+      const bounds = new maplibregl.LngLatBounds();
+      const coords = destination.geojson.coordinates;
+      
+      // Flatten coordinates to find bounds
+      const processCoords = (c: any) => {
+        if (Array.isArray(c[0])) {
+          c.forEach(processCoords);
+        } else {
+          bounds.extend(c as [number, number]);
+        }
+      };
+      processCoords(coords);
+      
+      mapRef.current.fitBounds(bounds, { padding: 50, duration: 1500 });
+    }
+  }, [destination, compact]);
+
   const sortedRoutes = routes
     .map((route, index) => ({ route, index }))
     .sort((a, b) => {
@@ -339,6 +363,7 @@ export function ParkingMap({
         center={initialCenter}
         zoom={compact ? 16 : 14}
         className="w-full h-full"
+        attributionControl={!compact}
         styles={selectedStyleUrl ? { light: selectedStyleUrl, dark: selectedStyleUrl } : undefined}
       >
         {!compact && (
@@ -360,14 +385,24 @@ export function ParkingMap({
           </MapMarker>
         )}
 
-        {/* Marker đích đến (kết quả tìm kiếm) */}
-        {!compact && destination && (
+        {/* Marker đích đến (kết quả tìm kiếm) - Chỉ hiện nếu KHÔNG có geojson khu vực */}
+        {!compact && destination && !destination.geojson && (
           <MapMarker longitude={destination.lng} latitude={destination.lat}>
             <MarkerContent>
               <div className="size-5 rounded-full bg-red-500 border-2 border-white shadow-lg" />
               <MarkerLabel position="bottom">{destination.name}</MarkerLabel>
             </MarkerContent>
           </MapMarker>
+        )}
+
+        {/* Khoanh vùng khu vực nếu có geojson */}
+        {!compact && destination?.geojson && (
+          <MapArea 
+            geometry={destination.geojson} 
+            fillColor="#10b981" 
+            outlineColor="#059669"
+            fillOpacity={0.1}
+          />
         )}
 
         {/* Các bãi đỗ xe */}

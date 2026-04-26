@@ -401,6 +401,8 @@ const HeroSection = () => {
   }, [layoutStructureByLotId, selectedLayoutLot]);
 
   const nearbyParkings = useMemo(() => {
+    if (!myLocation) return [];
+
     return parkings
       .map((lot) => {
         const coordinates = extractCoordinates(lot);
@@ -414,6 +416,7 @@ const HeroSection = () => {
           distanceLabel: formatDistance(distanceKm),
         };
       })
+      .filter((lot) => lot.distanceKm !== null && lot.distanceKm <= 60) // Chỉ lấy trong bán kính 60km
       .sort((a, b) => {
         if (a.distanceKm === null && b.distanceKm === null) return 0;
         if (a.distanceKm === null) return 1;
@@ -422,10 +425,10 @@ const HeroSection = () => {
       });
   }, [parkings, myLocation]);
 
-  const displayNearbyParkings = useMemo(() => nearbyParkings.slice(0, 5), [nearbyParkings]);
+  const displayNearbyParkings = nearbyParkings;
 
   useEffect(() => {
-    if (activeTab !== "nearby" || displayNearbyParkings.length === 0) return;
+    if (activeTab !== "nearby" || displayNearbyParkings.length <= 1) return;
     
     const interval = setInterval(() => {
       setSlideDirection("left");
@@ -435,6 +438,10 @@ const HeroSection = () => {
 
     return () => clearInterval(interval);
   }, [activeTab, displayNearbyParkings.length]);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [displayNearbyParkings.length]);
 
   const handleNext = () => {
     if (displayNearbyParkings.length === 0) return;
@@ -450,7 +457,7 @@ const HeroSection = () => {
     setIsNameExpanded(false);
   };
 
-  const currentParkingData = displayNearbyParkings[currentIndex] || mockAllParkings[0];
+  const currentParkingData = displayNearbyParkings[currentIndex];
 
   return (
     <section className="relative w-full min-h-screen bg-[#F0F2F5] dark:bg-stone-900 overflow-hidden font-sans p-4 sm:p-6 md:p-10 flex flex-col">
@@ -722,214 +729,274 @@ const HeroSection = () => {
       {/* NEARBY PARKINGS VIEW (MAIN CONTENT + BOTTOM WIDGETS) */}
       {activeTab === 'nearby' && (
         <>
-          {/* MAIN CONTENT */}
-          <div className="relative flex-1 w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10 z-10 mt-2 md:mt-12 animate-in fade-in slide-in-from-bottom-8">
-        
-        {/* LEFT COLUMN: GREETING & FLOATING CONTROLS */}
-        <div className="lg:col-span-4 xl:col-span-3 flex flex-col justify-center z-20 text-center md:text-left relative overflow-hidden">
-          <div className="relative w-full h-50 md:h-62.5">
-              {displayNearbyParkings.map((parking, index) => (
-              <div
-                key={`info-${index}`}
-                className={`absolute inset-0 flex flex-col transition-all duration-700 ease-in-out ${
-                  index === currentIndex
-                    ? "opacity-100 translate-x-0"
-                    : slideDirection === "left"
-                      ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
-                        ? "opacity-0 -translate-x-full"
-                        : "opacity-0 translate-x-full"
-                      : index > currentIndex || (currentIndex === displayNearbyParkings.length - 1 && index === 0)
-                    ? "opacity-0 translate-x-full"
-                    : "opacity-0 -translate-x-full"
-                }`}
-              >
-                <h2 
-                  className={`text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-white leading-tight wrap-break-word transition-all duration-300 ${!isNameExpanded ? 'line-clamp-2 md:line-clamp-3' : ''}`}
-                  title={parking.name}
-                >
-                  {parking.name}
-                </h2>
-                
-                {parking.name.length > 25 && (
-                  <button 
-                    onClick={() => setIsNameExpanded(!isNameExpanded)}
-                    className="flex justify-center md:justify-start gap-1 text-sm font-semibold mt-3 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors w-full md:w-auto items-center"
-                  >
-                    {isNameExpanded ? "Thu gọn" : "Xem thêm"}
-                    <ChevronDown className={`w-4 h-4 transition-transform ${isNameExpanded ? 'rotate-180' : ''}`} />
-                  </button>
-                )}
-
-                <div className="mt-4 flex flex-col gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base bg-white/40 dark:bg-black/40 backdrop-blur-md inline-flex px-4 py-2 rounded-full shadow-sm">{parking.status} • Trống {parking.availableSpots}/{parking.totalSpots} chỗ</p>
-                    
-                    <div className="bg-white/40 dark:bg-black/40 backdrop-blur-md inline-flex items-center gap-2 px-2 py-1.5 rounded-full shadow-sm">
-                      <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden shrink-0">
-                        {parking.owner?.avatar ? (
-                          <img src={parking.owner.avatar} alt="avatar" className="w-full h-full object-cover" />
-                        ) : (
-                          <UserIcon className="w-4 h-4 text-blue-600" />
+          {locationLoading ? (
+            <div className="flex-1 w-full flex flex-col items-center justify-center z-10 animate-pulse">
+              <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mb-6">
+                <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Đang xác định vị trí của bạn...</h2>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Vui lòng chờ trong giây lát</p>
+            </div>
+          ) : displayNearbyParkings.length > 0 ? (
+            <>
+              {/* MAIN CONTENT */}
+              <div className="relative flex-1 w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10 z-10 mt-2 md:mt-12 animate-in fade-in slide-in-from-bottom-8">
+            
+                {/* LEFT COLUMN: GREETING & FLOATING CONTROLS */}
+                <div className="lg:col-span-4 xl:col-span-3 flex flex-col justify-center z-20 text-center md:text-left relative overflow-hidden">
+                  <div className="relative w-full h-50 md:h-62.5">
+                      {displayNearbyParkings.map((parking, index) => (
+                      <div
+                        key={`info-${index}`}
+                        className={`absolute inset-0 flex flex-col transition-all duration-700 ease-in-out ${
+                          index === currentIndex
+                            ? "opacity-100 translate-x-0"
+                            : slideDirection === "left"
+                              ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
+                                ? "opacity-0 -translate-x-full"
+                                : "opacity-0 translate-x-full"
+                              : index > currentIndex || (currentIndex === displayNearbyParkings.length - 1 && index === 0)
+                            ? "opacity-0 translate-x-full"
+                            : "opacity-0 -translate-x-full"
+                        }`}
+                      >
+                        <h2 
+                          className={`text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-white leading-tight wrap-break-word transition-all duration-300 ${!isNameExpanded ? 'line-clamp-2 md:line-clamp-3' : ''}`}
+                          title={parking.name}
+                        >
+                          {parking.name}
+                        </h2>
+                        
+                        {parking.name.length > 25 && (
+                          <button 
+                            onClick={() => setIsNameExpanded(!isNameExpanded)}
+                            className="flex justify-center md:justify-start gap-1 text-sm font-semibold mt-3 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors w-full md:w-auto items-center"
+                          >
+                            {isNameExpanded ? "Thu gọn" : "Xem thêm"}
+                            <ChevronDown className={`w-4 h-4 transition-transform ${isNameExpanded ? 'rotate-180' : ''}`} />
+                          </button>
                         )}
+
+                        <div className="mt-4 flex flex-col gap-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base bg-white/40 dark:bg-black/40 backdrop-blur-md inline-flex px-4 py-2 rounded-full shadow-sm">
+                              {parking.status} • Trống {parking.availableSpots}/{parking.totalSpots} chỗ
+                              {parking.distanceLabel && <span className="ml-2 font-bold text-blue-600 dark:text-blue-400">({parking.distanceLabel})</span>}
+                            </p>
+                            
+                            <div className="bg-white/40 dark:bg-black/40 backdrop-blur-md inline-flex items-center gap-2 px-2 py-1.5 rounded-full shadow-sm">
+                              <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden shrink-0">
+                                {parking.owner?.avatar ? (
+                                  <img src={parking.owner.avatar} alt="avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                  <UserIcon className="w-4 h-4 text-blue-600" />
+                                )}
+                              </div>
+                              <div className="pr-2 text-left">
+                                <p className="text-[11px] font-bold text-gray-900 dark:text-white leading-none">{parking.owner?.name || parking.owner?.username || "Chủ bãi"}</p>
+                                <p className="text-[9px] text-gray-500 leading-none mt-1">{parking.timeOpen}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 flex flex-col sm:flex-row">
+                          <Link href={`/users/detailParking/${parking.id}`} className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 px-8 rounded-full shadow-lg transition-all transform hover:-translate-y-1 hover:shadow-xl w-full sm:w-auto text-center">
+                            Đặt chỗ ngay
+                          </Link>
+                        </div>
                       </div>
-                      <div className="pr-2 text-left">
-                        <p className="text-[11px] font-bold text-gray-900 dark:text-white leading-none">{parking.owner?.name || parking.owner?.username || "Chủ bãi"}</p>
-                        <p className="text-[9px] text-gray-500 leading-none mt-1">{parking.timeOpen}</p>
+                    ))}
+                  </div>
+                  
+                  {/* SLIDER CONTROLS */}
+                  {displayNearbyParkings.length > 1 && (
+                    <div className="flex gap-3 justify-center md:justify-start mt-4">
+                      <button 
+                          onClick={handlePrev}
+                          className="w-10 h-10 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur shadow-sm hover:shadow-md flex items-center justify-center hover:bg-white dark:hover:bg-stone-800 transition text-gray-700 dark:text-gray-300"
+                      >
+                          <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <button 
+                          onClick={handleNext}
+                          className="w-10 h-10 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur shadow-sm hover:shadow-md flex items-center justify-center hover:bg-white dark:hover:bg-stone-800 transition text-gray-700 dark:text-gray-300"
+                      >
+                          <ChevronRight className="w-5 h-5" />
+                      </button>
+                      <div className="flex items-center gap-1.5 ml-2">
+                          {displayNearbyParkings.map((_, i) => (
+                            <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === currentIndex ? 'w-5 bg-black dark:bg-white' : 'w-1.5 bg-gray-300 dark:bg-stone-600'}`}></div>
+                          ))}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                <div className="mt-6 flex flex-col sm:flex-row">
-                  <a href={`/users/detailParking/${parking.id}`} className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 px-8 rounded-full shadow-lg transition-all transform hover:-translate-y-1 hover:shadow-xl w-full sm:w-auto">
-                    Đặt chỗ ngay
-                  </a>
+                {/* CENTER COLUMN: CAR IMAGE */}
+                <div className="lg:col-span-4 xl:col-span-5 relative flex items-center justify-center min-h-62.5 md:min-h-75 z-0 -mx-4 md:mx-0 overflow-hidden">
+                  {displayNearbyParkings.map((parking, index) => (
+                    <div
+                      key={`img-${index}`}
+                      className={`absolute inset-0 flex items-center justify-center transition-transform duration-700 ease-in-out ${
+                        index === currentIndex
+                          ? "translate-x-0"
+                          : slideDirection === "left"
+                          ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
+                            ? "-translate-x-[120%]"
+                            : "translate-x-[120%]"
+                          : index > currentIndex || (currentIndex === displayNearbyParkings.length - 1 && index === 0)
+                          ? "translate-x-[120%]"
+                          : "-translate-x-[120%]"
+                      }`}
+                    >
+                      <img 
+                        src={parking.bgImage} 
+                        alt="Car/Parking" 
+                        className={`w-[95%] md:w-[90%] lg:w-[90%] max-w-3xl aspect-4/3 object-cover rounded-3xl drop-shadow-2xl hover:scale-[1.02] transition-transform duration-700 ${
+                          index % 2 === 0 ? "-rotate-3" : "rotate-3"
+                        }`}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* RIGHT COLUMN: CARDS */}
+                <div className="lg:col-span-4 xl:col-span-4 flex flex-col gap-4 z-20 lg:pl-4 xl:pl-10 justify-center pb-8 md:pb-0">
+                  
+                  {/* Thông tin & Bảng giá Card */}
+                  <div className="bg-white/70 dark:bg-stone-800/70 backdrop-blur-2xl p-5 rounded-[2rem] shadow-xl border border-white/40 dark:border-white/10 flex flex-col delay-500 animate-in fade-in slide-in-from-right-8 duration-700 fill-mode-both">
+                    <h3 className="font-bold text-base mb-3 flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-blue-500" /> Thông tin nhanh
+                    </h3>
+                    
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      {currentParkingData?.amenities.map((item: any, idx: number) => (
+                        <div key={`${currentIndex}-${idx}`} className="flex items-center gap-2 bg-gray-50 dark:bg-black/20 p-2 rounded-xl">
+                          <item.icon className={`w-4 h-4 ${item.color}`} />
+                          <div>
+                            <p className="text-[9px] text-gray-500 uppercase font-semibold leading-tight">{item.label}</p>
+                            <p className="text-xs font-bold leading-tight">{item.sub}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-3 border border-emerald-100 dark:border-emerald-800/30">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">Giá giờ đầu</span>
+                        <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">{currentParkingData?.pricing.firstHour}</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[11px] text-gray-600 dark:text-gray-400">Giờ tiếp theo</span>
+                        <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">{currentParkingData?.pricing.nextHour}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[11px] text-gray-600 dark:text-gray-400">Gửi qua đêm</span>
+                        <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">{currentParkingData?.pricing.overnight}</span>
+                      </div>
+                    </div>
+
+                    {/* AI Input Area */}
+                    <div className="mt-3 bg-gray-100 dark:bg-black/30 p-1.5 rounded-xl flex items-center shadow-inner">
+                      <input 
+                        type="text" 
+                        placeholder="Hỏi AI về bãi đỗ..." 
+                        className="bg-transparent border-none outline-none px-3 flex-1 text-xs text-gray-700 dark:text-gray-200" 
+                      />
+                      <button className="w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex justify-center items-center shadow-md transition">
+                        <Send className="w-3.5 h-3.5 ml-0.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Vị trí */}
+                  <div className="bg-white/70 dark:bg-stone-800/70 backdrop-blur-2xl p-4 rounded-[2rem] shadow-xl border border-white/40 dark:border-white/10 relative overflow-hidden delay-700 animate-in fade-in slide-in-from-right-8 duration-700 fill-mode-both flex flex-col h-48">
+                    <div className="relative z-10 flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-bold flex items-center gap-2 text-sm"><MapPin className="w-4 h-4 text-red-500"/> Vị trí Bãi đỗ</h3>
+                        <p className="text-[10px] text-gray-500 mt-0.5 truncate max-w-50">{currentParkingData?.address}</p>
+                      </div>
+                    </div>
+                    <div className="flex-1 bg-gray-100 dark:bg-black/20 w-full rounded-xl relative shadow-inner overflow-hidden border border-black/5 dark:border-white/10 group cursor-pointer pointer-events-none sm:pointer-events-auto">
+                      {currentParkingData?.lat && currentParkingData?.lng ? (
+                        <div className="absolute inset-0">
+                          <ParkingMap
+                            compact
+                            parkingLots={[{
+                              ...currentParkingData,
+                              lat: Number(currentParkingData.lat),
+                              lng: Number(currentParkingData.lng),
+                            }]}
+                            selectedParkingLot={{
+                              ...currentParkingData,
+                              lat: Number(currentParkingData.lat),
+                              lng: Number(currentParkingData.lng),
+                            }}
+                            setSelectedParkingLot={() => undefined}
+                          />
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-slate-100 to-slate-200 dark:from-stone-800 dark:to-stone-900 text-center px-4">
+                          <div>
+                            <MapPin className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                            <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">Chưa có tọa độ bản đồ</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               </div>
-            ))}
-          </div>
-          
-          {/* SLIDER CONTROLS */}
-          <div className="flex gap-3 justify-center md:justify-start mt-4">
-             <button 
-                onClick={handlePrev}
-                className="w-10 h-10 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur shadow-sm hover:shadow-md flex items-center justify-center hover:bg-white dark:hover:bg-stone-800 transition text-gray-700 dark:text-gray-300"
-             >
-                <ChevronLeft className="w-5 h-5" />
-             </button>
-             <button 
-                onClick={handleNext}
-                className="w-10 h-10 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur shadow-sm hover:shadow-md flex items-center justify-center hover:bg-white dark:hover:bg-stone-800 transition text-gray-700 dark:text-gray-300"
-             >
-                <ChevronRight className="w-5 h-5" />
-             </button>
-             <div className="flex items-center gap-1.5 ml-2">
-                {displayNearbyParkings.map((_, i) => (
-                  <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === currentIndex ? 'w-5 bg-black dark:bg-white' : 'w-1.5 bg-gray-300 dark:bg-stone-600'}`}></div>
-                ))}
-             </div>
-          </div>
-        </div>
-
-        {/* CENTER COLUMN: CAR IMAGE */}
-        <div className="lg:col-span-4 xl:col-span-5 relative flex items-center justify-center min-h-62.5 md:min-h-75 z-0 -mx-4 md:mx-0 overflow-hidden">
-          {displayNearbyParkings.map((parking, index) => (
-            <div
-              key={`img-${index}`}
-              className={`absolute inset-0 flex items-center justify-center transition-transform duration-700 ease-in-out ${
-                index === currentIndex
-                  ? "translate-x-0"
-                  : slideDirection === "left"
-                  ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
-                    ? "-translate-x-[120%]"
-                    : "translate-x-[120%]"
-                  : index > currentIndex || (currentIndex === displayNearbyParkings.length - 1 && index === 0)
-                  ? "translate-x-[120%]"
-                  : "-translate-x-[120%]"
-              }`}
-            >
-              <img 
-                src={parking.bgImage} 
-                alt="Car/Parking" 
-                className={`w-[95%] md:w-[90%] lg:w-[90%] max-w-3xl aspect-4/3 object-cover rounded-3xl drop-shadow-2xl hover:scale-[1.02] transition-transform duration-700 ${
-                  index % 2 === 0 ? "-rotate-3" : "rotate-3"
-                }`}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* RIGHT COLUMN: CARDS */}
-        <div className="lg:col-span-4 xl:col-span-4 flex flex-col gap-4 z-20 lg:pl-4 xl:pl-10 justify-center pb-8 md:pb-0">
-          
-          {/* Thông tin & Bảng giá Card */}
-          <div className="bg-white/70 dark:bg-stone-800/70 backdrop-blur-2xl p-5 rounded-[2rem] shadow-xl border border-white/40 dark:border-white/10 flex flex-col delay-500 animate-in fade-in slide-in-from-right-8 duration-700 fill-mode-both">
-            <h3 className="font-bold text-base mb-3 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-blue-500" /> Thông tin nhanh
-            </h3>
-            
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {currentParkingData.amenities.map((item, idx) => (
-                <div key={`${currentIndex}-${idx}`} className="flex items-center gap-2 bg-gray-50 dark:bg-black/20 p-2 rounded-xl">
-                  <item.icon className={`w-4 h-4 ${item.color}`} />
-                  <div>
-                    <p className="text-[9px] text-gray-500 uppercase font-semibold leading-tight">{item.label}</p>
-                    <p className="text-xs font-bold leading-tight">{item.sub}</p>
-                  </div>
+            </>
+          ) : (
+            <div className="flex-1 w-full mx-auto z-10 mt-6 animate-in fade-in slide-in-from-bottom-8">
+              <div className="bg-white/60 dark:bg-stone-900/60 backdrop-blur-2xl rounded-[2rem] xl:rounded-[3rem] shadow-xl border border-white/40 dark:border-white/10 p-10 flex flex-col items-center justify-center min-h-[50vh] text-center">
+                <div className="w-24 h-24 bg-gray-100 dark:bg-white/10 rounded-full flex items-center justify-center mb-8">
+                  <Navigation className="w-12 h-12 text-gray-400" />
                 </div>
-              ))}
-            </div>
-
-            <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-3 border border-emerald-100 dark:border-emerald-800/30">
-               <div className="flex justify-between items-center mb-1.5">
-                 <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">Giá giờ đầu</span>
-                 <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">{currentParkingData.pricing.firstHour}</span>
-               </div>
-               <div className="flex justify-between items-center mb-1.5">
-                 <span className="text-[11px] text-gray-600 dark:text-gray-400">Giờ tiếp theo</span>
-                 <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">{currentParkingData.pricing.nextHour}</span>
-               </div>
-               <div className="flex justify-between items-center">
-                 <span className="text-[11px] text-gray-600 dark:text-gray-400">Gửi qua đêm</span>
-                 <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">{currentParkingData.pricing.overnight}</span>
-               </div>
-            </div>
-
-            {/* AI Input Area */}
-            <div className="mt-3 bg-gray-100 dark:bg-black/30 p-1.5 rounded-xl flex items-center shadow-inner">
-              <input 
-                type="text" 
-                placeholder="Hỏi AI về bãi đỗ..." 
-                className="bg-transparent border-none outline-none px-3 flex-1 text-xs text-gray-700 dark:text-gray-200" 
-              />
-              <button className="w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex justify-center items-center shadow-md transition">
-                <Send className="w-3.5 h-3.5 ml-0.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Vị trí */}
-          <div className="bg-white/70 dark:bg-stone-800/70 backdrop-blur-2xl p-4 rounded-[2rem] shadow-xl border border-white/40 dark:border-white/10 relative overflow-hidden delay-700 animate-in fade-in slide-in-from-right-8 duration-700 fill-mode-both flex flex-col h-48">
-            <div className="relative z-10 flex justify-between items-start mb-2">
-              <div>
-                <h3 className="font-bold flex items-center gap-2 text-sm"><MapPin className="w-4 h-4 text-red-500"/> Vị trí Bãi đỗ</h3>
-                <p className="text-[10px] text-gray-500 mt-0.5 truncate max-w-50">{currentParkingData.address}</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-4">Không tìm thấy bãi đỗ nào gần bạn</h2>
+                <p className="text-gray-500 dark:text-gray-400 max-w-lg mb-10 leading-relaxed">
+                  {locationError 
+                    ? `Lỗi vị trí: ${locationError}. Vui lòng cấp quyền truy cập vị trí cho trình duyệt.`
+                    : "Chúng tôi không tìm thấy bãi đỗ xe nào trong bán kính 60km quanh vị trí hiện tại của bạn. Bạn có thể thử lại hoặc xem toàn bộ danh sách bãi đỗ."}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button 
+                    onClick={() => {
+                      setHasRequestedLocation(false);
+                      // Kích hoạt lại yêu cầu vị trí
+                      if (navigator.geolocation) {
+                        setLocationLoading(true);
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => {
+                            setMyLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+                            setLocationError(null);
+                            setLocationLoading(false);
+                          },
+                          (err) => {
+                            setLocationError("Không thể truy cập vị trí");
+                            setLocationLoading(false);
+                          }
+                        );
+                      }
+                    }}
+                    className="px-8 py-4 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition transform hover:-translate-y-1"
+                  >
+                    Thử lại ngay
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('all')} 
+                    className="px-8 py-4 bg-white dark:bg-stone-800 text-gray-800 dark:text-white font-bold rounded-full shadow-md border border-gray-200 dark:border-stone-700 hover:bg-gray-50 transition transform hover:-translate-y-1"
+                  >
+                    Xem tất cả bãi đỗ
+                  </button>
+                </div>
               </div>
             </div>
-            <div className="flex-1 bg-gray-100 dark:bg-black/20 w-full rounded-xl relative shadow-inner overflow-hidden border border-black/5 dark:border-white/10 group cursor-pointer pointer-events-none sm:pointer-events-auto">
-               {currentParkingData?.lat && currentParkingData?.lng ? (
-                 <div className="absolute inset-0">
-                   <ParkingMap
-                     compact
-                     parkingLots={[{
-                       ...currentParkingData,
-                       lat: Number(currentParkingData.lat),
-                       lng: Number(currentParkingData.lng),
-                     }]}
-                     selectedParkingLot={{
-                       ...currentParkingData,
-                       lat: Number(currentParkingData.lat),
-                       lng: Number(currentParkingData.lng),
-                     }}
-                     setSelectedParkingLot={() => undefined}
-                   />
-                 </div>
-               ) : (
-                 <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-slate-100 to-slate-200 dark:from-stone-800 dark:to-stone-900 text-center px-4">
-                   <div>
-                     <MapPin className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                     <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">Chưa có tọa độ bản đồ</p>
-                   </div>
-                 </div>
-               )}
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-
-      </>
+          )}
+        </>
       )}
 
     </section>

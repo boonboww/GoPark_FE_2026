@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { X, Maximize2, Minimize2, ChevronRight, ChevronLeft, Loader2, Route, Clock, ArrowLeft, LocateFixed } from "lucide-react"
+import { X, Maximize2, Minimize2, ChevronRight, ChevronLeft, Loader2, Route, Clock, ArrowLeft, LocateFixed, Search } from "lucide-react"
 
 export function ParkingList({ parkingLots = [], loading = false, onSelectLot, selectedLotId, onRouteFound, onClearRoute, isNavigating, onStartNavigation }: { parkingLots?: any[], loading?: boolean, onSelectLot?: (lot: any) => void, selectedLotId?: number, onRouteFound?: (route: any) => void, onClearRoute?: () => void, isNavigating?: boolean, onStartNavigation?: () => void }) {
   const [isOpen, setIsOpen] = useState(true);
@@ -16,7 +16,7 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
   const [isRouting, setIsRouting] = useState(false);
 
   const viewMode = isFullScreen ? "grid" : "list";
-  const itemsPerPage = isFullScreen ? 12 : 5;
+  const itemsPerPage = isFullScreen ? 8 : 4; // 8 items for 2x4 grid
   const totalPages = Math.ceil(parkingLots.length / itemsPerPage);
 
   const displayedLots = parkingLots.slice(
@@ -174,7 +174,7 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
         </div>
       </div>
 
-      <div className={`flex-1 overflow-y-auto p-4 ${!directionLot && viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" : "space-y-4"}`}>
+      <div className={`flex-1 overflow-y-auto p-4 ${!directionLot && viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-max" : "space-y-4"}`}>
         {directionLot ? (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             <Card className="dark:bg-[#064e3b]/30 dark:border-white/20">
@@ -262,67 +262,70 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : parkingLots.length === 0 ? (
-          <div className="text-center p-8 text-muted-foreground">Không tìm thấy bãi đỗ xe nào khu vực này</div>
+          <div className="flex flex-col items-center justify-center p-20 text-center bg-white/50 dark:bg-stone-900/20 rounded-[2rem] border-2 border-dashed border-gray-200 dark:border-stone-800">
+            <Search className="h-12 w-12 text-gray-300 mb-4" />
+            <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">Không tìm thấy thông tin bãi đỗ xe</h3>
+            <p className="text-xs text-gray-500 max-w-[200px]">Hãy thử tìm kiếm với từ khóa khác hoặc thay đổi phạm vi tìm kiếm của bạn nhé.</p>
+          </div>
         ) : (
           displayedLots.map((lot) => (
-            <Card 
-              key={lot.id} 
-              className={`overflow-hidden hover:shadow-md transition-shadow cursor-pointer dark:bg-[#064e3b]/30 dark:border-white/20 ${selectedLotId === lot.id ? "ring-2 ring-primary border-primary" : ""}`}
-              onClick={() => onSelectLot?.(lot)}
-            >
-              <div className="flex h-full">
-                <div className={`relative shrink-0 ${viewMode === "grid" ? "w-1/3 min-w-30" : "w-30"}`}>
+            <div key={lot.id} className="flex justify-center w-full">
+              <Card 
+                className={`overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 group flex flex-row h-40 w-full min-w-0 ${selectedLotId === lot.id ? "border-green-600 bg-green-50/5" : "border-green-900/30 dark:border-white/10 dark:bg-stone-900/40"}`}
+                style={{ border: '2px solid #14532d', borderRadius: '1.25rem' }}
+                onClick={() => onSelectLot?.(lot)}
+              >
+                {/* Image Section - Smaller width */}
+                <div className="relative w-28 sm:w-32 h-full shrink-0 overflow-hidden border-r dark:border-white/10">
                   <img
                     src={lot.imageUrl || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=400&h=200&q=80"}
                     alt={lot.name}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute top-2 left-2">
-                    <Badge variant={lot.available_slots > 0 ? "default" : "destructive"} className="text-[10px] uppercase font-bold py-0.5 px-1.5 shadow-sm">
+                  <div className="absolute top-2 left-2 z-10">
+                    <Badge className={`${lot.available_slots > 0 ? "bg-green-600" : "bg-red-600"} text-white text-[8px] uppercase font-black py-0.5 px-1.5 border-none rounded-sm shadow-sm`}>
                       {lot.available_slots > 0 ? "Còn chỗ" : "Hết chỗ"}
                     </Badge>
                   </div>
                 </div>
-                <CardContent className="p-3 flex-1 flex flex-col justify-between min-w-0">
-                  <div className="space-y-1 mt-1">
-                    <h3 className="font-bold text-base truncate pr-2 dark:text-white" title={lot.name}>{lot.name}</h3>
-                    <p className="text-xs text-muted-foreground truncate dark:text-white/60" title={lot.address}>{lot.address}</p>
+
+                {/* Content Section - More space for text */}
+                <CardContent className="p-3 flex-1 flex flex-col justify-between min-w-0 bg-white dark:bg-transparent">
+                  <div className="space-y-0.5">
+                    <h3 className="font-black text-sm text-black dark:text-white truncate" title={lot.name}>
+                      {lot.name}
+                    </h3>
+                    <p className="text-[9px] font-medium text-gray-500 dark:text-stone-400 line-clamp-2 leading-tight" title={lot.address}>
+                      {lot.address}
+                    </p>
                   </div>
-                  <div className="flex items-end justify-between mt-3 gap-2">
+
+                  <div className="flex items-end justify-between gap-1 mt-1">
                     <div className="flex flex-col">
-                      <span className="text-[10px] text-muted-foreground dark:text-white/60 uppercase font-medium tracking-wide">Trống</span>
-                      <span className="font-bold text-lg leading-tight text-emerald-600 dark:text-emerald-400">
-                        {lot.available_slots || 0} <span className="text-sm font-normal text-muted-foreground dark:text-white/60">/ {lot.total_slots || 0}</span>
-                      </span>
-                    </div>
-                    {(lot.minprice || lot.minPrice) && (
-                      <div className="flex flex-col text-right">
-                        <span className="text-[10px] text-muted-foreground dark:text-white/60 uppercase font-medium tracking-wide">Chỉ từ</span>
-                        <span className="font-bold text-sm text-primary">
-                          {new Intl.NumberFormat('vi-VN').format(lot.minprice || lot.minPrice)}đ/h
+                      <span className="text-[8px] text-gray-400 uppercase font-black tracking-widest block">Trống</span>
+                      <div className="flex items-baseline gap-0.5">
+                        <span className="font-black text-xl text-green-600 leading-none">
+                          {lot.available_slots || 0}
                         </span>
+                        <span className="text-gray-400 font-bold text-[10px]">/ {lot.total_slots || 0}</span>
                       </div>
-                    )}
-                  </div>
-                  
-                  {/* Direction button inside Card in a new row */}
-                  <div className="mt-3">
+                    </div>
+                    
                     <Button
-                      size="sm"
                       variant="secondary"
-                      className="w-full pointer-events-auto z-10 bg-secondary/50 hover:bg-secondary"
+                      className="bg-gray-100 hover:bg-gray-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-black dark:text-white font-bold rounded-lg h-7 px-2 text-[9px] border-none transition-all flex items-center gap-1 shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleGetDirections(lot);
                       }}
                     >
-                      <Route className="w-4 h-4 mr-2" />
-                      Chỉ đường
+                      <Route className="w-3 h-3" />
+                      Chi đường
                     </Button>
                   </div>
                 </CardContent>
-              </div>
-            </Card>
+              </Card>
+            </div>
           ))
         )}
       </div>

@@ -11,11 +11,11 @@ export default function VnpayReturnPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const calledIpn = useRef(false);
-  
+
   const vnp_ResponseCode = searchParams.get('vnp_ResponseCode');
   const vnp_Amount = searchParams.get('vnp_Amount');
   const isSuccess = vnp_ResponseCode === '00';
-  
+
   const [amount, setAmount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -34,13 +34,13 @@ export default function VnpayReturnPage() {
         try {
           // Lấy toàn bộ query params hiện tại trên URL
           const queryStr = searchParams.toString();
-          
+
           console.log("Đang đồng bộ giao dịch local...");
           await apiClient(`/payment/vnpay/ipn?${queryStr}`, { method: 'GET' });
           console.log("Đồng bộ hoàn tất!");
         } catch (error) {
           console.error("Lỗi khi đồng bộ IPN ở local:", error);
-        }finally {
+        } finally {
           setIsSyncing(false);
         }
       }
@@ -59,8 +59,8 @@ export default function VnpayReturnPage() {
           )}
           <CardTitle className="text-2xl">{isSuccess ? 'Nạp tiền thành công!' : 'Giao dịch thất bại'}</CardTitle>
           <CardDescription>
-            {isSuccess 
-              ? 'Hệ thống đã ghi nhận giao dịch của bạn.' 
+            {isSuccess
+              ? 'Hệ thống đã ghi nhận giao dịch của bạn.'
               : 'Có lỗi xảy ra trong quá trình thanh toán, hoặc bạn đã hủy giao dịch.'}
           </CardDescription>
         </CardHeader>
@@ -85,13 +85,13 @@ export default function VnpayReturnPage() {
           </div>
         </CardContent>
 
-        
+
         <CardFooter className="flex flex-col space-y-3">
 
           {/* Nút Xem hóa đơn chi tiết - Thiết kế đồng nhất với nút chính */}
           {isSuccess && searchParams.get('vnp_OrderInfo')?.startsWith('PayBooking_') && (
-            <Button 
-              className="w-full" 
+            <Button
+              className="w-full"
               disabled={isSyncing}
               onClick={() => {
                 const orderInfo = searchParams.get('vnp_OrderInfo') || '';
@@ -108,7 +108,7 @@ export default function VnpayReturnPage() {
             </Button>
           )}
 
-          <Button 
+          <Button
             className="w-full"
             onClick={() => {
               const orderInfo = searchParams.get('vnp_OrderInfo') || '';
@@ -119,7 +119,7 @@ export default function VnpayReturnPage() {
               }
             }}
           >
-            Quay về trang chủ
+            Quay về Ví của tôi
           </Button>
         </CardFooter>
       </Card>

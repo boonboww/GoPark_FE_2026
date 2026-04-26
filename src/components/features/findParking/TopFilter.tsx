@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ interface Suggestion {
   lng: number;
   name: string;
   display_name: string;
+  geojson?: any;
 }
 
 export interface ParkingFilters {
@@ -28,10 +29,12 @@ export function TopFilter({
   onSearch,
   onFilterChange,
   onNearMeChange,
+  onTextSearch,
 }: {
   onSearch?: (dst: {lng: number, lat: number, name: string} | null) => void;
   onFilterChange?: (filters: ParkingFilters) => void;
   onNearMeChange?: (filter: NearMeFilter | null) => void;
+  onTextSearch?: (text: string) => void;
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -74,7 +77,7 @@ export function TopFilter({
 
     searchTimeout.current = setTimeout(async () => {
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchValue)}&limit=5&countrycodes=vn`);
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchValue)}&limit=5&countrycodes=vn&polygon_geojson=1`);
         const data = await res.json();
         if (data && data.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,7 +85,8 @@ export function TopFilter({
             lat: parseFloat(item.lat),
             lng: parseFloat(item.lon),
             name: item.name || item.display_name.split(',')[0],
-            display_name: item.display_name
+            display_name: item.display_name,
+            geojson: item.geojson
           }));
           setSuggestions(parsed);
         } else {
@@ -101,7 +105,8 @@ export function TopFilter({
     onSearch?.({
       lat: sug.lat,
       lng: sug.lng,
-      name: sug.name
+      name: sug.name,
+      geojson: sug.geojson
     });
   };
 
@@ -123,20 +128,21 @@ export function TopFilter({
 
     setIsSearching(true);
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchValue)}&limit=1&countrycodes=vn`);
+      // Trigger text search for lot names
+      onTextSearch?.(searchValue);
+
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchValue)}&limit=1&countrycodes=vn&polygon_geojson=1`);
       const data = await res.json();
       if (data && data.length > 0) {
         onSearch?.({
           lat: parseFloat(data[0].lat),
           lng: parseFloat(data[0].lon),
           name: data[0].name || data[0].display_name.split(',')[0],
+          geojson: data[0].geojson
         });
-      } else {
-        alert("Không tìm thấy địa điểm");
       }
     } catch(error) {
       console.error(error);
-      alert("Lỗi tìm kiếm địa điểm");
     } finally {
       setIsSearching(false);
     }
@@ -337,19 +343,26 @@ export function TopFilter({
                </select>
             </div>
 
-            {/* Sắp xếp giá */}
+            {/* Bộ lọc giá */}
             <div className="flex flex-col gap-1.5 min-w-45">
                <label className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground dark:text-white/80">
-                 <DollarSign className="h-3.5 w-3.5" /> Giá tiền
+                 <DollarSign className="h-3.5 w-3.5" /> Khoảng giá & Sắp xếp
                </label>
                <select
                  value={selectedPriceSort}
                  onChange={(e) => setSelectedPriceSort(e.target.value)}
                  className="border rounded-md px-2 py-1.5 text-sm bg-transparent dark:border-white/30 outline-none focus:border-primary dark:focus:border-white h-8"
                >
-                 <option value="" className="dark:bg-[#064e3b]">Mặc định</option>
-                 <option value="asc" className="dark:bg-[#064e3b]">Thấp đến cao</option>
-                 <option value="desc" className="dark:bg-[#064e3b]">Cao đến thấp</option>
+                 <optgroup label="Sắp xếp" className="dark:bg-[#064e3b]">
+                   <option value="">Mặc định</option>
+                   <option value="asc">Giá thấp đến cao</option>
+                   <option value="desc">Giá cao đến thấp</option>
+                 </optgroup>
+                 <optgroup label="Khoảng giá" className="dark:bg-[#064e3b]">
+                   <option value="under-15">Dưới 15,000 VND</option>
+                   <option value="15-30">15,000 - 30,000 VND</option>
+                   <option value="above-30">Trên 30,000 VND</option>
+                 </optgroup>
                </select>
             </div>
           </div>

@@ -1168,6 +1168,99 @@ function MapRoute({
   return null;
 }
 
+type MapAreaProps = {
+  /** Optional unique identifier for the area layer */
+  id?: string;
+  /** GeoJSON geometry object (Polygon or MultiPolygon) */
+  geometry: GeoJSON.Geometry;
+  /** Fill color as CSS color value (default: "#3b82f6") */
+  fillColor?: string;
+  /** Outline color as CSS color value (default: "#2563eb") */
+  outlineColor?: string;
+  /** Fill opacity from 0 to 1 (default: 0.2) */
+  fillOpacity?: number;
+  /** Outline opacity from 0 to 1 (default: 0.8) */
+  outlineOpacity?: number;
+  /** Outline width in pixels (default: 2) */
+  outlineWidth?: number;
+};
+
+function MapArea({
+  id: propId,
+  geometry,
+  fillColor = "#10b981", // emerald-500
+  outlineColor = "#059669", // emerald-600
+  fillOpacity = 0.15,
+  outlineOpacity = 0.8,
+  outlineWidth = 2,
+}: MapAreaProps) {
+  const { map, isLoaded } = useMap();
+  const autoId = useId();
+  const id = propId ?? autoId;
+  const sourceId = `area-source-${id}`;
+  const fillLayerId = `area-fill-layer-${id}`;
+  const outlineLayerId = `area-outline-layer-${id}`;
+
+  useEffect(() => {
+    if (!isLoaded || !map || !geometry) return;
+
+    map.addSource(sourceId, {
+      type: "geojson",
+      data: {
+        type: "Feature",
+        properties: {},
+        geometry,
+      },
+    });
+
+    map.addLayer({
+      id: fillLayerId,
+      type: "fill",
+      source: sourceId,
+      paint: {
+        "fill-color": fillColor,
+        "fill-opacity": fillOpacity,
+      },
+    });
+
+    map.addLayer({
+      id: outlineLayerId,
+      type: "line",
+      source: sourceId,
+      paint: {
+        "line-color": outlineColor,
+        "line-width": outlineWidth,
+        "line-opacity": outlineOpacity,
+      },
+    });
+
+    return () => {
+      try {
+        if (map.getLayer(fillLayerId)) map.removeLayer(fillLayerId);
+        if (map.getLayer(outlineLayerId)) map.removeLayer(outlineLayerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+      } catch {
+        // ignore
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, map, sourceId]);
+
+  useEffect(() => {
+    if (!isLoaded || !map || !geometry) return;
+    const source = map.getSource(sourceId) as MapLibreGL.GeoJSONSource;
+    if (source) {
+      source.setData({
+        type: "Feature",
+        properties: {},
+        geometry,
+      });
+    }
+  }, [isLoaded, map, geometry, sourceId]);
+
+  return null;
+}
+
 type MapClusterLayerProps<
   P extends GeoJSON.GeoJsonProperties = GeoJSON.GeoJsonProperties,
 > = {
@@ -1482,6 +1575,7 @@ export {
   MapPopup,
   MapControls,
   MapRoute,
+  MapArea,
   MapClusterLayer,
 };
 

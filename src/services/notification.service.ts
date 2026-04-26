@@ -1,4 +1,4 @@
-import { get, post } from "@/lib/api";
+import { get, post, patch } from "@/lib/api";
 import { SentNotification, TargetType, NotificationType } from "@/stores/notification.store";
 
 export interface NotificationPayload {
@@ -42,4 +42,39 @@ export const notificationService = {
    */
   sendToUser: (data: SendToUserDto): Promise<unknown> =>
     post<unknown>("/admin/notifications/send-to-user", data),
+
+  /**
+   * Get all notifications for current user
+   * GET /notifications
+   */
+  getForUser: (): Promise<{ data: SentNotification[] }> =>
+    get<{ data: SentNotification[] }>("/notifications"),
+
+  /**
+   * Get unread notifications for current user
+   * GET /notifications/unread
+   */
+  getUnread: (): Promise<{ data: SentNotification[] }> =>
+    get<{ data: SentNotification[] }>("/notifications/unread"),
+
+  /**
+   * Count unread notifications for current user
+   * GET /notifications/unread/count
+   */
+  countUnread: (): Promise<{ data: number }> =>
+    get<{ data: number }>("/notifications/unread/count"),
+
+  /**
+   * Mark all notifications as read
+   * PATCH /notifications/read-all
+   */
+  markAllRead: (): Promise<unknown> =>
+    patch<unknown>("/notifications/read-all", {}),
+
+  /**
+   * Mark specific notification as read
+   * PATCH /notifications/:id/read
+   */
+  markRead: (id: string): Promise<unknown> =>
+    patch<unknown>(`/notifications/${id}/read`, {}),
 };

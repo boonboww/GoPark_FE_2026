@@ -177,6 +177,32 @@ export default function MyRequestsPage() {
 
                     {renderPayloadSummary(request.type, request.payload)}
 
+                    {request.type === "BECOME_OWNER" && request.status === "APPROVED" && (
+                      <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-xl">
+                        <p className="text-sm text-green-800 dark:text-green-300 mb-3">
+                          Yêu cầu trở thành chủ bãi đỗ của bạn đã được phê duyệt! Hãy xác nhận và đăng nhập lại để bắt đầu quản lý bãi đỗ của mình.
+                        </p>
+                        <Button 
+                          onClick={async () => {
+                            try {
+                              // Gọi API xác nhận để Backend chuyển role sang Owner
+                              await apiClient.patch(`/request/${request.id}/confirm`);
+                              
+                              // Sau đó mới đăng xuất và chuyển trang login
+                              localStorage.removeItem("auth-storage");
+                              window.location.href = "/auth/login";
+                            } catch (error) {
+                              console.error("Lỗi xác nhận yêu cầu:", error);
+                              alert("Có lỗi xảy ra khi xác nhận. Vui lòng thử lại sau.");
+                            }
+                          }}
+                          className="bg-green-600 hover:bg-green-700 text-white font-bold rounded-full px-6 transition-all"
+                        >
+                          Xác nhận & Đăng nhập Chủ bãi
+                        </Button>
+                      </div>
+                    )}
+
                     {request.status === "REJECTED" && request.note && request.note.length > 0 && (
                       <div className="mt-3 bg-red-50 border border-red-100 text-red-700 p-3 rounded-md text-sm">
                         <span className="font-medium text-red-800 flex items-center gap-1 mb-1">

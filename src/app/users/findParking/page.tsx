@@ -110,6 +110,7 @@ export default function FindParkingPage() {
     city: "",
     priceSort: "",
   });
+  const [searchTitle, setSearchTitle] = useState("");
 
   useEffect(() => {
     const fetchLots = async () => {
@@ -141,11 +142,36 @@ export default function FindParkingPage() {
     }
   };
 
+  const removeAccents = (str: string) => {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  };
+
   const handleNearMeChange = (filter: NearMeFilter | null) => {
     setNearMeFilter(filter);
     setDirectionRoute(null);
     setIsNavigating(false);
     setDestination(null);
+  };
+
+  const isPointInPolygon = (point: {lat: number, lng: number}, geojson: any): boolean => {
+    if (!geojson || !geojson.coordinates) return false;
+    const { lat, lng } = point;
+    const polygons = geojson.type === 'MultiPolygon' ? geojson.coordinates : [geojson.coordinates];
+    
+    for (const polygon of polygons) {
+      const ring = geojson.type === 'MultiPolygon' ? polygon[0] : polygon;
+      const coords = Array.isArray(ring[0][0]) ? ring[0] : ring;
+      
+      let isInside = false;
+      for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+        const xi = coords[i][0], yi = coords[i][1];
+        const xj = coords[j][0], yj = coords[j][1];
+        const intersect = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+        if (intersect) isInside = !isInside;
+      }
+      if (isInside) return true;
+    }
+    return false;
   };
 
   const filteredParkingLots = useMemo(() => {
@@ -181,9 +207,50 @@ export default function FindParkingPage() {
         const matchesByBounds = coordinates ? isWithinCityBounds(coordinates, filters.city) : false;
         if (!matchesByAddress && !matchesByBounds) return false;
       }
+      
+      if (searchTitle) {
+        const titleRaw = toLowerSafe(lot.name);
+        const addressRaw = toLowerSafe(lot.address);
+        const queryRaw = searchTitle.toLowerCase();
+        
+        const titleClean = removeAccents(titleRaw);
+        const addressClean = removeAccents(addressRaw);
+        const queryClean = removeAccents(queryRaw);
+        
+        // 1. Text match (fuzzy/accent-insensitive)
+        const matchesText = titleClean.includes(queryClean) || addressClean.includes(queryClean);
+        
+        // 2. Word-based match (at least one word from query matches start of any word in title)
+        const queryWords = queryClean.split(' ').filter(w => w.length > 1);
+        const matchesWords = queryWords.length > 0 && queryWords.some(word => 
+          titleClean.split(' ').some(titleWord => titleWord.startsWith(word))
+        );
+
+        // 3. Geographic area match (strict)
+        let matchesArea = false;
+        if (destination?.geojson && lot.lat && lot.lng) {
+          matchesArea = isPointInPolygon({ lat: lot.lat, lng: lot.lng }, destination.geojson);
+        }
+
+        // 4. Proximity match (point search)
+        const isPointSearch = destination && !destination.geojson;
+        const matchesProximity = isPointSearch && destinationCenter && lot.distanceKm !== null && lot.distanceKm < 2;
+        
+        if (!matchesText && !matchesWords && !matchesArea && !matchesProximity) return false;
+      }
 
       if (!filters.city && nearMeCenter && nearMeRadius) {
         if (lot.nearMeDistanceKm === null || lot.nearMeDistanceKm > nearMeRadius) return false;
+      }
+
+      // Price Range Filtering
+      const price = extractLotPrice(lot);
+      if (filters.priceSort === "under-15") {
+        if (price > 15000) return false;
+      } else if (filters.priceSort === "15-30") {
+        if (price < 15000 || price > 30000) return false;
+      } else if (filters.priceSort === "above-30") {
+        if (price < 30000) return false;
       }
 
       return true;
@@ -191,14 +258,44 @@ export default function FindParkingPage() {
 
     if (filters.priceSort === "asc") {
       result = [...result].sort((a, b) => extractLotPrice(a) - extractLotPrice(b));
-    }
-
-    if (filters.priceSort === "desc") {
+    } else if (filters.priceSort === "desc") {
       result = [...result].sort((a, b) => extractLotPrice(b) - extractLotPrice(a));
     }
 
     return result;
-  }, [parkingLots, destination, filters, nearMeFilter]);
+  }, [parkingLots, destination, filters, nearMeFilter, searchTitle]);
+
+  const mapParkingLots = useMemo(() => {
+    const nearMeCenter = nearMeFilter?.origin || null;
+    const nearMeRadius = nearMeFilter?.radiusKm || null;
+
+    return parkingLots.map((lot) => {
+      const coordinates = getLotCoordinates(lot);
+      return {
+        ...lot,
+        lat: coordinates?.lat,
+        lng: coordinates?.lng,
+        imageUrl: extractLotImageUrl(lot),
+      };
+    }).filter((lot) => {
+      if (filters.city) {
+        const coordinates = getLotCoordinates(lot);
+        const address = toLowerSafe(lot.address);
+        const candidates = CITY_LABELS[filters.city] || [];
+        const matchesByAddress = candidates.some((keyword) => address.includes(keyword));
+        const matchesByBounds = coordinates ? isWithinCityBounds(coordinates, filters.city) : false;
+        if (!matchesByAddress && !matchesByBounds) return false;
+      }
+
+      if (!filters.city && nearMeCenter && nearMeRadius) {
+        const coordinates = getLotCoordinates(lot);
+        const distance = coordinates ? calculateDistanceKm(nearMeCenter, coordinates) : null;
+        if (distance === null || distance > nearMeRadius) return false;
+      }
+
+      return true;
+    });
+  }, [parkingLots, filters, nearMeFilter]);
 
   const mapFocusTarget = useMemo(() => {
     if (filters.city && CITY_FOCUS[filters.city]) {
@@ -243,7 +340,12 @@ export default function FindParkingPage() {
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden">
       <div className="w-full z-50">
-        <TopFilter onSearch={setDestination} onFilterChange={handleFilterChange} onNearMeChange={handleNearMeChange} />
+        <TopFilter 
+          onSearch={setDestination} 
+          onFilterChange={handleFilterChange} 
+          onNearMeChange={handleNearMeChange}
+          onTextSearch={setSearchTitle}
+        />
       </div>
       <div className="flex flex-1 relative overflow-hidden z-0">
         <ParkingList 
@@ -258,7 +360,7 @@ export default function FindParkingPage() {
         />
         <ParkingMap 
           destination={destination} 
-          parkingLots={filteredParkingLots}
+          parkingLots={mapParkingLots}
           selectedParkingLot={selectedParkingLot}
           setSelectedParkingLot={setSelectedParkingLot}
           directionRoute={directionRoute}
