@@ -239,6 +239,13 @@ const Header = () => {
               <Contact className="h-5 w-5 inline-block mr-1" />
               Liên hệ
             </Link>
+          <Link
+            href="/users/Ve-QR"
+            className="transition-colors hover:text-primary hover:font-semibold"
+          >
+            <Ticket className="h-5 w-5 inline-block mr-1" />
+            Vé-QR
+          </Link>
           </nav>
 
           {/* Auth Actions */}

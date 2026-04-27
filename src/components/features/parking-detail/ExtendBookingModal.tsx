@@ -99,7 +99,7 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
         new_end_time: dayjs(newEndTime).toISOString(),
         isPreview: false
       });
-      toast.success("Gia hạn thành công!");
+      alert("Gia hạn thành công!");
       onClose();
       window.location.reload();
     } catch (error: any) {

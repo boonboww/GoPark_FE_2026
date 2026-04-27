@@ -170,16 +170,16 @@ export  function StaffDashboard() {
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 mb-1">
                 <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]"></span>
-                <span className="text-[10px] text-emerald-400 font-bold tracking-[0.3em] uppercase">System Online // Neural Core Active</span>
+                <span className="text-[10px] text-emerald-400 font-bold tracking-[0.3em] uppercase">HỆ THỐNG TRỰC TUYẾN // ĐANG HOẠT ĐỘNG</span>
               </div>
               <h2 className="text-4xl md:text-5xl font-black text-zinc-900 leading-[0.95] tracking-tighter uppercase">
-                Scanner Control<br/>Interface
+                GIAO DIỆN ĐIỀU KIỂN<br/>MÁY QUÉT
               </h2>
             </div>
 
             <div className="flex bg-zinc-50 border border-zinc-100 rounded-2xl p-5 gap-10 min-w-[320px] shadow-sm">
                <div className="flex flex-col gap-1 border-l-4 border-emerald-500 pl-5 pr-2">
-                  <span className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Telemetry Timestamp</span>
+                  <span className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">THỜI ĐIỂM GHI DỮ LIỆU</span>
                   <div className="text-zinc-600 font-mono text-sm leading-none tracking-tighter">
                     Date:2023.10.24 
                   </div>
@@ -188,7 +188,7 @@ export  function StaffDashboard() {
                   </div>
                </div>
                <div className="flex flex-col justify-center gap-1 border-l border-zinc-100 pl-3 ">
-                  <span className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">Node Location</span>
+                  <span className="text-[9px] text-zinc-500 font-black uppercase tracking-widest mb-1">VỊ TRÍ CỔNG</span>
                   <div className="text-emerald-400 font-black text-lg uppercase tracking-tighter leading-none">
                     {selectedGateId ? mockGates.find(g => g.id.toString() === selectedGateId)?.name.replace(/\s+/g, '-') : 'ZONE-A / MAIN'}
                   </div>
@@ -204,7 +204,7 @@ export  function StaffDashboard() {
                  <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-3">
                        <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-1.5m0 0v-1.5m0 1.5v1.5m-6-1.5h1.5m0 0v1.5m0-1.5v-1.5m1.5-6h1.5m0 0V4m0 11v1m-6-1v-1m0 1H4" /></svg>
-                       <h3 className="font-bold text-zinc-900 text-sm tracking-widest uppercase">Primary QR Scanner</h3>
+                       <h3 className="font-bold text-zinc-900 text-sm tracking-widest uppercase">MÁY QUÉT QR CHÍNH</h3>
                     </div>
                     <div className="px-3 py-1 bg-emerald-100 border border-emerald-200 text-emerald-700 text-[9px] font-mono rounded-md tracking-wider uppercase">STBM_AB_EX_QR_001</div>
                  </div>
@@ -231,7 +231,7 @@ export  function StaffDashboard() {
                        <div className="absolute inset-0 bg-black/95 flex items-center justify-center z-20 backdrop-blur-sm p-4">
                           <div className="text-white text-center">
                              <p className="text-4xl mb-2">✅</p>
-                             <p className="font-bold uppercase tracking-widest text-sm mb-2 text-emerald-400">Signal Acquired</p>
+                             <p className="font-bold uppercase tracking-widest text-sm mb-2 text-emerald-400">ĐÃ NHẬN TÍN HIỆU</p>
                              <p className="text-emerald-300 font-mono text-xs bg-emerald-900/50 border border-emerald-500/50 px-4 py-2 rounded break-all">{qrContent}</p>
                              <div className="mt-6 pointer-events-auto">
                                <button onClick={handleResetScanner} className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-black rounded-lg text-xs font-black transition-all uppercase tracking-widest shadow-[0_0_20px_rgba(52,211,153,0.5)] active:scale-95">RE-CALIBRATE UNIT</button>
@@ -246,7 +246,7 @@ export  function StaffDashboard() {
                              </div>
                           </div>
                           <p className="text-zinc-900 font-black text-xs tracking-[0.3em] uppercase drop-shadow-[0_0_10px_rgba(0,0,0,0.1)]">Mã QR: Đang chờ...</p>
-                          <p className="text-zinc-400 text-[8px] mt-2 tracking-widest uppercase">Awaiting physical token presentment</p>
+                          {/* <p className="text-zinc-400 text-[8px] mt-2 tracking-widest uppercase">Awaiting physical token presentment</p> */}
                        </div>
                     )}
                  </div>
@@ -266,9 +266,9 @@ export  function StaffDashboard() {
                         <div>
                            <div className="flex items-center gap-2 mb-1">
                               <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
-                              <h3 className="font-bold text-zinc-900 text-sm tracking-widest uppercase">License Plate Analytics</h3>
+                              <h3 className="font-bold text-zinc-900 text-sm tracking-widest uppercase">PHÂN TÍCH BIỂN SỐ XE</h3>
                            </div>
-                           <p className="text-zinc-600 text-[10px] font-medium uppercase tracking-tight">High-precision optical character recognition module.</p>
+                           <p className="text-zinc-600 text-[10px] font-medium uppercase tracking-tight">Mô-đun nhận dạng ký tự quang học độ chính xác cao</p>
                         </div>
                         <div className="px-3 py-1 bg-blue-100 border border-blue-200 text-blue-700 text-[9px] font-mono rounded-md uppercase tracking-wider">V-OCR-BETA-04</div>
                      </div>

@@ -48,5 +48,7 @@ export const mapBookingData = (item: any) => {
         statusRaw: item.status,
         status: statusMap[item.status],
         total_price: mainInvoice ? Number(mainInvoice.total) : 0,
+        end_time_raw: item.end_time,
+        qrCode_content: item.qrCode?.content || "",
     }
 }
