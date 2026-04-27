@@ -31,7 +31,7 @@ export function TopFilter({
   onNearMeChange,
   onTextSearch,
 }: {
-  onSearch?: (dst: {lng: number, lat: number, name: string} | null) => void;
+  onSearch?: (dst: { lng: number, lat: number, name: string, geojson?: any } | null) => void;
   onFilterChange?: (filters: ParkingFilters) => void;
   onNearMeChange?: (filter: NearMeFilter | null) => void;
   onTextSearch?: (text: string) => void;
@@ -54,7 +54,7 @@ export function TopFilter({
 
   useEffect(() => {
     setMounted(true);
-    
+
     // Đóng dropdown khi click ra ngoài
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -113,17 +113,17 @@ export function TopFilter({
   const handleSearchClick = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setShowSuggestions(false);
-    
+
     if (!searchValue.trim()) {
       onSearch?.(null);
       return;
     }
-    
+
     // Nếu trong Suggestions đang có item khớp, lấy luôn thay vì fetch lại limit=1
     const matching = suggestions.find(s => s.name.toLowerCase() === searchValue.toLowerCase());
     if (matching) {
-       onSearch?.({ lat: matching.lat, lng: matching.lng, name: matching.name });
-       return;
+      onSearch?.({ lat: matching.lat, lng: matching.lng, name: matching.name });
+      return;
     }
 
     setIsSearching(true);
@@ -141,7 +141,7 @@ export function TopFilter({
           geojson: data[0].geojson
         });
       }
-    } catch(error) {
+    } catch (error) {
       console.error(error);
     } finally {
       setIsSearching(false);
@@ -222,8 +222,8 @@ export function TopFilter({
   }, [nearMeRadius]);
 
   return (
-    <div className="flex flex-col relative bg-background dark:bg-[#10b981] shadow-sm z-50 border-b transition-colors dark:border-[#059669]">
-      <div className="flex items-center justify-between px-4 py-2 h-14 gap-4 relative z-50 bg-background dark:bg-[#10b981]">
+    <div className="flex flex-col relative bg-background dark:bg-green-600 shadow-sm z-50 border-b transition-colors dark:border-[#059669]">
+      <div className="flex items-center justify-between px-4 py-2 h-14 gap-4 relative z-50 bg-background dark:bg-green-600">
         {/* Nút về trang chủ */}
         <Link href="/">
           <Button variant="ghost" size="icon" className="rounded-full max-sm:hidden dark:text-white dark:hover:bg-[#059669]" type="button">
@@ -235,9 +235,10 @@ export function TopFilter({
         <div className="flex-1 max-w-xl relative" ref={dropdownRef}>
           <form onSubmit={handleSearchClick} className="flex items-center gap-2 bg-muted/50 dark:bg-black/30 p-1 rounded-full px-4 border border-transparent dark:border-white/20">
             <Search className="h-4 w-4 text-muted-foreground dark:text-white/70" />
-            <Input 
-              className="border-none shadow-none bg-transparent focus-visible:ring-0 flex-1 dark:text-white dark:placeholder:text-white/50 h-8 text-sm" 
-              placeholder="Tìm kiếm khu vực, tên đường..." 
+            <Input
+              id="top-search-input"
+              className="border-none shadow-none bg-transparent focus-visible:ring-0 flex-1 dark:text-white dark:placeholder:text-white/50 h-8 text-sm"
+              placeholder="Tìm kiếm khu vực, tên đường..."
               value={searchValue}
               onChange={(e) => {
                 setSearchValue(e.target.value);
@@ -256,7 +257,7 @@ export function TopFilter({
             <div className="absolute top-full left-0 right-0 mt-1.5 bg-background dark:bg-[#064e3b] dark:text-white border shadow-lg rounded-xl overflow-hidden z-60">
               <ul className="py-1 max-h-75 overflow-y-auto">
                 {suggestions.map((sug, i) => (
-                  <li 
+                  <li
                     key={i}
                     className="px-4 py-2 hover:bg-muted dark:hover:bg-white/10 cursor-pointer flex flex-col items-start text-sm transition-colors"
                     onClick={() => handleSelectSuggestion(sug)}
@@ -274,6 +275,7 @@ export function TopFilter({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 rounded-full border border-input bg-background/90 dark:bg-black/30 px-2 py-1">
             <Button
+              id="near-me-btn"
               variant={nearMeFilter ? "default" : "outline"}
               onClick={handleToggleNearMe}
               type="button"
@@ -284,6 +286,7 @@ export function TopFilter({
               {nearMeFilter ? "Đang lọc gần tôi" : "Gần tôi"}
             </Button>
             <select
+              id="near-me-radius-select"
               value={nearMeRadius}
               onChange={(e) => setNearMeRadius(e.target.value)}
               className="border rounded-md px-2 py-1 text-xs bg-transparent dark:border-white/30 outline-none h-7"
@@ -309,8 +312,8 @@ export function TopFilter({
             </Button>
           )}
 
-          <Button 
-            variant={showAdvanced ? "secondary" : "outline"} 
+          <Button
+            variant={showAdvanced ? "secondary" : "outline"}
             onClick={() => setShowAdvanced(!showAdvanced)}
             type="button"
             className={"rounded-full gap-2 transition-colors h-9 px-4 text-sm " + (showAdvanced ? "bg-secondary dark:bg-[#059669] dark:text-white dark:border-[#059669]" : "dark:text-white dark:border-white/50 dark:hover:bg-[#059669]")}
@@ -328,45 +331,45 @@ export function TopFilter({
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Lọc theo thành phố */}
             <div className="flex flex-col gap-1.5 min-w-37.5">
-               <label className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground dark:text-white/80">
-                 <Building className="h-3.5 w-3.5" /> Thành phố
-               </label>
-               <select
-                 value={selectedCity}
-                 onChange={(e) => setSelectedCity(e.target.value)}
-                 className="border rounded-md px-2 py-1.5 text-sm bg-transparent dark:border-white/30 outline-none focus:border-primary dark:focus:border-white h-8"
-               >
-                 <option value="" className="dark:bg-[#064e3b]">Chọn TP...</option>
-                 <option value="hcm" className="dark:bg-[#064e3b]">Hồ Chí Minh</option>
-                 <option value="hn" className="dark:bg-[#064e3b]">Hà Nội</option>
-                 <option value="dn" className="dark:bg-[#064e3b]">Đà Nẵng</option>
-               </select>
+              <label className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground dark:text-white/80">
+                <Building className="h-3.5 w-3.5" /> Thành phố
+              </label>
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="border rounded-md px-2 py-1.5 text-sm bg-transparent dark:border-white/30 outline-none focus:border-primary dark:focus:border-white h-8"
+              >
+                <option value="" className="dark:bg-[#064e3b]">Chọn TP...</option>
+                <option value="hcm" className="dark:bg-[#064e3b]">Hồ Chí Minh</option>
+                <option value="hn" className="dark:bg-[#064e3b]">Hà Nội</option>
+                <option value="dn" className="dark:bg-[#064e3b]">Đà Nẵng</option>
+              </select>
             </div>
 
             {/* Bộ lọc giá */}
             <div className="flex flex-col gap-1.5 min-w-45">
-               <label className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground dark:text-white/80">
-                 <DollarSign className="h-3.5 w-3.5" /> Khoảng giá & Sắp xếp
-               </label>
-               <select
-                 value={selectedPriceSort}
-                 onChange={(e) => setSelectedPriceSort(e.target.value)}
-                 className="border rounded-md px-2 py-1.5 text-sm bg-transparent dark:border-white/30 outline-none focus:border-primary dark:focus:border-white h-8"
-               >
-                 <optgroup label="Sắp xếp" className="dark:bg-[#064e3b]">
-                   <option value="">Mặc định</option>
-                   <option value="asc">Giá thấp đến cao</option>
-                   <option value="desc">Giá cao đến thấp</option>
-                 </optgroup>
-                 <optgroup label="Khoảng giá" className="dark:bg-[#064e3b]">
-                   <option value="under-15">Dưới 15,000 VND</option>
-                   <option value="15-30">15,000 - 30,000 VND</option>
-                   <option value="above-30">Trên 30,000 VND</option>
-                 </optgroup>
-               </select>
+              <label className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground dark:text-white/80">
+                <DollarSign className="h-3.5 w-3.5" /> Khoảng giá & Sắp xếp
+              </label>
+              <select
+                value={selectedPriceSort}
+                onChange={(e) => setSelectedPriceSort(e.target.value)}
+                className="border rounded-md px-2 py-1.5 text-sm bg-transparent dark:border-white/30 outline-none focus:border-primary dark:focus:border-white h-8"
+              >
+                <optgroup label="Sắp xếp" className="dark:bg-[#064e3b]">
+                  <option value="">Mặc định</option>
+                  <option value="asc">Giá thấp đến cao</option>
+                  <option value="desc">Giá cao đến thấp</option>
+                </optgroup>
+                <optgroup label="Khoảng giá" className="dark:bg-[#064e3b]">
+                  <option value="under-15">Dưới 15,000 VND</option>
+                  <option value="15-30">15,000 - 30,000 VND</option>
+                  <option value="above-30">Trên 30,000 VND</option>
+                </optgroup>
+              </select>
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-2 mt-4 pt-3 border-t dark:border-white/10">
             <Button size="sm" variant="ghost" onClick={handleResetFilters} className="h-8 dark:text-white hover:bg-muted dark:hover:bg-white/10" type="button">Đặt lại</Button>
             <Button size="sm" onClick={handleApplyFilters} className="h-8 dark:bg-white dark:text-[#064e3b] dark:hover:bg-gray-200" type="button">Áp dụng</Button>

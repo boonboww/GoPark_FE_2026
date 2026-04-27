@@ -615,7 +615,7 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* CỘT TRÁI: THÔNG TIN CÁ NHÂN (VIEW MODE) */}
         <div className="col-span-1 lg:col-span-5">
-            <Card className="shadow-sm border-blue-50/50 dark:border-stone-800">
+            <Card id="profile-info-card" className="shadow-sm border-blue-50/50 dark:border-stone-800">
               <CardHeader className="flex flex-row justify-between items-center">
                 <div>
                   <CardTitle className="text-xl text-slate-800 dark:text-white">Hồ sơ cá nhân</CardTitle>
@@ -710,7 +710,7 @@ export default function ProfilePage() {
                 </CardTitle>
                 <CardDescription>Quản lý tối đa {MAX_VEHICLES} phương tiện đăng ký gửi xe (Chỉ ô tô)</CardDescription>
               </div>
-              <Button onClick={openAddVehicle} disabled={(vehicles?.length || 0) >= MAX_VEHICLES} size="sm" className="w-full bg-green-800 cursor-pointer sm:w-auto hover:bg-green-700">
+              <Button id="add-vehicle-btn" onClick={openAddVehicle} disabled={(vehicles?.length || 0) >= MAX_VEHICLES} size="sm" className="w-full bg-green-800 cursor-pointer sm:w-auto hover:bg-green-700">
                 <Plus className="w-4 h-4 mr-1" /> Thêm xe
               </Button>
             </CardHeader>

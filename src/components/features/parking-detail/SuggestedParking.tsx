@@ -5,9 +5,11 @@ import { Star, MapPin, Navigation, ArrowRight } from "lucide-react";
 import { get } from "@/lib/api";
 import { useParams, useRouter } from "next/navigation";
 import { ParkingContext } from "./ParkingContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function SuggestedParking() {
   const [nearLots, setNearLots] = useState([]);
+  const [loading, setLoading] = useState(true);
   const param = useParams();
   const router = useRouter();
   const nearbyParkingLot = param.id;
@@ -17,16 +19,16 @@ export function SuggestedParking() {
   const { dataLot } = context;
 
   useEffect(() => {
-    // CHỈ GỌI API KHI CÓ ĐỦ DỮ LIỆU
     if (nearbyParkingLot && dataLot?.lat && dataLot?.lng) {
+      setLoading(true);
       const { lat, lng } = dataLot;
       get(`/parking-lots/nearby/${nearbyParkingLot}?lat=${lat}&lng=${lng}`)
         .then((res: any) => {
-          console.log(res.data);
           setNearLots(res.data);
         }).catch((error: any) => {
           console.log(error);
         })
+        .finally(() => setLoading(false));
     }
   }, [nearbyParkingLot, dataLot])
 
@@ -37,8 +39,18 @@ export function SuggestedParking() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-        {nearLots.map((lot: any) => (
-
+        {loading ? (
+           [1, 2, 3, 4].map((i) => (
+             <div key={i} className="bg-white dark:bg-gray-900 rounded-[28px] p-3 shadow-sm border border-gray-300 dark:border-gray-600">
+               <Skeleton className="aspect-[4/3] w-full rounded-[20px] mb-4" />
+               <div className="px-1 space-y-3">
+                 <Skeleton className="h-6 w-full" />
+                 <Skeleton className="h-4 w-2/3" />
+                 <Skeleton className="h-10 w-full rounded-[20px] mt-4" />
+               </div>
+             </div>
+           ))
+        ) : nearLots.map((lot: any) => (
           <div
             key={lot.id}
             className="group bg-white dark:bg-gray-900 rounded-[28px] p-3 shadow-sm border border-gray-300 dark:border-gray-600 hover:shadow-xl transition-all duration-300"
@@ -100,4 +112,3 @@ export function SuggestedParking() {
     </div>
   );
 }
-

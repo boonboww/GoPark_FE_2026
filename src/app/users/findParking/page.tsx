@@ -99,7 +99,7 @@ const getZoomByRadiusKm = (radiusKm: number) => {
 };
 
 export default function FindParkingPage() {
-  const [destination, setDestination] = useState<{lng: number, lat: number, name: string} | null>(null);
+  const [destination, setDestination] = useState<{lng: number, lat: number, name: string, geojson?: any} | null>(null);
   const [parkingLots, setParkingLots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedParkingLot, setSelectedParkingLot] = useState<any | null>(null);
@@ -220,10 +220,16 @@ export default function FindParkingPage() {
         // 1. Text match (fuzzy/accent-insensitive)
         const matchesText = titleClean.includes(queryClean) || addressClean.includes(queryClean);
         
-        // 2. Word-based match (at least one word from query matches start of any word in title)
+        // 2. Word-based match (refined)
+        const STOP_WORDS = ["bai", "xe", "do", "car", "parking"];
         const queryWords = queryClean.split(' ').filter(w => w.length > 1);
-        const matchesWords = queryWords.length > 0 && queryWords.some(word => 
-          titleClean.split(' ').some(titleWord => titleWord.startsWith(word))
+        
+        // If query has more than just stop words, filter stop words out for the match check
+        const specificQueryWords = queryWords.filter(w => !STOP_WORDS.includes(w));
+        const wordsToMatch = specificQueryWords.length > 0 ? specificQueryWords : queryWords;
+        
+        const matchesWords = wordsToMatch.length > 0 && wordsToMatch.every(word => 
+          titleClean.includes(word) || addressClean.includes(word)
         );
 
         // 3. Geographic area match (strict)
@@ -235,6 +241,15 @@ export default function FindParkingPage() {
         // 4. Proximity match (point search)
         const isPointSearch = destination && !destination.geojson;
         const matchesProximity = isPointSearch && destinationCenter && lot.distanceKm !== null && lot.distanceKm < 2;
+        
+        // 5. Special City Check: If query contains "da nang", "ho chi minh", etc.
+        let cityMismatch = false;
+        if (queryClean.includes("da nang") && !addressClean.includes("da nang")) cityMismatch = true;
+        if ((queryClean.includes("ho chi minh") || queryClean.includes("hcm") || queryClean.includes("sai gon")) && 
+            !(addressClean.includes("ho chi minh") || addressClean.includes("hcm") || addressClean.includes("sai gon"))) cityMismatch = true;
+        if (queryClean.includes("ha noi") && !addressClean.includes("ha noi")) cityMismatch = true;
+
+        if (cityMismatch && !matchesArea && !matchesProximity) return false;
         
         if (!matchesText && !matchesWords && !matchesArea && !matchesProximity) return false;
       }

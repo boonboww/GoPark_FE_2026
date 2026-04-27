@@ -1,55 +1,82 @@
 "use client";
 
 import React, { useContext, useState } from "react";
-import { MapPin, Clock, Star, Banknote, Info, User, Phone, Mail, Car, Bike, CheckCircle, ChevronLeft, ChevronRight, X, Image as ImageIcon, ShieldCheck, Calendar, MessageCircle, Camera, Tent } from "lucide-react";
+import { MapPin, Clock, Info, User, Phone, Mail, CheckCircle, ShieldCheck, Calendar, MessageCircle, Camera, Tent } from "lucide-react";
 import { ParkingContext } from "./ParkingContext";
 import { MapLocationPicker } from "@/components/ui/map-location-picker";
 import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ParkingInfo() {
 
   const context = useContext(ParkingContext);
-  if (!context) return null;
-  const { dataLot, loadingLot } = context;
-  
-
-
+  const router = useRouter();
   const [selectedAreaIndex, setSelectedAreaIndex] = useState(0);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(-1);
-  
-  const thumbImg = dataLot?.image?.thumbnail || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?q=80&w=800&auto=format&fit=crop";
-  const gal1 = dataLot?.image?.gallery?.[0] || "https://images.unsplash.com/photo-1604063155776-081e7e45fcc3?q=80&w=300&auto=format&fit=crop";
-  const gal2 = dataLot?.image?.gallery?.[1] || "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?q=80&w=300&auto=format&fit=crop";
-  const currentMainImage = activeImageIndex === 0 ? gal1 : activeImageIndex === 1 ? gal2 : thumbImg;
-
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  if (!context) return null;
+  const { dataLot, loadingLot } = context;
+
+  if (loadingLot) {
+    return (
+      <div className="w-full space-y-8 animate-in fade-in duration-500">
+        <div>
+          <Skeleton className="h-6 w-24 mb-3 rounded-full" />
+          <Skeleton className="h-10 w-2/3 mb-3" />
+          <div className="flex gap-2">
+            <Skeleton className="h-5 w-5 rounded-full" />
+            <Skeleton className="h-5 w-1/2" />
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-4 h-[400px]">
+          <Skeleton className="col-span-2 h-full rounded-2xl" />
+          <div className="grid grid-rows-3 gap-4 h-full">
+            <Skeleton className="rounded-2xl" />
+            <Skeleton className="rounded-2xl" />
+            <Skeleton className="rounded-2xl" />
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+          <Skeleton className="h-24 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  const thumbImg = dataLot?.image?.thumbnail || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?q=80&w=800&auto=format&fit=crop";
+  const gal2 = dataLot?.image?.gallery?.[1] || "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?q=80&w=300&auto=format&fit=crop";
+  const gal1 = dataLot?.image?.gallery?.[0] || "https://images.unsplash.com/photo-1604063155776-081e7e45fcc3?q=80&w=300&auto=format&fit=crop";
+  const currentMainImage = activeImageIndex === 0 ? gal1 : activeImageIndex === 1 ? gal2 : thumbImg;
 
   const pricingRules = Array.isArray(dataLot?.pricingRules) ? dataLot.pricingRules : [];
   const validIndex = selectedAreaIndex < pricingRules.length ? selectedAreaIndex : 0;
   const selectedRule = pricingRules[validIndex] || null;
-  const router = useRouter();
 
   const formatVnd = (n?: number) => n ? new Intl.NumberFormat('vi-VN').format(n) + 'đ' : '';
   function formatTime(startTime: string, endTime: string, days: string) {
-    if (!startTime || !endTime || !days) return "Chưa cập nhật"
+    if (!startTime || !endTime || !days) return "Chưa cập nhật";
 
-    const opendate = new Date(startTime)
-    const closedate = new Date(endTime)
+    const opendate = new Date(startTime);
+    const closedate = new Date(endTime);
 
     const openTime = opendate.toLocaleTimeString('vi-VN', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
-    })
+    });
 
     const closeTime = closedate.toLocaleTimeString('vi-VN', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: false
-    })
+    });
 
-    return `${openTime}-${closeTime}`
+    return `${openTime}-${closeTime}`;
   }
 
   const handleBooking = () => {
@@ -63,18 +90,6 @@ export function ParkingInfo() {
     setLightboxOpen(true);
   };
 
-  const nextImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
-  };
-
-  const prevImage = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
-  };
-
-
-  console.log(dataLot);
   return (
     <div className="w-full bg-transparent transition-colors">
       <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto">
@@ -110,7 +125,6 @@ export function ParkingInfo() {
             
             {/* 3 Small Images */}
             <div className="col-span-1 grid grid-rows-3 gap-3 md:gap-4 h-full min-h-0">
-              {/* Small Image 1 (Thumb) */}
               <div 
                 className={`h-full min-h-0 rounded-2xl overflow-hidden bg-gray-200 dark:bg-gray-800 cursor-pointer border-2 transition-all ${activeImageIndex === -1 ? 'border-blue-500' : 'border-transparent hover:border-blue-300'}`}
                 onClick={() => setActiveImageIndex(-1)}
@@ -118,7 +132,6 @@ export function ParkingInfo() {
                 <img src={thumbImg} className="w-full h-full object-cover" alt="Thumb" />
               </div>
 
-              {/* Small Image 2 (Gallery 0) */}
               <div 
                 className={`h-full min-h-0 rounded-2xl overflow-hidden bg-gray-200 dark:bg-gray-800 cursor-pointer border-2 transition-all ${activeImageIndex === 0 ? 'border-blue-500' : 'border-transparent hover:border-blue-300'}`}
                 onClick={() => setActiveImageIndex(0)}
@@ -126,7 +139,6 @@ export function ParkingInfo() {
                 <img src={thumbImg} className="w-full h-full object-cover" alt="Gallery 1" />
               </div>
 
-              {/* Small Image 3 (Gallery 1) */}
               <div 
                 className={`h-full min-h-0 rounded-2xl overflow-hidden bg-gray-200 dark:bg-gray-800 relative cursor-pointer border-2 transition-all ${activeImageIndex === 1 ? 'border-blue-500' : 'border-transparent hover:border-blue-300'}`}
                 onClick={() => setActiveImageIndex(1)}
@@ -291,6 +303,7 @@ export function ParkingInfo() {
               {/* Buttons */}
 
               <button
+                id="detail-book-now-btn"
                 onClick={handleBooking}
                 className="group relative overflow-hidden cursor-pointer w-full text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center mb-3 text-sm md:text-base border-0"
                 style={{ background: 'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)' }}
@@ -308,7 +321,12 @@ export function ParkingInfo() {
                     parkingAddress: dataLot.address || '',
                     parkingImage: dataLot?.image?.thumbnail || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?q=80&w=800&auto=format&fit=crop"
                   }).toString();
-                  router.push(`/users/chat/${dataLot.owner?.id}?${query}`);
+                  
+                  if (!dataLot.owner?.id) {
+                    alert("Không thể nhắn tin: Không tìm thấy ID chủ bãi.");
+                    return;
+                  }
+                  router.push(`/users/chat/${dataLot.owner.id}?${query}`);
                 }}
                 className="group relative overflow-hidden cursor-pointer w-full text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center text-sm md:text-base border-0"
                 style={{ backgroundColor: '#0052cc' }}

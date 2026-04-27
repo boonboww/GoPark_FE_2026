@@ -4,12 +4,13 @@ import React, { useContext, useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import { ParkingContext } from "./ParkingContext";
 import { get } from "@/lib/api";
-import { error } from "console";
 import { StarRating } from "./StarRating";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 export function ReviewsList() {
   const [rate,setRate] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const context = useContext(ParkingContext);
   if(!context) return null;
@@ -18,15 +19,16 @@ export function ReviewsList() {
 
   useEffect(()=>{
     if(lotId){
-    get(`/parking-lots/comment/${lotId}`)
-    .then((res:any)=>{
-      console.log(res.data);
-      setRate(res.data);
-    })
-    .catch((error)=>{
-      console.log(error);
-    })
-  }
+      setLoading(true);
+      get(`/parking-lots/comment/${lotId}`)
+      .then((res:any)=>{
+        setRate(res.data);
+      })
+      .catch((error)=>{
+        console.log(error);
+      })
+      .finally(() => setLoading(false));
+    }
   },[lotId])
 
   function ConvertDay(time:string){
@@ -64,35 +66,50 @@ export function ReviewsList() {
       </div>
 
       <div className="space-y-6">
-        {rate?.slice(0,3).map((r:any)=>(
-          <div  key={r.id}className="border-b border-gray-100 dark:border-gray-700 last:border-0 pb-6 last:pb-0">
-            <div className="flex items-center gap-4 mb-3">
-              <img 
-                src={r.user.profile.image}
-                alt="name"
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{r.user.profile.name}</h4>
-                <div className="flex items-center mt-1 text-sm text-gray-500 dark:text-gray-400 gap-2">
-                    <div className="flex text-yellow-500 gap-0.5">
-                        {[...Array(5)].map((_, i) => (
-                  <Star 
-                    key={i}
-                    className={`w-3.5 h-3.5 ${i < Number(r.rating)? "fill-current" : "text-gray-300 dark:text-gray-600"}`} 
-                  />
-                ))}
-                    </div>
-                    <span>•</span>
-                    <span>{ConvertDay(r.created_at)}</span>
-                </div>
+        {loading ? (
+          [1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-4 p-4 border-b border-gray-100 last:border-0">
+              <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
               </div>
             </div>
-            <p className="text-gray-600 dark:text-gray-300 text-sm pl-14">
-              {r.comment}
-            </p>
-          </div>
-      ))}
+          ))
+        ) : rate.length > 0 ? (
+          rate?.slice(0,3).map((r:any)=>(
+            <div  key={r.id}className="border-b border-gray-100 dark:border-gray-700 last:border-0 pb-6 last:pb-0">
+              <div className="flex items-center gap-4 mb-3">
+                <img 
+                  src={r.user.profile.image}
+                  alt="name"
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{r.user.profile.name}</h4>
+                  <div className="flex items-center mt-1 text-sm text-gray-500 dark:text-gray-400 gap-2">
+                      <div className="flex text-yellow-500 gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i}
+                      className={`w-3.5 h-3.5 ${i < Number(r.rating)? "fill-current" : "text-gray-300 dark:text-gray-600"}`} 
+                    />
+                  ))}
+                      </div>
+                      <span>•</span>
+                      <span>{ConvertDay(r.created_at)}</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-gray-600 dark:text-gray-300 text-sm pl-14">
+                {r.comment}
+              </p>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8 text-gray-500">Chưa có đánh giá nào cho bãi đỗ này.</div>
+        )}
       </div>
       
       <div className="mt-6 text-center">

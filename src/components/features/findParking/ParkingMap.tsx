@@ -33,13 +33,13 @@ function formatDistance(meters: number): string {
 }
 
 // Controller quản lý các sự kiện click và trạng thái myLocation
-function MapController({ 
-  mapStyle, 
+function MapController({
+  mapStyle,
   onStyleChange,
   myLocation,
   setMyLocation,
-}: { 
-  mapStyle: StyleKey; 
+}: {
+  mapStyle: StyleKey;
   onStyleChange: (style: StyleKey) => void;
   myLocation: [number, number] | null;
   setMyLocation: (loc: [number, number] | null) => void;
@@ -143,7 +143,7 @@ function MapController({
   );
 }
 
-export function ParkingMap({ 
+export function ParkingMap({
   destination,
   parkingLots = [],
   selectedParkingLot,
@@ -153,12 +153,12 @@ export function ParkingMap({
   compact = false,
   focusTarget,
   userLocation,
-}: { 
-  destination?: {lng: number, lat: number, name: string, geojson?: any} | null,
+}: {
+  destination?: { lng: number, lat: number, name: string, geojson?: any } | null,
   parkingLots?: any[],
   selectedParkingLot?: any | null,
   setSelectedParkingLot?: (lot: any) => void,
-  directionRoute?: {coordinates: [number, number][]} | null,
+  directionRoute?: { coordinates: [number, number][] } | null,
   isNavigating?: boolean,
   compact?: boolean
   focusTarget?: { lat: number; lng: number; zoom?: number; name?: string } | null,
@@ -250,7 +250,7 @@ export function ParkingMap({
           const { longitude, latitude, heading } = position.coords;
           const newPos: [number, number] = [longitude, latitude];
           setMyLocation(newPos);
-          
+
           if (mapRef.current) {
             mapRef.current.easeTo({
               center: newPos,
@@ -304,15 +304,15 @@ export function ParkingMap({
           // Tự động zoom thấy cả 2 điểm
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           if (mapRef.current && (window as any).maplibregl) {
-             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-             const maplibregl = (window as any).maplibregl;
-             const bounds = new maplibregl.LngLatBounds();
-             bounds.extend(myLocation as [number, number]);
-             bounds.extend([destination!.lng, destination!.lat]);
-             mapRef.current.fitBounds(bounds, { padding: { top: 120, bottom: 120, left: 120, right: 120 }, duration: 1500 });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const maplibregl = (window as any).maplibregl;
+            const bounds = new maplibregl.LngLatBounds();
+            bounds.extend(myLocation as [number, number]);
+            bounds.extend([destination!.lng, destination!.lat]);
+            mapRef.current.fitBounds(bounds, { padding: { top: 120, bottom: 120, left: 120, right: 120 }, duration: 1500 });
           }
         } else {
-           alert("Không tìm thấy đường đi khả dụng!");
+          alert("Không tìm thấy đường đi khả dụng!");
         }
       } catch (error) {
         console.error("Failed to fetch routes:", error);
@@ -327,13 +327,13 @@ export function ParkingMap({
   // Handle zooming to destination area if geojson exists
   useEffect(() => {
     if (compact || !destination?.geojson || !mapRef.current) return;
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const maplibregl = (window as any).maplibregl;
     if (maplibregl) {
       const bounds = new maplibregl.LngLatBounds();
       const coords = destination.geojson.coordinates;
-      
+
       // Flatten coordinates to find bounds
       const processCoords = (c: any) => {
         if (Array.isArray(c[0])) {
@@ -343,7 +343,7 @@ export function ParkingMap({
         }
       };
       processCoords(coords);
-      
+
       mapRef.current.fitBounds(bounds, { padding: 50, duration: 1500 });
     }
   }, [destination, compact]);
@@ -397,9 +397,9 @@ export function ParkingMap({
 
         {/* Khoanh vùng khu vực nếu có geojson */}
         {!compact && destination?.geojson && (
-          <MapArea 
-            geometry={destination.geojson} 
-            fillColor="#10b981" 
+          <MapArea
+            geometry={destination.geojson}
+            fillColor="#10b981"
             outlineColor="#059669"
             fillOpacity={0.1}
           />
@@ -407,9 +407,9 @@ export function ParkingMap({
 
         {/* Các bãi đỗ xe */}
         {parkingLots?.map((lot) => (
-          <MapMarker 
-            key={lot.id} 
-            longitude={Number(lot.lng)} 
+          <MapMarker
+            key={lot.id}
+            longitude={Number(lot.lng)}
             latitude={Number(lot.lat)}
             onClick={compact ? undefined : (e) => {
               (e as any).originalEvent?.stopPropagation(); e.stopPropagation?.();
@@ -417,8 +417,11 @@ export function ParkingMap({
             }}
           >
             <MarkerContent className="cursor-pointer group">
-              <div className={`p-2 rounded-xl border-2 shadow-lg transition-all ${selectedParkingLot?.id === lot.id ? 'bg-indigo-600 border-indigo-200 scale-125' : 'bg-primary border-primary-foreground hover:scale-110'}`}>
-                 <Layers className="text-white size-4" />
+              <div 
+                id={!compact ? `parking-marker-${lot.id}` : undefined} 
+                className={`p-2 rounded-xl border-2 shadow-lg transition-all ${selectedParkingLot?.id === lot.id ? 'bg-indigo-600 border-indigo-200 scale-125' : 'bg-primary border-primary-foreground hover:scale-110'}`}
+              >
+                <Layers className="text-white size-4" />
               </div>
               <MarkerLabel position="bottom" className={`font-semibold bg-background/80 backdrop-blur ${selectedParkingLot?.id === lot.id ? 'text-indigo-600' : ''}`}>
                 {lot.name}
@@ -458,43 +461,43 @@ export function ParkingMap({
           <div className="flex justify-between items-start mb-2">
             <h3 className="font-bold text-lg text-primary truncate max-w-[80%]">{selectedParkingLot.name}</h3>
             <button onClick={() => setSelectedParkingLot?.(null)} className="text-muted-foreground hover:bg-muted p-1 rounded-full bg-secondary transition-colors">
-               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
             </button>
           </div>
-          
-          <img src={selectedParkingLot.imageUrl || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=400&h=200&q=80"} alt={selectedParkingLot.name} className="w-full h-32 object-cover rounded-xl mb-3 shadow-inner" />
-          
+
+          <img src={selectedParkingLot.imageUrl || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=400&h=200&q=80"} alt={selectedParkingLot.name} className="w-full h-52 object-cover rounded-xl mb-3 shadow-inner" />
+
           <div className="space-y-1.5 text-sm mb-4 text-muted-foreground">
             <p className="flex items-center gap-2"><MapPin className="size-4 shrink-0 text-indigo-500" /> <span className="line-clamp-2">{selectedParkingLot.address}</span></p>
             <p className="flex items-center gap-2"><Layers className="size-4 shrink-0 text-emerald-500" /> <span>Trống: <strong className="text-emerald-600">{selectedParkingLot.available_slots || 0}</strong> / {selectedParkingLot.total_slots || 0} chỗ</span></p>
             {selectedParkingLot.open_time && (
-               <p className="flex items-center gap-2"><Clock className="size-4 shrink-0 text-orange-500" /> <span>{new Date(selectedParkingLot.open_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(selectedParkingLot.close_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></p>
+              <p className="flex items-center gap-2"><Clock className="size-4 shrink-0 text-orange-500" /> <span>{new Date(selectedParkingLot.open_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedParkingLot.close_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></p>
             )}
-              {(selectedParkingLot.minprice || selectedParkingLot.minPrice) && (
-                 <p className="flex items-center gap-2">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500 shrink-0"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-                   <span>Chỉ từ <strong className="text-primary">{new Intl.NumberFormat('vi-VN').format(selectedParkingLot.minprice || selectedParkingLot.minPrice)}đ</strong>/giờ</span>
-                 </p>
-              )}
+            {(selectedParkingLot.minprice || selectedParkingLot.minPrice) && (
+              <p className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500 shrink-0"><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></svg>
+                <span>Chỉ từ <strong className="text-primary">{new Intl.NumberFormat('vi-VN').format(selectedParkingLot.minprice || selectedParkingLot.minPrice)}đ</strong>/giờ</span>
+              </p>
+            )}
           </div>
           <div className="flex gap-2 w-full">
-             <Button variant="outline" className="flex-1 rounded-xl shadow-sm border-gray-300 hover:bg-gray-100" onClick={() => {
-                window.location.href = `/users/detailParking/${selectedParkingLot.id}`;
-             }}>
-               Chi tiết
-             </Button>
-             <Button className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-md" onClick={() => {
-                window.location.href = `/users/myBooking/${selectedParkingLot.id}`;
-             }}>
-               Đặt chỗ ngay
-             </Button>
+            <Button id="parking-detail-btn" variant="outline" className="flex-1 rounded-xl shadow-sm border-gray-300 hover:bg-gray-100" onClick={() => {
+              window.location.href = `/users/detailParking/${selectedParkingLot.id}`;
+            }}>
+              Chi tiết
+            </Button>
+            <Button id="parking-book-now-btn" className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 shadow-md" onClick={() => {
+              window.location.href = `/users/myBooking/${selectedParkingLot.id}`;
+            }}>
+              Đặt chỗ ngay
+            </Button>
           </div>
         </div>
       )}
 
       {/* Box hiển thị tuỳ chọn đường đi dưới góc trái, responsive */}
       {!compact && !directionRoute && routes.length > 0 && (
-        <div className="absolute top-20 lg:top-auto sm:bottom-8 right-3 flex flex-col gap-2 z-10 bg-background/90 p-2 rounded-xl border shadow-lg backdrop-blur transition-all w-fit pointer-events-auto">
+        <div className="absolute top-20 lg:top-auto sm:bottom-8 left-3 flex flex-col gap-2 z-10 bg-background/90 p-2 rounded-xl border shadow-lg backdrop-blur transition-all w-fit pointer-events-auto">
           {routes.map((route, index) => {
             const isActive = index === selectedIndex;
             const isFastest = index === 0;

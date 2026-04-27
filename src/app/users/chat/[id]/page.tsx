@@ -108,7 +108,7 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
       }
     }
 
-    if (receiverId) {
+    if (receiverId && receiverId !== "undefined") {
       loadOwnerProfile();
     }
 

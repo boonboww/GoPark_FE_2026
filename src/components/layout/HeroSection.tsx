@@ -16,6 +16,11 @@ type ParkingLotRecord = Record<string, any> & {
   parkingFloor?: any[];
 };
 
+type ParkingWithDistance = ParkingLotRecord & {
+  distanceKm: number | null;
+  distanceLabel: string;
+};
+
 type ParkingLotOwner = {
   name?: string;
   username?: string;
@@ -331,14 +336,7 @@ const HeroSection = () => {
     fetchHomeParkings();
   }, []);
 
-  useEffect(() => {
-    const firstValidLot = parkings.find((lot) => typeof lot.id === "number");
-    if (!firstValidLot) return;
 
-    if (!selectedLayoutLotId || !parkings.some((lot) => lot.id === selectedLayoutLotId)) {
-      setSelectedLayoutLotId(firstValidLot.id);
-    }
-  }, [parkings, selectedLayoutLotId]);
 
   useEffect(() => {
     if (activeTab !== "nearby" || hasRequestedLocation) return;
@@ -400,36 +398,50 @@ const HeroSection = () => {
     return layoutStructureByLotId[selectedLayoutLot.id] || selectedLayoutLot.parkingFloor || null;
   }, [layoutStructureByLotId, selectedLayoutLot]);
 
-  const nearbyParkings = useMemo(() => {
-    if (!myLocation) return [];
+  const sortedParkings = useMemo((): ParkingWithDistance[] => {
+    const withDistance = parkings.map((lot) => {
+      const coordinates = extractCoordinates(lot);
+      const distanceKm = myLocation && coordinates ? calculateDistanceKm(myLocation, coordinates) : null;
+      return {
+        ...lot,
+        distanceKm,
+        distanceLabel: formatDistance(distanceKm)
+      } as ParkingWithDistance;
+    });
 
-    return parkings
-      .map((lot) => {
-        const coordinates = extractCoordinates(lot);
-        const distanceKm = myLocation && coordinates
-          ? calculateDistanceKm(myLocation, coordinates)
-          : null;
+    if (!myLocation) return withDistance;
 
-        return {
-          ...lot,
-          distanceKm,
-          distanceLabel: formatDistance(distanceKm),
-        };
-      })
-      .filter((lot) => lot.distanceKm !== null && lot.distanceKm <= 60) // Chỉ lấy trong bán kính 60km
-      .sort((a, b) => {
-        if (a.distanceKm === null && b.distanceKm === null) return 0;
-        if (a.distanceKm === null) return 1;
-        if (b.distanceKm === null) return -1;
-        return a.distanceKm - b.distanceKm;
-      });
+    return [...withDistance].sort((a, b) => {
+      if (a.distanceKm === null && b.distanceKm === null) return 0;
+      if (a.distanceKm === null) return 1;
+      if (b.distanceKm === null) return -1;
+      return a.distanceKm - b.distanceKm;
+    });
   }, [parkings, myLocation]);
+
+  const nearbyParkings = useMemo((): ParkingWithDistance[] => {
+    if (!myLocation) return [];
+    return sortedParkings.filter((lot) => lot.distanceKm !== null && lot.distanceKm <= 60);
+  }, [sortedParkings, myLocation]);
+
+  useEffect(() => {
+    if (activeTab === 'layout' && nearbyParkings.length > 0) {
+      if (!selectedLayoutLotId || !nearbyParkings.some((lot) => lot.id === selectedLayoutLotId)) {
+        setSelectedLayoutLotId(nearbyParkings[0].id);
+      }
+    } else if (parkings.length > 0) {
+      const firstValidLot = parkings.find((lot) => typeof lot.id === "number");
+      if (firstValidLot && (!selectedLayoutLotId || !parkings.some((lot) => lot.id === selectedLayoutLotId))) {
+        setSelectedLayoutLotId(firstValidLot.id);
+      }
+    }
+  }, [parkings, nearbyParkings, activeTab, selectedLayoutLotId]);
 
   const displayNearbyParkings = nearbyParkings;
 
   useEffect(() => {
     if (activeTab !== "nearby" || displayNearbyParkings.length <= 1) return;
-    
+
     const interval = setInterval(() => {
       setSlideDirection("left");
       setCurrentIndex((prev) => (prev + 1) % displayNearbyParkings.length);
@@ -463,45 +475,45 @@ const HeroSection = () => {
     <section className="relative w-full min-h-screen bg-[#F0F2F5] dark:bg-stone-900 overflow-hidden font-sans p-4 sm:p-6 md:p-10 flex flex-col">
 
       {/* BACKGROUND GRADIENT/DECORATION */}
-      <div className="absolute top-0 left-0 w-full h-[60vh] bg-linear-to-br from-gray-200 to-gray-100 dark:from-stone-800 dark:to-stone-900 -z-10 rounded-b-[3rem] md:rounded-b-[4rem]" />
+      <div className="absolute top-0 left-0 w-full h-[40vh] sm:h-[60vh] bg-linear-to-br from-gray-200 to-gray-100 dark:from-stone-800 dark:to-stone-900 -z-10 rounded-b-[2rem] sm:rounded-b-[3rem] md:rounded-b-[4rem]" />
 
       {/* HEADER NAV */}
-      <header className="flex flex-col xl:flex-row justify-between items-center gap-4 z-10 w-full mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-center xl:text-left w-full xl:w-auto">
-          Xin chào, <span className="font-semibold text-black dark:text-white capitalize">{user?.profile?.name || "bạn"}</span>
+      <header className="flex flex-col lg:flex-row justify-between items-center gap-6 z-10 w-full mb-8 md:mb-12">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter text-center lg:text-left w-full lg:w-auto mt-2 sm:mt-0">
+          Xin chào, <span className="font-semibold text-green-600 dark:text-green-500 capitalize">{user?.profile?.name || "bạn"}</span>
         </h1>
 
-        <div className="flex bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-full shadow-sm p-1 overflow-x-auto w-full max-w-md sm:max-w-max justify-start sm:justify-center hide-scrollbar">
+        <div className="flex bg-white/80 dark:bg-black/60 backdrop-blur-xl rounded-2xl sm:rounded-full shadow-md p-1.5 overflow-x-auto w-full max-w-full sm:max-w-max justify-start sm:justify-center hide-scrollbar border border-white/20">
           <button 
             onClick={() => setActiveTab("nearby")}
-            className={`px-4 sm:px-6 py-2 cursor-pointer rounded-full text-xs sm:text-sm font-semibold transition whitespace-nowrap ${activeTab === "nearby" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white font-medium"}`}
+            className={`px-4 sm:px-6 py-2.5 cursor-pointer rounded-xl sm:rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "nearby" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white"}`}
           >
             Gần tôi
           </button>
           <button
             onClick={() => setActiveTab("layout")}
-            className={`px-4 sm:px-6 py-2 cursor-pointer rounded-full text-xs sm:text-sm font-semibold transition whitespace-nowrap ${activeTab === "layout" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white font-medium"}`}
+            className={`px-4 sm:px-6 py-2.5 cursor-pointer rounded-xl sm:rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "layout" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white"}`}
           >
             Sơ đồ bãi
           </button>
           <button 
             onClick={() => { setActiveTab("all"); setCurrentPage(1); }}
-            className={`px-4 sm:px-6 py-2 cursor-pointer rounded-full text-xs sm:text-sm font-semibold transition whitespace-nowrap ${activeTab === "all" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white font-medium"}`}
+            className={`px-4 sm:px-6 py-2.5 cursor-pointer rounded-xl sm:rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "all" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white"}`}
           >
             Tất cả bãi đỗ
           </button>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 w-full xl:w-auto justify-center">
-          <div className="flex items-center bg-white/60 dark:bg-black/40 backdrop-blur-md rounded-full px-3 py-2 sm:px-4 sm:py-2 shadow-sm text-xs sm:text-sm font-medium">
-            <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-gray-500 shrink-0" />
-            <span className="truncate max-w-[200px] md:max-w-[300px]">
+        <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto justify-center">
+          <div className="flex items-center bg-white/80 dark:bg-black/60 backdrop-blur-xl rounded-full px-4 py-2.5 shadow-md text-xs sm:text-sm font-bold border border-white/20 flex-1 lg:flex-none">
+            <MapPin className="w-4 h-4 mr-2 text-red-500 shrink-0" />
+            <span className="truncate max-w-[150px] sm:max-w-[300px]">
               {currentParkingData?.address ? currentParkingData.address.split(',').slice(-2).join(', ').trim() : 'Đà Nẵng, Việt Nam'}
             </span>
           </div>
-          <button className="w-9 h-9 sm:w-10 sm:h-10 bg-white/60 dark:bg-black/40 backdrop-blur-md flex justify-center items-center rounded-full shadow-sm shrink-0">
-            <Settings className="w-4 h-4" />
-          </button>
+          <Link href="/users/setting" className="w-10 h-10 bg-white/80 dark:bg-black/60 backdrop-blur-xl flex justify-center items-center rounded-full shadow-md border border-white/20 shrink-0 hover:bg-white dark:hover:bg-stone-800 transition-colors">
+            <Settings className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+          </Link>
         </div>
       </header>
 
@@ -522,9 +534,13 @@ const HeroSection = () => {
                   onChange={(e) => setSelectedLayoutLotId(Number(e.target.value))}
                   className="bg-white dark:bg-stone-800 border border-gray-200 dark:border-stone-700 rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm outline-none"
                 >
-                  {parkings.map((lot) => (
-                    <option key={lot.id} value={lot.id}>{lot.name}</option>
-                  ))}
+                  {nearbyParkings.length > 0 ? (
+                    nearbyParkings.map((lot) => (
+                      <option key={lot.id} value={lot.id}>{lot.name} ({lot.distanceLabel})</option>
+                    ))
+                  ) : (
+                    <option value="" disabled>Không có bãi đỗ gần đây</option>
+                  )}
                 </select>
                 <button onClick={() => setActiveTab('all')} className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/20 transition">
                   <X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
@@ -664,63 +680,64 @@ const HeroSection = () => {
         <div className="flex-1 w-full mx-auto z-10 mt-6 animate-in fade-in slide-in-from-bottom-8">
           <div className="bg-white/60 dark:bg-stone-900/60 backdrop-blur-2xl rounded-[2rem] xl:rounded-[3rem] shadow-xl border border-white/40 dark:border-white/10 p-6 lg:p-10 flex flex-col min-h-[60vh]">
             <div className="flex justify-between items-center mb-6 shrink-0 gap-4">
-               <div>
-                 <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
-                   <Home className="text-blue-500 w-8 h-8" /> Tất cả bãi đỗ trong hệ thống
-                 </h2>
-                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Duyệt qua toàn bộ danh sách bãi đỗ của GoPark.</p>
-               </div>
-               <button onClick={() => setActiveTab('nearby')} className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/20 transition shrink-0">
-                 <X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
-               </button>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
+                  <Home className="text-blue-500 w-8 h-8" /> Tất cả bãi đỗ trong hệ thống
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Duyệt qua toàn bộ danh sách bãi đỗ của GoPark.</p>
+              </div>
+              <button onClick={() => setActiveTab('nearby')} className="w-12 h-12 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/20 transition shrink-0">
+                <X className="w-6 h-6 text-gray-700 dark:text-gray-300" />
+              </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 flex-1 pb-4">
-              {parkings.slice((currentPage - 1) * 8, currentPage * 8).map((p) => (
+              {sortedParkings.slice((currentPage - 1) * 8, currentPage * 8).map((p) => (
                 <Link
-                 key={p.id}
-                 href={`/users/detailParking/${p.id}`}
-                 className="bg-white/90 dark:bg-stone-800/90 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-black/5 dark:border-white/5 cursor-pointer group hover:-translate-y-1 flex flex-col"
+                  key={p.id}
+                  href={`/users/detailParking/${p.id}`}
+                  className="bg-white/90 dark:bg-stone-800/90 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-black/5 dark:border-white/5 cursor-pointer group hover:-translate-y-1 flex flex-col"
                 >
-                    <div className="w-full h-32 sm:h-40 relative overflow-hidden bg-gray-100 dark:bg-stone-800">
-                       <img src={p.bgImage} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                       <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/70 backdrop-blur px-2.5 py-1 rounded-full text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shadow-sm">
-                          Còn {p.availableSpots} chỗ
-                       </div>
+                  <div className="w-full h-32 sm:h-40 relative overflow-hidden bg-gray-100 dark:bg-stone-800">
+                    <img src={p.bgImage} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <div className="absolute top-3 left-3 bg-white/90 dark:bg-black/70 backdrop-blur px-2.5 py-1 rounded-full text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shadow-sm flex flex-col gap-1">
+                      <span>Còn {p.availableSpots} chỗ</span>
+                      {p.distanceLabel && <span className="text-blue-600 dark:text-blue-400">{p.distanceLabel}</span>}
                     </div>
-                    <div className="p-4 flex flex-col flex-1">
-                       <h3 className="font-bold text-base mb-1 text-gray-800 dark:text-gray-100 group-hover:text-blue-600 transition-colors line-clamp-1">{p.name}</h3>
-                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 flex-1">{p.address}</p>
-                       <div className="pt-3 border-t border-gray-100 dark:border-stone-700/50 flex justify-between items-center">
-                          <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Giá từ</span>
-                          <span className="font-bold text-sm text-black dark:text-white">{p.pricing?.firstHour || "Liên hệ"}</span>
-                       </div>
+                  </div>
+                  <div className="p-4 flex flex-col flex-1">
+                    <h3 className="font-bold text-base mb-1 text-gray-800 dark:text-gray-100 group-hover:text-blue-600 transition-colors line-clamp-1">{p.name}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 flex-1">{p.address}</p>
+                    <div className="pt-3 border-t border-gray-100 dark:border-stone-700/50 flex justify-between items-center">
+                      <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Giá từ</span>
+                      <span className="font-bold text-sm text-black dark:text-white">{p.pricing?.firstHour || "Liên hệ"}</span>
                     </div>
+                  </div>
                 </Link>
               ))}
             </div>
 
             {/* Pagination */}
-            {Math.ceil(parkings.length / 8) > 1 && (
-               <div className="flex justify-center items-center gap-2 mt-4">
-                  <button 
-                     disabled={currentPage === 1}
-                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                     className="w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-stone-800 disabled:opacity-50 shadow-sm border border-gray-100 dark:border-stone-700 hover:bg-gray-50 transition cursor-pointer"
-                  >
-                     <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                     {currentPage} / {Math.ceil(parkings.length / 8)}
-                  </span>
-                  <button 
-                     disabled={currentPage === Math.ceil(parkings.length / 8)}
-                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(parkings.length / 8)))}
-                     className="w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-stone-800 disabled:opacity-50 shadow-sm border border-gray-100 dark:border-stone-700 hover:bg-gray-50 transition cursor-pointer"
-                  >
-                     <ChevronRight className="w-4 h-4" />
-                  </button>
-               </div>
+            {Math.ceil(sortedParkings.length / 8) > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  className="w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-stone-800 disabled:opacity-50 shadow-sm border border-gray-100 dark:border-stone-700 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  {currentPage} / {Math.ceil(sortedParkings.length / 8)}
+                </span>
+                <button
+                  disabled={currentPage === Math.ceil(sortedParkings.length / 8)}
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(sortedParkings.length / 8)))}
+                  className="w-8 h-8 rounded-full flex items-center justify-center bg-white dark:bg-stone-800 disabled:opacity-50 shadow-sm border border-gray-100 dark:border-stone-700 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -741,34 +758,33 @@ const HeroSection = () => {
             <>
               {/* MAIN CONTENT */}
               <div className="relative flex-1 w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10 z-10 mt-2 md:mt-12 animate-in fade-in slide-in-from-bottom-8">
-            
+
                 {/* LEFT COLUMN: GREETING & FLOATING CONTROLS */}
                 <div className="lg:col-span-4 xl:col-span-3 flex flex-col justify-center z-20 text-center md:text-left relative overflow-hidden">
-                  <div className="relative w-full h-50 md:h-62.5">
-                      {displayNearbyParkings.map((parking, index) => (
+                  <div className="relative w-full h-40 sm:h-50 md:h-62.5">
+                    {displayNearbyParkings.map((parking, index) => (
                       <div
                         key={`info-${index}`}
-                        className={`absolute inset-0 flex flex-col transition-all duration-700 ease-in-out ${
-                          index === currentIndex
+                        className={`absolute inset-0 flex flex-col transition-all duration-700 ease-in-out ${index === currentIndex
                             ? "opacity-100 translate-x-0"
                             : slideDirection === "left"
                               ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
                                 ? "opacity-0 -translate-x-full"
                                 : "opacity-0 translate-x-full"
                               : index > currentIndex || (currentIndex === displayNearbyParkings.length - 1 && index === 0)
-                            ? "opacity-0 translate-x-full"
-                            : "opacity-0 -translate-x-full"
-                        }`}
+                                ? "opacity-0 translate-x-full"
+                                : "opacity-0 -translate-x-full"
+                          }`}
                       >
-                        <h2 
+                        <h2
                           className={`text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-white leading-tight wrap-break-word transition-all duration-300 ${!isNameExpanded ? 'line-clamp-2 md:line-clamp-3' : ''}`}
                           title={parking.name}
                         >
                           {parking.name}
                         </h2>
-                        
+
                         {parking.name.length > 25 && (
-                          <button 
+                          <button
                             onClick={() => setIsNameExpanded(!isNameExpanded)}
                             className="flex justify-center md:justify-start gap-1 text-sm font-semibold mt-3 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors w-full md:w-auto items-center"
                           >
@@ -783,7 +799,7 @@ const HeroSection = () => {
                               {parking.status} • Trống {parking.availableSpots}/{parking.totalSpots} chỗ
                               {parking.distanceLabel && <span className="ml-2 font-bold text-blue-600 dark:text-blue-400">({parking.distanceLabel})</span>}
                             </p>
-                            
+
                             <div className="bg-white/40 dark:bg-black/40 backdrop-blur-md inline-flex items-center gap-2 px-2 py-1.5 rounded-full shadow-sm">
                               <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden shrink-0">
                                 {parking.owner?.avatar ? (
@@ -808,54 +824,52 @@ const HeroSection = () => {
                       </div>
                     ))}
                   </div>
-                  
+
                   {/* SLIDER CONTROLS */}
                   {displayNearbyParkings.length > 1 && (
                     <div className="flex gap-3 justify-center md:justify-start mt-4">
-                      <button 
-                          onClick={handlePrev}
-                          className="w-10 h-10 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur shadow-sm hover:shadow-md flex items-center justify-center hover:bg-white dark:hover:bg-stone-800 transition text-gray-700 dark:text-gray-300"
+                      <button
+                        onClick={handlePrev}
+                        className="w-10 h-10 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur shadow-sm hover:shadow-md flex items-center justify-center hover:bg-white dark:hover:bg-stone-800 transition text-gray-700 dark:text-gray-300"
                       >
-                          <ChevronLeft className="w-5 h-5" />
+                        <ChevronLeft className="w-5 h-5" />
                       </button>
-                      <button 
-                          onClick={handleNext}
-                          className="w-10 h-10 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur shadow-sm hover:shadow-md flex items-center justify-center hover:bg-white dark:hover:bg-stone-800 transition text-gray-700 dark:text-gray-300"
+                      <button
+                        onClick={handleNext}
+                        className="w-10 h-10 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur shadow-sm hover:shadow-md flex items-center justify-center hover:bg-white dark:hover:bg-stone-800 transition text-gray-700 dark:text-gray-300"
                       >
-                          <ChevronRight className="w-5 h-5" />
+                        <ChevronRight className="w-5 h-5" />
                       </button>
                       <div className="flex items-center gap-1.5 ml-2">
-                          {displayNearbyParkings.map((_, i) => (
-                            <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === currentIndex ? 'w-5 bg-black dark:bg-white' : 'w-1.5 bg-gray-300 dark:bg-stone-600'}`}></div>
-                          ))}
+                        {displayNearbyParkings.map((_, i) => (
+                          <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === currentIndex ? 'w-5 bg-black dark:bg-white' : 'w-1.5 bg-gray-300 dark:bg-stone-600'}`}></div>
+                        ))}
                       </div>
                     </div>
                   )}
                 </div>
 
                 {/* CENTER COLUMN: CAR IMAGE */}
-                <div className="lg:col-span-4 xl:col-span-5 relative flex items-center justify-center min-h-62.5 md:min-h-75 z-0 -mx-4 md:mx-0 overflow-hidden">
+                <div className="lg:col-span-4 xl:col-span-5 relative flex items-center justify-center min-h-[200px] sm:min-h-62.5 md:min-h-75 z-0 -mx-4 md:mx-0 overflow-hidden">
                   {displayNearbyParkings.map((parking, index) => (
                     <div
                       key={`img-${index}`}
-                      className={`absolute inset-0 flex items-center justify-center transition-transform duration-700 ease-in-out ${
-                        index === currentIndex
+                      className={`absolute inset-0 flex items-center justify-center transition-transform duration-700 ease-in-out ${index === currentIndex
                           ? "translate-x-0"
                           : slideDirection === "left"
-                          ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
-                            ? "-translate-x-[120%]"
-                            : "translate-x-[120%]"
-                          : index > currentIndex || (currentIndex === displayNearbyParkings.length - 1 && index === 0)
-                          ? "translate-x-[120%]"
-                          : "-translate-x-[120%]"
-                      }`}
-                    >
-                      <img 
-                        src={parking.bgImage} 
-                        alt="Car/Parking" 
-                        className={`w-[95%] md:w-[90%] lg:w-[90%] max-w-3xl aspect-4/3 object-cover rounded-3xl drop-shadow-2xl hover:scale-[1.02] transition-transform duration-700 ${
-                          index % 2 === 0 ? "-rotate-3" : "rotate-3"
+                            ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
+                              ? "-translate-x-[120%]"
+                              : "translate-x-[120%]"
+                            : index > currentIndex || (currentIndex === displayNearbyParkings.length - 1 && index === 0)
+                              ? "translate-x-[120%]"
+                              : "-translate-x-[120%]"
                         }`}
+                    >
+                      <img
+                        src={parking.bgImage}
+                        alt="Car/Parking"
+                        className={`w-[95%] md:w-[90%] lg:w-[90%] max-w-3xl aspect-4/3 object-cover rounded-3xl drop-shadow-2xl hover:scale-[1.02] transition-transform duration-700 ${index % 2 === 0 ? "-rotate-3" : "rotate-3"
+                          }`}
                       />
                     </div>
                   ))}
@@ -863,13 +877,13 @@ const HeroSection = () => {
 
                 {/* RIGHT COLUMN: CARDS */}
                 <div className="lg:col-span-4 xl:col-span-4 flex flex-col gap-4 z-20 lg:pl-4 xl:pl-10 justify-center pb-8 md:pb-0">
-                  
+
                   {/* Thông tin & Bảng giá Card */}
                   <div className="bg-white/70 dark:bg-stone-800/70 backdrop-blur-2xl p-5 rounded-[2rem] shadow-xl border border-white/40 dark:border-white/10 flex flex-col delay-500 animate-in fade-in slide-in-from-right-8 duration-700 fill-mode-both">
                     <h3 className="font-bold text-base mb-3 flex items-center gap-2">
                       <Shield className="w-4 h-4 text-blue-500" /> Thông tin nhanh
                     </h3>
-                    
+
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       {currentParkingData?.amenities.map((item: any, idx: number) => (
                         <div key={`${currentIndex}-${idx}`} className="flex items-center gap-2 bg-gray-50 dark:bg-black/20 p-2 rounded-xl">
@@ -899,10 +913,10 @@ const HeroSection = () => {
 
                     {/* AI Input Area */}
                     <div className="mt-3 bg-gray-100 dark:bg-black/30 p-1.5 rounded-xl flex items-center shadow-inner">
-                      <input 
-                        type="text" 
-                        placeholder="Hỏi AI về bãi đỗ..." 
-                        className="bg-transparent border-none outline-none px-3 flex-1 text-xs text-gray-700 dark:text-gray-200" 
+                      <input
+                        type="text"
+                        placeholder="Hỏi AI về bãi đỗ..."
+                        className="bg-transparent border-none outline-none px-3 flex-1 text-xs text-gray-700 dark:text-gray-200"
                       />
                       <button className="w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex justify-center items-center shadow-md transition">
                         <Send className="w-3.5 h-3.5 ml-0.5" />
@@ -914,7 +928,7 @@ const HeroSection = () => {
                   <div className="bg-white/70 dark:bg-stone-800/70 backdrop-blur-2xl p-4 rounded-[2rem] shadow-xl border border-white/40 dark:border-white/10 relative overflow-hidden delay-700 animate-in fade-in slide-in-from-right-8 duration-700 fill-mode-both flex flex-col h-48">
                     <div className="relative z-10 flex justify-between items-start mb-2">
                       <div>
-                        <h3 className="font-bold flex items-center gap-2 text-sm"><MapPin className="w-4 h-4 text-red-500"/> Vị trí Bãi đỗ</h3>
+                        <h3 className="font-bold flex items-center gap-2 text-sm"><MapPin className="w-4 h-4 text-red-500" /> Vị trí Bãi đỗ</h3>
                         <p className="text-[10px] text-gray-500 mt-0.5 truncate max-w-50">{currentParkingData?.address}</p>
                       </div>
                     </div>
@@ -958,12 +972,12 @@ const HeroSection = () => {
                 </div>
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white mb-4">Không tìm thấy bãi đỗ nào gần bạn</h2>
                 <p className="text-gray-500 dark:text-gray-400 max-w-lg mb-10 leading-relaxed">
-                  {locationError 
+                  {locationError
                     ? `Lỗi vị trí: ${locationError}. Vui lòng cấp quyền truy cập vị trí cho trình duyệt.`
                     : "Chúng tôi không tìm thấy bãi đỗ xe nào trong bán kính 60km quanh vị trí hiện tại của bạn. Bạn có thể thử lại hoặc xem toàn bộ danh sách bãi đỗ."}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <button 
+                  <button
                     onClick={() => {
                       setHasRequestedLocation(false);
                       // Kích hoạt lại yêu cầu vị trí
@@ -986,8 +1000,8 @@ const HeroSection = () => {
                   >
                     Thử lại ngay
                   </button>
-                  <button 
-                    onClick={() => setActiveTab('all')} 
+                  <button
+                    onClick={() => setActiveTab('all')}
                     className="px-8 py-4 bg-white dark:bg-stone-800 text-gray-800 dark:text-white font-bold rounded-full shadow-md border border-gray-200 dark:border-stone-700 hover:bg-gray-50 transition transform hover:-translate-y-1"
                   >
                     Xem tất cả bãi đỗ

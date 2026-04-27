@@ -273,9 +273,11 @@ export default function ChatList() {
                   parkingImage: meta?.parkingImage || "",
                 }).toString();
 
-                const chatHref = query.includes("=")
-                  ? `/users/chat/${partner}?${query}`
-                  : `/users/chat/${partner}`;
+                const chatHref = (partner && partner !== "undefined")
+                  ? (query.includes("=")
+                    ? `/users/chat/${partner}?${query}`
+                    : `/users/chat/${partner}`)
+                  : "#";
 
                 return (
                   <li

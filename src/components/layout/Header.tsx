@@ -29,6 +29,7 @@ import {
   Clock,
   X,
   Ticket,
+  Smartphone
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useWallet } from "@/hooks/useWallet";
@@ -50,6 +51,7 @@ const Header = () => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [selectedNotif, setSelectedNotif] = useState<SentNotification | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
@@ -194,6 +196,7 @@ const Header = () => {
           <nav className="hidden md:flex flex-1 items-center justify-center gap-8 text-sm font-medium text-muted-foreground relative">
             <Link
               href="/"
+              id="home-nav-link"
               className="transition-colors hover:text-primary hover:font-semibold"
             >
               <Home className="h-5 w-5 inline-block mr-1" />
@@ -201,6 +204,7 @@ const Header = () => {
             </Link>
             <Link
               href="/users/findParking"
+              id="find-parking-nav-link"
               className="transition-colors hover:text-primary hover:font-semibold"
             >
               <Search className="h-5 w-5 inline-block mr-1" />
@@ -222,14 +226,14 @@ const Header = () => {
             </Link>
 
             <Link
-              href="/about"
+              href="/users/about"
               className="transition-colors hover:text-primary hover:font-semibold"
             >
               <User className="h-5 w-5 inline-block mr-1" />
               Về chúng tôi
             </Link>
             <Link
-              href="/contact"
+              href="/users/contact"
               className="transition-colors hover:text-primary hover:font-semibold"
             >
               <Contact className="h-5 w-5 inline-block mr-1" />
@@ -341,6 +345,7 @@ const Header = () => {
                 {/* Avatar & Dropdown */}
                 <div className="relative" ref={dropdownRef}>
                   <button
+                    id="header-avatar-btn"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     className="flex items-center gap-2 p-1.5 sm:pr-3 rounded-full border border-gray-200 dark:border-stone-700 hover:shadow-md transition-all bg-white dark:bg-stone-800"
                   >
@@ -393,6 +398,7 @@ const Header = () => {
 
                       <Link
                         href="/users/profile"
+                        id="header-profile-link"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
                         <User className="h-4 w-4" />
@@ -493,11 +499,112 @@ const Header = () => {
               size="icon"
               aria-label="Menu"
               className="text-foreground"
+              onClick={() => setIsMobileMenuOpen(true)}
             >
               <Menu className="h-6 w-6" />
             </Button>
           </div>
         </div>
+
+        {/* Mobile Menu Drawer */}
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-[100] md:hidden">
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            <div className="absolute right-0 top-0 h-full w-full sm:w-[320px] bg-white dark:bg-stone-900 shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col z-[101]">
+              <div className="p-6 border-b flex items-center justify-between dark:border-stone-800">
+                <Link href="/" className="flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
+                  <div className="bg-green-600 p-1.5 rounded-lg">
+                    <img src="/logo.png" alt="Logo" className="h-6 w-6 invert brightness-0" />
+                  </div>
+                  <span className="font-bold text-xl dark:text-white">Go<span className="text-green-600">Park</span></span>
+                </Link>
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-2.5 bg-gray-100 dark:bg-stone-800 hover:bg-gray-200 dark:hover:bg-stone-700 rounded-xl transition-colors"
+                >
+                  <X className="h-5 w-5 dark:text-gray-400" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                {isLoggedIn && (
+                  <div className="p-5 bg-linear-to-br from-gray-50 to-gray-100 dark:from-stone-800/50 dark:to-stone-900/50 rounded-[2rem] border border-gray-200 dark:border-stone-700/50">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="relative">
+                        <img
+                          src={user?.profile?.image || "https://i.pravatar.cc/150?img=11"}
+                          alt="Avatar"
+                          className="w-14 h-14 rounded-2xl object-cover border-2 border-white dark:border-stone-800 shadow-sm"
+                        />
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-stone-900 rounded-full"></div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-black truncate dark:text-white leading-tight">{user?.profile?.name || "Người dùng"}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">{user?.email}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 py-2.5 px-4 bg-white dark:bg-stone-800 rounded-xl border border-gray-100 dark:border-stone-700 shadow-xs">
+                      <Wallet className="h-4 w-4 text-emerald-500" />
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Số dư ví</span>
+                        <span className="text-sm font-black dark:text-white">
+                          {isWalletLoading ? "..." : `${(balance || 0).toLocaleString("vi-VN")} đ`}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <p className="px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Điều hướng chính</p>
+                  <MobileNavItem href="/" icon={Home} label="Trang chủ" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem href="/users/findParking" icon={Search} label="Tìm bãi đỗ" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem href="/users/promotions" icon={Ticket} label="Ưu đãi & Khuyến mãi" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem href="/users/historyBooking" icon={History} label="Lịch sử đặt chỗ" onClick={() => setIsMobileMenuOpen(false)} />
+                </div>
+
+                <div className="space-y-1">
+                  <p className="px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Tài khoản & Hỗ trợ</p>
+                  <MobileNavItem href="/users/chat" icon={MessageCircle} label="Tin nhắn" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem href="/users/profile" icon={User} label="Hồ sơ cá nhân" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem href="/users/setting" icon={Settings} label="Cài đặt hệ thống" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem href="/about" icon={Info} label="Về GoPark" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem href="/contact" icon={Contact} label="Trung tâm trợ giúp" onClick={() => setIsMobileMenuOpen(false)} />
+                </div>
+              </div>
+
+              <div className="p-6 border-t dark:border-stone-800 bg-gray-50/50 dark:bg-stone-900/50">
+                {isLoggedIn ? (
+                  <Button
+                    variant="destructive"
+                    className="w-full justify-center gap-3 h-14 rounded-2xl font-bold shadow-lg shadow-red-500/20"
+                    onClick={() => {
+                      logout();
+                      setIsMobileMenuOpen(false);
+                      router.push("/auth/login");
+                    }}
+                  >
+                    <LogOut className="h-5 w-5" />
+                    Đăng xuất tài khoản
+                  </Button>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button variant="outline" className="h-12 rounded-2xl font-bold" asChild onClick={() => setIsMobileMenuOpen(false)}>
+                      <Link href="/auth/login">Đăng nhập</Link>
+                    </Button>
+                    <Button className="h-12 rounded-2xl bg-green-600 hover:bg-green-700 font-bold shadow-lg shadow-green-500/20" asChild onClick={() => setIsMobileMenuOpen(false)}>
+                      <Link href="/auth/register">Đăng ký</Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Modal Chi tiết Thông báo */}
@@ -568,5 +675,18 @@ const Header = () => {
     </>
   );
 };
+
+const MobileNavItem = ({ href, icon: Icon, label, onClick }: { href: string; icon: any; label: string; onClick: () => void }) => (
+  <Link
+    href={href}
+    onClick={onClick}
+    className="group flex items-center gap-4 px-4 py-4 rounded-2xl text-[15px] font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-stone-800/80 transition-all active:scale-[0.98]"
+  >
+    <div className="p-2.5 bg-gray-100 dark:bg-stone-800 rounded-xl group-hover:bg-white dark:group-hover:bg-stone-700 transition-colors shadow-xs">
+      <Icon className="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-green-600 transition-colors" />
+    </div>
+    {label}
+  </Link>
+);
 
 export default Header;
