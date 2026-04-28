@@ -20,6 +20,7 @@ import { useWallet } from "@/hooks/useWallet";
 import { QRCodeSVG } from "qrcode.react";
 import { ExtendBookingModal } from "@/components/features/parking-detail/ExtendBookingModal";
 import dayjs from "dayjs";
+import { useTourStore } from "@/store/tourStore";
 
 
 interface UserProfile {
@@ -56,7 +57,7 @@ interface Vehicle {
   brand?: string | null;
   image: string;
   type: string;
-  qr_code_data?: string | null; 
+  qr_code_data?: string | null;
   booking_status?: string | null;
 }
 
@@ -69,12 +70,12 @@ interface Booking {
   status: string;
   vehicle: {
     plate_number: string;
-    type:string;
-    image:string;
+    type: string;
+    image: string;
   };
   created_at: string;
-  start_time:string;
-  end_time:string;
+  start_time: string;
+  end_time: string;
 }
 
 interface VehicleForm {
@@ -116,6 +117,22 @@ const formatVietnamesePlate = (value: string): string => {
 
   return "";
 };
+const TourTrigger = React.memo(({ openModal, isOpen }: { openModal: () => void, isOpen: boolean }) => {
+  const isTourActive = useTourStore(state => state.isTourActive);
+  const currentStep = useTourStore(state => state.currentStep);
+  const steps = useTourStore(state => state.steps);
+
+  useEffect(() => {
+    if (!isTourActive || !steps[currentStep]) return;
+    const step = steps[currentStep];
+    const internalModalFields = ["vehicle-ocr-btn", "plate", "vehicle-type-select", "vehicle-save-btn"];
+    if (internalModalFields.includes(step.targetId) && !isOpen) {
+      openModal();
+    }
+  }, [isTourActive, currentStep, steps, isOpen, openModal]);
+
+  return null;
+});
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -145,9 +162,19 @@ export default function ProfilePage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
   // Modals
+  const isTourActive = useTourStore(state => state.isTourActive);
+  const currentStep = useTourStore(state => state.currentStep);
+  const steps = useTourStore(state => state.steps);
+
+  const isInVehicleTour = React.useMemo(() => {
+    if (!isTourActive || !steps[currentStep]) return false;
+    const internalModalFields = ["vehicle-ocr-btn", "plate", "vehicle-type-select", "vehicle-save-btn"];
+    return internalModalFields.includes(steps[currentStep].targetId);
+  }, [isTourActive, currentStep, steps]);
+
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false);
-  
+
   // Forms
   const [pForm, setPForm] = useState<UserProfile>({ name: "", phone: "", gender: "", image: "" });
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
@@ -161,7 +188,7 @@ export default function ProfilePage() {
   const [vehicleDocFile, setVehicleDocFile] = useState<File | null>(null);
   const [vehicleDocPreview, setVehicleDocPreview] = useState("");
   const [isOcrLoading, setIsOcrLoading] = useState(false);
-  
+
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingVehicle, setIsSavingVehicle] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -200,7 +227,7 @@ export default function ProfilePage() {
 
         const rawVehicles = res.data.vehicles || [];
         const rawBookings = res.data.bookings || [];
-        
+
         setVehicles(rawVehicles || []);
         setBookings(rawBookings || []);
       }
@@ -221,12 +248,12 @@ export default function ProfilePage() {
   //     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]; 
   //     // Lấy phần tử đầu tiên sau khi sắp xếp mới nhất lên đầu
   // };
-  
+
   // -- IMAGE UPLOAD --
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, isProfile: boolean) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     // Check limit (2MB limit for base64 safety)
     if (file.size > 2 * 1024 * 1024) {
       toast.error("Vui lòng chọn ảnh nhỏ hơn 2MB");
@@ -255,7 +282,7 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
-  console.log(bookings,vehicles)
+  console.log(bookings, vehicles)
   const openEditProfile = () => {
     setPForm({ ...profile });
     setIsProfileDialogOpen(true);
@@ -310,7 +337,9 @@ export default function ProfilePage() {
   };
 
   // -- VEHICLE LOGIC --
-  const openAddVehicle = () => {
+  const openAddVehicle = React.useCallback(() => {
+    if (isVehicleDialogOpen) return;
+
     if ((vehicles?.length || 0) >= MAX_VEHICLES) {
       toast.error(`Bạn chỉ được đăng ký tối đa ${MAX_VEHICLES} phương tiện!`);
       return;
@@ -321,7 +350,7 @@ export default function ProfilePage() {
     setVehicleDocPreview("");
     setEditingVehicleId(null);
     setIsVehicleDialogOpen(true);
-  };
+  });
 
   const openEditVehicle = (vehicle: Vehicle) => {
     setVForm({
@@ -537,23 +566,23 @@ export default function ProfilePage() {
 
   const handleShowQR = (vehicle: Vehicle) => {
 
-  // 1. Lấy booking mới nhất
-  const latestBooking = getLatestConfirmedBookingForVehicle(vehicle.plate_number);
+    // 1. Lấy booking mới nhất
+    const latestBooking = getLatestConfirmedBookingForVehicle(vehicle.plate_number);
 
-  // 2. Kiểm tra xem có booking và có nội dung QR không
-  if (latestBooking && latestBooking.qrCode?.content) {
-    setQrCodeData(latestBooking.qrCode.content);
-    setIsQrDialogOpen(true);
-  } else {
-    // 3. Nếu không có booking, có thể hiển thị mã định danh xe mặc định 
-    // hoặc thông báo cho người dùng
-    toast.error(`Xe ${vehicle.plate_number} hiện không có lịch đặt chỗ nào được xác nhận.`);
-    
-    // Nếu bạn vẫn muốn hiện QR biển số xe (QR rỗng) thì dùng dòng dưới:
-    // setQrCodeData(vehicle.plate_number); 
-    // setIsQrDialogOpen(true);
-  }
-};
+    // 2. Kiểm tra xem có booking và có nội dung QR không
+    if (latestBooking && latestBooking.qrCode?.content) {
+      setQrCodeData(latestBooking.qrCode.content);
+      setIsQrDialogOpen(true);
+    } else {
+      // 3. Nếu không có booking, có thể hiển thị mã định danh xe mặc định 
+      // hoặc thông báo cho người dùng
+      toast.error(`Xe ${vehicle.plate_number} hiện không có lịch đặt chỗ nào được xác nhận.`);
+
+      // Nếu bạn vẫn muốn hiện QR biển số xe (QR rỗng) thì dùng dòng dưới:
+      // setQrCodeData(vehicle.plate_number); 
+      // setIsQrDialogOpen(true);
+    }
+  };
 
 
   const normalizePlate = (plate: string) => {
@@ -575,19 +604,19 @@ export default function ProfilePage() {
       const bStatus = b.status?.toLowerCase().trim();
       // Kiểm tra thêm trạng thái của QR Code nếu có
       const qrStatus = b.qrCode?.status?.toLowerCase().trim();
-      
+
       return (
         normalizePlate(bPlate) === normalizedTarget &&
-        ["confirmed","ongoing"].includes(bStatus) &&
+        ["confirmed", "ongoing"].includes(bStatus) &&
         // Nhưng điều kiện tiên quyết là mã QR đó chưa từng bị sử dụng để Checkout hoàn tất
         qrStatus === "active"
-          );
+      );
     });
 
     if (vBookings.length === 0) return null;
 
     // Sắp xếp lấy cái mới nhất
-    return vBookings.sort((a, b) => 
+    return vBookings.sort((a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )[0];
   };
@@ -597,17 +626,18 @@ export default function ProfilePage() {
 
   return (
     <div className="container mx-auto p-4 lg:p-8 max-w-7xl">
+      <TourTrigger openModal={openAddVehicle} isOpen={isVehicleDialogOpen} />
       <div className="mb-6 flex items-center gap-4">
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={() => router.push("/")} 
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => router.push("/")}
           className="shrink-0 text-slate-500 hover:text-slate-800 rounded-full w-10 h-10 border-slate-200"
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Tài khoản của tôi</h1>
+          <h1 className="text-2xl font-bold dark:text-white text-slate-800">Tài khoản của tôi</h1>
           <p className="text-slate-500">Quản lý thông tin cá nhân và phương tiện đăng ký</p>
         </div>
       </div>
@@ -615,41 +645,41 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* CỘT TRÁI: THÔNG TIN CÁ NHÂN (VIEW MODE) */}
         <div className="col-span-1 lg:col-span-5">
-            <Card id="profile-info-card" className="shadow-sm border-blue-50/50 dark:border-stone-800">
-              <CardHeader className="flex flex-row justify-between items-center">
-                <div>
-                  <CardTitle className="text-xl text-slate-800 dark:text-white">Hồ sơ cá nhân</CardTitle>
-                  <CardDescription className="dark:text-slate-400">Thông tin định danh của bạn</CardDescription>
-                </div>
-                <Button variant="outline" size="icon" onClick={openEditProfile} className="dark:border-stone-700 dark:hover:bg-stone-800">
-                  <Edit2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center mb-6">
-                  <Avatar className="w-24 h-24 border-2 border-primary/10">
-                    <AvatarImage src={profile.image} alt={profile.name} className="object-cover" />
-                    <AvatarFallback className="text-2xl bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                      {(profile.name || authUser?.profile?.name || "U").charAt(0).toUpperCase()}
+          <Card id="profile-info-card" className="shadow-sm border-blue-50/50 dark:border-stone-800">
+            <CardHeader className="flex flex-row justify-between items-center">
+              <div>
+                <CardTitle className="text-xl text-slate-800 dark:text-white">Hồ sơ cá nhân</CardTitle>
+                <CardDescription className="dark:text-slate-400">Thông tin định danh của bạn</CardDescription>
+              </div>
+              <Button id="profile-edit-btn" variant="outline" size="icon" onClick={openEditProfile} className="dark:border-stone-700 dark:hover:bg-stone-800">
+                <Edit2 className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center mb-6">
+                <Avatar className="w-24 h-24 border-2 border-primary/10">
+                  <AvatarImage src={profile.image} alt={profile.name} className="object-cover" />
+                  <AvatarFallback className="text-2xl bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                    {(profile.name || authUser?.profile?.name || "U").charAt(0).toUpperCase()}
 
-                    </AvatarFallback>
-                  </Avatar>
-                  <h2 className="mt-3 font-semibold text-lg text-slate-800 dark:text-white">{profile.name || "Chưa cập nhật tên"}</h2>
-                </div>
+                  </AvatarFallback>
+                </Avatar>
+                <h2 className="mt-3 font-semibold text-lg text-slate-800 dark:text-white">{profile.name || "Chưa cập nhật tên"}</h2>
+              </div>
 
-                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-stone-800">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Mail className="w-4 h-4"/> Email:</span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200">{email}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500 dark:text-slate-400">Số điện thoại:</span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200">{profile.phone || "Chưa cập nhật"}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500 dark:text-slate-400">Giới tính:</span>
-                    <span className="font-medium text-slate-800 dark:text-slate-200">
-                      {formatGenderLabel(profile.gender)}
+              <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-stone-800">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2"><Mail className="w-4 h-4" /> Email:</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">{email}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">Số điện thoại:</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">{profile.phone || "Chưa cập nhật"}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">Giới tính:</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">
+                    {formatGenderLabel(profile.gender)}
                   </span>
                 </div>
               </div>
@@ -657,7 +687,7 @@ export default function ProfilePage() {
           </Card>
 
           {/* VÍ CỦA TÔI */}
-          <Card className="shadow-sm border-blue-50/50 dark:border-stone-800 mt-8">
+          <Card id="profile-wallet-card" className="shadow-sm border-blue-50/50 dark:border-stone-800 mt-8">
             <CardHeader className="flex flex-row justify-between items-center">
               <div>
                 <CardTitle className="text-xl text-slate-800 dark:text-white">Ví của tôi</CardTitle>
@@ -682,7 +712,7 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
-                <Button onClick={() => router.push('/users/wallet')} className="w-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white shadow-sm">
+                <Button id="wallet-deposit-btn" onClick={() => router.push('/users/wallet')} className="w-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white shadow-sm">
                   Nạp tiền
                 </Button>
                 <Button onClick={() => router.push('/users/wallet/withdraw')} className="w-full bg-teal-600 hover:bg-teal-700 text-white shadow-sm">
@@ -699,7 +729,7 @@ export default function ProfilePage() {
 
         {/* CỘT PHẢI: QUẢN LÝ PHƯƠNG TIỆN */}
         <div className="col-span-1 lg:col-span-7">
-          <Card className="shadow-sm border-blue-50/50 h-full">
+          <Card id="vehicle-list-card" className="shadow-sm border-blue-50/50 h-full">
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-xl flex items-center gap-2">
@@ -714,7 +744,7 @@ export default function ProfilePage() {
                 <Plus className="w-4 h-4 mr-1" /> Thêm xe
               </Button>
             </CardHeader>
-            
+
             <CardContent>
               {(!vehicles || vehicles.length === 0) ? (
                 <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
@@ -730,48 +760,48 @@ export default function ProfilePage() {
                     const latestBooking = getLatestConfirmedBookingForVehicle(v.plate_number);
                     console.log(latestBooking)
                     return (
-                    <div key={v.id} className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors bg-white group relative overflow-hidden">
-                      {/* Ảnh phương tiện / QR code giả lập */}
-                      <div className="flex gap-3">
-                        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden border border-slate-100 flex-shrink-0 relative bg-slate-100">
-                          {v.image ? (
-                             <img src={v.image} alt={v.plate_number} className="w-full h-full object-cover" />
+                      <div key={v.id} className="flex flex-col sm:flex-row gap-4 p-4 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors bg-white group relative overflow-hidden">
+                        {/* Ảnh phương tiện / QR code giả lập */}
+                        <div className="flex gap-3">
+                          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden border border-slate-100 flex-shrink-0 relative bg-slate-100">
+                            {v.image ? (
+                              <img src={v.image} alt={v.plate_number} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                <Car className="w-8 h-8" />
+                              </div>
+                            )}
+                          </div>
+                          {/* QR Code */}
+                          {latestBooking ? (
+                            <div
+                              className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-green-200 flex flex-col items-center justify-center bg-green-50 flex-shrink-0 cursor-pointer hover:bg-green-100 transition-transform hover:scale-[1.02]"
+                              onClick={() => {
+                                if (latestBooking.qrCode?.content) {
+                                  setQrCodeData(latestBooking.qrCode.content);
+                                  setIsQrDialogOpen(true);
+                                } else {
+                                  handleShowQR(v);
+                                }
+                              }}
+                            >
+                              <QrCode className="w-10 h-10 text-green-700 mb-1" />
+                              <span className="text-[10px] text-green-700 font-bold tracking-wide uppercase px-1">Mã Book</span>
+                              <span className="text-[9px] text-green-600 mt-0.5 px-2 py-[1px] bg-green-200 rounded-full font-bold">CONFIRMED</span>
+                            </div>
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-400">
-                              <Car className="w-8 h-8" />
+                            <div
+                              className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-slate-100 flex flex-col items-center justify-center bg-slate-50 flex-shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
+                              onClick={() => handleShowQR(v)}
+                            >
+                              <QrCode className="w-12 h-12 text-slate-800" />
+                              <span className="text-[10px] text-slate-500 mt-1 font-medium text-center px-1 break-all flex-wrap">Xem QR rỗng</span>
                             </div>
                           )}
                         </div>
-                        {/* QR Code */}
-                        {latestBooking ? (
-                          <div 
-                            className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-green-200 flex flex-col items-center justify-center bg-green-50 flex-shrink-0 cursor-pointer hover:bg-green-100 transition-transform hover:scale-[1.02]"
-                            onClick={() => {
-                              if (latestBooking.qrCode?.content) {
-                                setQrCodeData(latestBooking.qrCode.content);
-                                setIsQrDialogOpen(true);
-                              } else {
-                                handleShowQR(v);
-                              }
-                            }}
-                          >
-                            <QrCode className="w-10 h-10 text-green-700 mb-1" />
-                            <span className="text-[10px] text-green-700 font-bold tracking-wide uppercase px-1">Mã Book</span>
-                            <span className="text-[9px] text-green-600 mt-0.5 px-2 py-[1px] bg-green-200 rounded-full font-bold">CONFIRMED</span>
-                          </div>
-                        ) : (
-                          <div 
-                            className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-slate-100 flex flex-col items-center justify-center bg-slate-50 flex-shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
-                            onClick={() => handleShowQR(v)}
-                          >
-                            <QrCode className="w-12 h-12 text-slate-800" />
-                            <span className="text-[10px] text-slate-500 mt-1 font-medium text-center px-1 break-all flex-wrap">Xem QR rỗng</span>
-                          </div>
-                        )}
-                      </div>
 
-                      {/* Thông tin phương tiện */}
-                      {/* <div className="flex-1 flex flex-col justify-between py-1 relative">
+                        {/* Thông tin phương tiện */}
+                        {/* <div className="flex-1 flex flex-col justify-between py-1 relative">
                         <div>
                           <div className="flex items-start justify-between">
                             <div>
@@ -807,93 +837,94 @@ export default function ProfilePage() {
                         </div>
                       </div> */}
 
-                      <div className="flex-1 flex flex-col justify-between py-1 relative">
-  <div>
-    <div className="flex items-start justify-between">
-      <div>
-        <h3 className="text-lg font-bold text-slate-800 tracking-wider uppercase">{v.plate_number}</h3>
-        {v.owner_name && (
-          <div className="text-xs text-slate-500 mt-1">Chủ xe: {v.owner_name}</div>
-        )}
-        {v.brand && (
-          <div className="text-xs text-slate-500 mt-0.5">Hãng xe: {v.brand}</div>
-        )}
-        <div className="flex items-center gap-1.5 text-sm text-slate-600 mt-1 mb-1">
-          <Car className="w-4 h-4 text-blue-600" />
-          <span className="font-medium text-slate-700">Ô tô ({v.type})</span>
-        </div>
-
-                              {latestBooking && (
-                                <div className="flex flex-col gap-2 mt-2">
-                                  {/* Trạng thái đặt chỗ */}
-                                  <div className="inline-flex items-center bg-green-100/50 border border-green-200 px-3 py-1.5 rounded-lg shadow-sm w-fit">
-                                    <span className="relative flex h-2 w-2 mr-2.5">
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                    </span>
-                                    <span className="text-xs font-semibold text-green-700">
-                                      {latestBooking.status.toLowerCase() === "ongoing" ? "Đang đỗ tại bãi" : "Đã có lịch đặt chỗ"}
-                                    </span>
-                                  </div>
-
-                                  {/* Cảnh báo sắp hết hạn (còn dưới 10 phút) */}
-                                  {latestBooking.status.toLowerCase() === "ongoing" && (
-                                    (() => {
-                                      const minutesLeft = dayjs(latestBooking.end_time).diff(dayjs(), 'minute');
-                                      if (minutesLeft > 0 && minutesLeft <= 10) {
-                                        return (
-                                          <div className="text-[10px] font-bold text-red-600 animate-pulse bg-red-50 px-2 py-1 rounded border border-red-100 w-fit flex items-center gap-1">
-                                            ⚠️ Sắp hết hạn (còn {minutesLeft} phút)
-                                          </div>
-                                        );
-                                      }
-                                      return null;
-                                    })()
-                                  )}
-
-
-                                  {/* Nút Gia hạn: Chỉ hiển thị khi xe đang ở trạng thái 'ongoing' */}
-                                  {(latestBooking.status.toLowerCase() === "ongoing" || 
-                                    latestBooking.status.toLowerCase() === "confirmed") && (
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm" 
-                                      onClick={() => handleOpenExtend(latestBooking)}
-                                      className="w-fit text-[11px] h-7 border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1 shadow-sm"
-                                    >
-                                      <Clock className="w-3 h-3" /> Gia hạn thêm giờ
-                                    </Button>
-                                  )}
+                        <div className="flex-1 flex flex-col justify-between py-1 relative">
+                          <div>
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h3 className="text-lg font-bold text-slate-800 tracking-wider uppercase">{v.plate_number}</h3>
+                                {v.owner_name && (
+                                  <div className="text-xs text-slate-500 mt-1">Chủ xe: {v.owner_name}</div>
+                                )}
+                                {v.brand && (
+                                  <div className="text-xs text-slate-500 mt-0.5">Hãng xe: {v.brand}</div>
+                                )}
+                                <div className="flex items-center gap-1.5 text-sm text-slate-600 mt-1 mb-1">
+                                  <Car className="w-4 h-4 text-blue-600" />
+                                  <span className="font-medium text-slate-700">Ô tô ({v.type})</span>
                                 </div>
-                              )}
+
+                                {latestBooking && (
+                                  <div className="flex flex-col gap-2 mt-2">
+                                    {/* Trạng thái đặt chỗ */}
+                                    <div className="inline-flex items-center bg-green-100/50 border border-green-200 px-3 py-1.5 rounded-lg shadow-sm w-fit">
+                                      <span className="relative flex h-2 w-2 mr-2.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                      </span>
+                                      <span className="text-xs font-semibold text-green-700">
+                                        {latestBooking.status.toLowerCase() === "ongoing" ? "Đang đỗ tại bãi" : "Đã có lịch đặt chỗ"}
+                                      </span>
+                                    </div>
+
+                                    {/* Cảnh báo sắp hết hạn (còn dưới 10 phút) */}
+                                    {latestBooking.status.toLowerCase() === "ongoing" && (
+                                      (() => {
+                                        const minutesLeft = dayjs(latestBooking.end_time).diff(dayjs(), 'minute');
+                                        if (minutesLeft > 0 && minutesLeft <= 10) {
+                                          return (
+                                            <div className="text-[10px] font-bold text-red-600 animate-pulse bg-red-50 px-2 py-1 rounded border border-red-100 w-fit flex items-center gap-1">
+                                              ⚠️ Sắp hết hạn (còn {minutesLeft} phút)
+                                            </div>
+                                          );
+                                        }
+                                        return null;
+                                      })()
+                                    )}
+
+
+                                    {/* Nút Gia hạn: Chỉ hiển thị khi xe đang ở trạng thái 'ongoing' */}
+                                    {(latestBooking.status.toLowerCase() === "ongoing" ||
+                                      latestBooking.status.toLowerCase() === "confirmed") && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => handleOpenExtend(latestBooking)}
+                                          className="w-fit text-[11px] h-7 border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1 shadow-sm"
+                                        >
+                                          <Clock className="w-3 h-3" /> Gia hạn thêm giờ
+                                        </Button>
+                                      )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Các nút điều khiển ẩn hiện khi hover */}
+                              <div className="flex items-center gap-2 absolute top-0 right-0 z-10 sm:invisible group-hover:visible transition-all">
+                                <Button variant="ghost" size="icon" onClick={() => openEditVehicle(v)} className="h-8 w-8 text-blue-600 hover:bg-blue-50 cursor-pointer">
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteVehicle(v)} className="h-8 w-8 text-red-600 hover:bg-red-50 cursor-pointer">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </div>
+                          </div>
 
-      {/* Các nút điều khiển ẩn hiện khi hover */}
-      <div className="flex items-center gap-2 absolute top-0 right-0 z-10 sm:invisible group-hover:visible transition-all">
-        <Button variant="ghost" size="icon" onClick={() => openEditVehicle(v)} className="h-8 w-8 text-blue-600 hover:bg-blue-50 cursor-pointer">
-          <Edit2 className="w-4 h-4" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={() => handleDeleteVehicle(v)} className="h-8 w-8 text-red-600 hover:bg-red-50 cursor-pointer">
-          <Trash2 className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
-  </div>
-
-                        <div className="mt-3 text-xs text-slate-400 flex items-center gap-1">
-                          <Info className="w-3.5 h-3.5" />
-                          <span className="line-clamp-1">
-                            {latestBooking ? "Trình mã Book QR xanh khi ra/vào bãi đỗ." : "Trình mã QR khi ra/vào bãi."}
-                          </span>
+                          <div className="mt-3 text-xs text-slate-400 flex items-center gap-1">
+                            <Info className="w-3.5 h-3.5" />
+                            <span className="line-clamp-1">
+                              {latestBooking ? "Trình mã Book QR xanh khi ra/vào bãi đỗ." : "Trình mã QR khi ra/vào bãi."}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )})}
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
 
-              
+
 
           </Card>
         </div>
@@ -927,19 +958,19 @@ export default function ProfilePage() {
               <Label>Họ và tên</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <Input value={pForm.name} onChange={(e) => setPForm({...pForm, name: e.target.value})} placeholder="VD: Nguyễn Văn A" className="pl-9" />
+                <Input value={pForm.name} onChange={(e) => setPForm({ ...pForm, name: e.target.value })} placeholder="VD: Nguyễn Văn A" className="pl-9" />
               </div>
             </div>
             <div className="grid gap-2">
               <Label>Số điện thoại</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <Input 
-                  value={pForm.phone} 
-                  onChange={(e) => setPForm({...pForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10)})} 
-                  placeholder="VD: 0901234567" 
+                <Input
+                  value={pForm.phone}
+                  onChange={(e) => setPForm({ ...pForm, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                  placeholder="VD: 0901234567"
                   maxLength={10}
-                  className="pl-9" 
+                  className="pl-9"
                 />
               </div>
             </div>
@@ -947,7 +978,7 @@ export default function ProfilePage() {
               <Label>Giới tính</Label>
               <div className="relative">
                 <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 z-10" />
-                <Select value={pForm.gender} onValueChange={(val: any) => setPForm({...pForm, gender: val})}>
+                <Select value={pForm.gender} onValueChange={(val: any) => setPForm({ ...pForm, gender: val })}>
                   <SelectTrigger className="pl-9">
                     <SelectValue placeholder="Chọn giới tính" />
                   </SelectTrigger>
@@ -961,10 +992,10 @@ export default function ProfilePage() {
             </div>
           </div>
           <DialogFooter>
-             <Button variant="outline" onClick={() => setIsProfileDialogOpen(false)}>Hủy</Button>
-             <Button onClick={handleProfileSave} disabled={isUploadingAvatar}>
-               {isUploadingAvatar ? "Đang tải ảnh..." : "Lưu hồ sơ"}
-             </Button>
+            <Button variant="outline" onClick={() => setIsProfileDialogOpen(false)}>Hủy</Button>
+            <Button onClick={handleProfileSave} disabled={isUploadingAvatar}>
+              {isUploadingAvatar ? "Đang tải ảnh..." : "Lưu hồ sơ"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -972,7 +1003,8 @@ export default function ProfilePage() {
 
       {/* DIALOG THÊM / SỬA PHƯƠNG TIỆN */}
       <Dialog open={isVehicleDialogOpen} onOpenChange={setIsVehicleDialogOpen}>
-        <DialogContent className="w-[95vw] max-w-220 max-h-[90vh] overflow-y-auto">
+        {/* @ts-ignore */}
+        <DialogContent className="w-[95vw] max-w-220 max-h-[90vh] overflow-y-auto" disableAnimation={isInVehicleTour}>
           <DialogHeader>
             <DialogTitle>{editingVehicleId ? "Sửa thông tin xe" : "Thêm ô tô mới"}</DialogTitle>
             <DialogDescription>
@@ -1022,6 +1054,7 @@ export default function ProfilePage() {
               </div>
 
               <Button
+                id="vehicle-ocr-btn"
                 type="button"
                 onClick={handleAutoFillFromRegistration}
                 disabled={!vehicleDocFile || isOcrLoading}
@@ -1100,7 +1133,7 @@ export default function ProfilePage() {
                 <div className="grid gap-2">
                   <Label htmlFor="type">Loại xe (Ô tô)</Label>
                   <Select value={vForm.type} onValueChange={(val) => setVForm({ ...vForm, type: val })}>
-                    <SelectTrigger id="type">
+                    <SelectTrigger id="vehicle-type-select">
                       <SelectValue placeholder="Chọn loại xe" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1114,7 +1147,7 @@ export default function ProfilePage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsVehicleDialogOpen(false)}>Hủy</Button>
-            <Button onClick={handleSaveVehicle} disabled={isSavingVehicle}>
+            <Button id="vehicle-save-btn" onClick={handleSaveVehicle} disabled={isSavingVehicle}>
               {isSavingVehicle ? "Đang lưu..." : "Lưu thông tin"}
             </Button>
           </DialogFooter>
@@ -1155,8 +1188,8 @@ export default function ProfilePage() {
           <DialogHeader>
             <DialogTitle className="text-center font-bold text-xl">Mã QR Check-in Xe</DialogTitle>
             <DialogDescription className="text-center">
-              Dùng mã này để quét tại cổng kiểm soát. 
-              <br/>Mã được sinh tự động ngay sau khi tạo xe mới.
+              Dùng mã này để quét tại cổng kiểm soát.
+              <br />Mã được sinh tự động ngay sau khi tạo xe mới.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center justify-center p-6 bg-white border border-gray-100 rounded-xl shadow-inner mt-2">

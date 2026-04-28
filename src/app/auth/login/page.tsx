@@ -274,11 +274,11 @@ function LoginPageContent() {
                       <Input
                         id="email"
                         type="email"
-                        placeholder="name@example.com"
+                        placeholder="name@gmail.com"
                         required
                         onChange={handleChange}
                         value={formData.email}
-                        className="pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
+                        className="pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all dark:text-white"
                       />
                     </div>
                   </div>
@@ -310,7 +310,7 @@ function LoginPageContent() {
                         required
                         onChange={handleChange}
                         value={formData.password}
-                        className="pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all"
+                        className="pl-9 h-10 bg-slate-50 dark:bg-stone-800/50 border-slate-200 dark:border-stone-700 focus:border-blue-500 focus:ring-blue-500/20 rounded-lg text-sm transition-all dark:text-white"
                       />
                     </div>
                   </div>
@@ -376,11 +376,10 @@ function LoginPageContent() {
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
-                    className={`p-2.5 rounded-lg text-xs text-center font-medium ${
-                      message.includes("✅")
-                        ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                        : "bg-rose-50 text-rose-600 border border-rose-100"
-                    }`}
+                    className={`p-2.5 rounded-lg text-xs text-center font-medium ${message.includes("✅")
+                      ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                      : "bg-rose-50 text-rose-600 border border-rose-100"
+                      }`}
                   >
                     {message}
                   </motion.div>

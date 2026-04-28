@@ -29,10 +29,12 @@ import {
   Clock,
   X,
   Ticket,
-  Smartphone
+  Smartphone,
+  ShieldAlert
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useWallet } from "@/hooks/useWallet";
+import { useTourStore } from "@/store/tourStore";
 import { notificationService } from "@/services/notification.service";
 import { SentNotification } from "@/stores/notification.store";
 import { formatDistanceToNow } from "date-fns";
@@ -46,6 +48,7 @@ const Header = () => {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { isTourActive, currentStep, steps } = useTourStore();
   const [notifications, setNotifications] = useState<SentNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -54,6 +57,31 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
+
+  // Tự động mở dropdown nếu bước hướng dẫn đang nằm trong menu avatar
+  useEffect(() => {
+    if (isTourActive && steps[currentStep]) {
+      const targetId = steps[currentStep].targetId;
+      const dropdownItems = [
+        "header-profile-link",
+        "header-wallet-link",
+        "header-requests-link",
+        "header-chat-link",
+        "header-report-link",
+        "header-logout-btn"
+      ];
+      
+      // Kiểm tra xem bước hiện tại có nằm trong dropdown không
+      const isInDropdown = dropdownItems.includes(targetId);
+      
+      if (isInDropdown) {
+        setIsDropdownOpen(true);
+      } else {
+        // Đóng dropdown nếu bước tiếp theo không thuộc dropdown (ví dụ: tìm bãi đỗ, logo home)
+        setIsDropdownOpen(false);
+      }
+    }
+  }, [isTourActive, currentStep, steps]);
 
   const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL && process.env.NEXT_PUBLIC_API_URL.startsWith('http')
     ? new URL(process.env.NEXT_PUBLIC_API_URL).origin
@@ -184,6 +212,7 @@ const Header = () => {
           {/* Logo */}
           <Link
             href="/"
+            id="header-logo-link"
             className="flex items-center gap-2 text-primary font-bold text-2xl hover:opacity-90 transition-opacity"
           >
             <img src="/logo.png" alt="GoPark Logo" className="h-8 w-8" />
@@ -212,6 +241,7 @@ const Header = () => {
             </Link>
             <Link
               href="/users/promotions"
+              id="header-promotions-link"
               className="transition-colors hover:text-primary hover:font-semibold"
             >
               <Ticket className="h-5 w-5 inline-block mr-1" />
@@ -219,6 +249,7 @@ const Header = () => {
             </Link>
             <Link
               href="/users/historyBooking"
+              id="header-history-link"
               className="transition-colors hover:text-primary hover:font-semibold"
             >
               <History className="h-5 w-5 inline-block mr-1" />
@@ -239,13 +270,13 @@ const Header = () => {
               <Contact className="h-5 w-5 inline-block mr-1" />
               Liên hệ
             </Link>
-          <Link
-            href="/users/Ve-QR"
-            className="transition-colors hover:text-primary hover:font-semibold"
-          >
-            <Ticket className="h-5 w-5 inline-block mr-1" />
-            Vé-QR
-          </Link>
+            <Link
+              href="/users/Ve-QR"
+              className="transition-colors hover:text-primary hover:font-semibold"
+            >
+              <Ticket className="h-5 w-5 inline-block mr-1" />
+              Vé-QR
+            </Link>
           </nav>
 
           {/* Auth Actions */}
@@ -270,6 +301,7 @@ const Header = () => {
                 {/* Nút thông báo */}
                 <div className="relative" ref={notificationRef}>
                   <button
+                    id="header-notification-btn"
                     onClick={() => setIsNotificationOpen(!isNotificationOpen)}
                     className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-stone-800"
                   >
@@ -414,6 +446,7 @@ const Header = () => {
 
                       <Link
                         href="/users/wallet"
+                        id="header-wallet-link"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
                         <Wallet className="h-4 w-4" />
@@ -422,6 +455,7 @@ const Header = () => {
 
                       <Link
                         href="/users/requests"
+                        id="header-requests-link"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
                         <History className="h-4 w-4" />
@@ -430,6 +464,7 @@ const Header = () => {
 
                       <Link
                         href="/users/chat"
+                        id="header-chat-link"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
                         <MessageCircle className="h-4 w-4" />
@@ -446,6 +481,15 @@ const Header = () => {
                           Trở thành chủ bãi đỗ
                         </Link>
                       )}
+
+                      <Link
+                        href="/users/report"
+                        id="header-report-link"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      >
+                        <ShieldAlert className="h-4 w-4" />
+                        Báo cáo & Khiếu nại
+                      </Link>
                       <Link
                         href="/users/setting"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
@@ -456,6 +500,7 @@ const Header = () => {
                       <div className="h-px bg-gray-100 dark:bg-stone-800 my-1"></div>
 
                       <button
+                        id="header-logout-btn"
                         onClick={() => {
                           logout();
                           router.push("/auth/login");

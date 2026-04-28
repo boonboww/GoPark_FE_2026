@@ -46,13 +46,43 @@ export function UserGuide() {
       {
         targetId: "add-vehicle-btn",
         title: "Đăng ký phương tiện",
-        content: "Bạn cần đăng ký ít nhất một chiếc xe ô tô để có thể đặt chỗ đỗ.",
+        content: "Bấm vào nút này để mở khung đăng ký xe ô tô của bạn. (Vui lòng bấm để bước sau hiện ra trên khung)",
+        placement: "left" as const
+      },
+      {
+        targetId: "vehicle-ocr-btn",
+        title: "Quét giấy tờ xe",
+        content: "Bạn có thể tải ảnh giấy đăng ký xe lên, hệ thống sẽ tự động nhận diện thông tin giúp bạn.",
+        placement: "bottom" as const
+      },
+      {
+        targetId: "plate",
+        title: "Biển số xe",
+        content: "Nhập biển số xe của bạn (ví dụ: 30F-123.45). Đây là thông tin bắt buộc.",
         placement: "top" as const
       },
       {
+        targetId: "vehicle-type-select",
+        title: "Loại phương tiện",
+        content: "Chọn loại xe tương ứng để hệ thống áp dụng bảng giá chính xác khi đặt chỗ.",
+        placement: "top" as const
+      },
+      {
+        targetId: "vehicle-save-btn",
+        title: "Hoàn tất đăng ký",
+        content: "Sau khi điền đủ thông tin, nhấn Lưu để hoàn tất quá trình đăng ký xe.",
+        placement: "top" as const
+      },
+      {
+        targetId: "header-logo-link",
+        title: "Về trang chủ",
+        content: "Bây giờ bạn đã có xe, hãy quay lại trang chủ để bắt đầu trải nghiệm nhé!",
+        placement: "bottom" as const
+      },
+      {
         targetId: "find-parking-nav-link",
-        title: "Tìm bãi đỗ",
-        content: "Sau khi đăng ký xe, hãy vào đây để tìm và đặt chỗ đỗ xe nhé!",
+        title: "Tìm bãi đỗ xe",
+        content: "Bấm vào đây để đến trang bản đồ và bắt đầu tìm kiếm bãi đỗ xe phù hợp nhất!",
         placement: "bottom" as const
       }
     ];
@@ -115,14 +145,250 @@ export function UserGuide() {
 
   const handleStartPageTour = () => {
     setShowOptions(false);
-    const steps = [
-      {
-        targetId: "home-nav-link",
-        title: "Khám phá trang",
-        content: "Bạn đang ở trang " + (pathname === "/" ? "Trang chủ" : pathname) + ". Tại đây bạn có thể sử dụng các tính năng chính của hệ thống.",
-        placement: "bottom" as const
-      }
-    ];
+    let steps: any[] = [];
+
+    if (pathname === "/") {
+      steps = [
+        {
+          targetId: "home-nav-link",
+          title: "Trang chủ",
+          content: "Quay lại màn hình chính bất cứ lúc nào để xem các bãi đỗ mới nhất.",
+          placement: "bottom"
+        },
+        {
+          targetId: "find-parking-nav-link",
+          title: "Tìm bãi đỗ",
+          content: "Công cụ tìm kiếm mạnh mẽ giúp bạn tìm chỗ đỗ xe theo địa chỉ hoặc quanh vị trí hiện tại.",
+          placement: "bottom"
+        },
+        {
+          targetId: "header-promotions-link",
+          title: "Ưu đãi hấp dẫn",
+          content: "Đừng bỏ lỡ các mã giảm giá và chương trình khuyến mãi đặc biệt từ GoPark.",
+          placement: "bottom"
+        },
+        {
+          targetId: "header-history-link",
+          title: "Lịch sử đặt chỗ",
+          content: "Xem lại các giao dịch, trạng thái đặt chỗ và vé QR của bạn tại đây.",
+          placement: "bottom"
+        },
+        {
+          targetId: "header-notification-btn",
+          title: "Trung tâm thông báo",
+          content: "Cập nhật nhanh nhất các thông báo về trạng thái đơn hàng và hệ thống.",
+          placement: "bottom"
+        },
+        {
+          targetId: "header-avatar-btn",
+          title: "Quản lý tài khoản",
+          content: "Truy cập hồ sơ cá nhân, nạp tiền vào ví và cài đặt tài khoản của bạn.",
+          placement: "bottom"
+        },
+        {
+          targetId: "header-profile-link",
+          title: "Thông tin cá nhân",
+          content: "Cập nhật thông tin cá nhân, số điện thoại và ảnh đại diện của bạn.",
+          placement: "left"
+        },
+        {
+          targetId: "header-wallet-link",
+          title: "Ví điện tử GoPark",
+          content: "Quản lý số dư, nạp tiền và kiểm tra lịch sử giao dịch thanh toán.",
+          placement: "left"
+        },
+        {
+          targetId: "header-chat-link",
+          title: "Trò chuyện trực tuyến",
+          content: "Liên hệ trực tiếp với chủ bãi đỗ xe để được hỗ trợ nhanh nhất.",
+          placement: "left"
+        },
+        {
+          targetId: "header-report-link",
+          title: "Báo cáo & Khiếu nại",
+          content: "Gửi phản hồi hoặc báo cáo các vấn đề gặp phải trong quá trình sử dụng dịch vụ.",
+          placement: "left"
+        },
+        {
+          targetId: "nearby-tab-btn",
+          title: "Bãi đỗ gần đây",
+          content: "Khám phá nhanh các bãi đỗ xe quanh vị trí của bạn ngay trên trang chủ.",
+          placement: "bottom"
+        },
+        {
+          targetId: "hero-booking-btn",
+          title: "Đặt nhanh ngay",
+          content: "Bạn có thể nhấn đặt chỗ ngay từ màn hình chính để tiết kiệm thời gian.",
+          placement: "right"
+        }
+      ];
+    } else if (pathname === "/users/findParking") {
+      steps = [
+        {
+          targetId: "top-search-input",
+          title: "Tìm kiếm thông minh",
+          content: "Nhập tên bãi đỗ hoặc địa chỉ để tìm kiếm vị trí đỗ xe mong muốn.",
+          placement: "bottom"
+        },
+        {
+          targetId: "near-me-btn",
+          title: "Định vị bãi đỗ",
+          content: "Hệ thống sẽ gợi ý các bãi đỗ trong bán kính bạn chọn.",
+          placement: "bottom"
+        },
+        {
+          targetId: "parking-list-sidebar",
+          title: "Danh sách kết quả",
+          content: "Tất cả các bãi đỗ xe phù hợp sẽ được liệt kê chi tiết tại đây.",
+          placement: "right"
+        },
+        {
+          targetId: "get-directions-btn",
+          title: "Chỉ đường thông minh",
+          content: "Bấm vào đây để hệ thống tính toán lộ trình từ vị trí của bạn đến bãi đỗ.",
+          placement: "right"
+        },
+        {
+          targetId: "[id^='parking-marker-']",
+          title: "Bản đồ trực quan",
+          content: "Bạn cũng có thể chọn bãi đỗ trực tiếp bằng cách nhấn vào các biểu tượng trên bản đồ.",
+          placement: "left"
+        },
+        {
+          targetId: "parking-book-now-btn",
+          title: "Sẵn sàng đặt chỗ",
+          content: "Sau khi đã tìm được vị trí ưng ý, hãy nhấn 'Đặt ngay' để giữ chỗ cho phương tiện của mình.",
+          placement: "top"
+        }
+      ];
+    } else if (pathname === "/users/profile") {
+      steps = [
+        {
+          targetId: "profile-info-card",
+          title: "Thông tin cá nhân",
+          content: "Đây là nơi hiển thị các thông tin cơ bản như Họ tên, Email và Số điện thoại của bạn.",
+          placement: "right"
+        },
+        {
+          targetId: "profile-edit-btn",
+          title: "Chỉnh sửa hồ sơ",
+          content: "Nhấn vào biểu tượng này để cập nhật thông tin cá nhân hoặc thay đổi ảnh đại diện.",
+          placement: "left"
+        },
+        {
+          targetId: "profile-wallet-card",
+          title: "Ví của tôi",
+          content: "Theo dõi số dư khả dụng của bạn để thực hiện thanh toán đặt chỗ nhanh chóng.",
+          placement: "right"
+        },
+        {
+          targetId: "wallet-deposit-btn",
+          title: "Nạp tiền vào ví",
+          content: "Bạn có thể nạp thêm tiền vào ví thông qua các cổng thanh toán tích hợp.",
+          placement: "bottom"
+        },
+        {
+          targetId: "vehicle-list-card",
+          title: "Quản lý phương tiện",
+          content: "Danh sách các xe ô tô bạn đã đăng ký sẽ được hiển thị và quản lý tại đây.",
+          placement: "left"
+        },
+        {
+          targetId: "add-vehicle-btn",
+          title: "Thêm xe mới",
+          content: "Bấm vào đây để mở khung đăng ký phương tiện mới.",
+          placement: "left"
+        },
+        {
+          targetId: "vehicle-ocr-btn",
+          title: "Quét thông tin tự động",
+          content: "Tải lên ảnh giấy đăng ký xe để hệ thống tự động điền các thông tin cần thiết.",
+          placement: "bottom"
+        },
+        {
+          targetId: "plate",
+          title: "Biển số xe",
+          content: "Đảm bảo biển số xe được nhập chính xác để có thể ra/vào bãi đỗ.",
+          placement: "top"
+        },
+        {
+          targetId: "vehicle-save-btn",
+          title: "Lưu phương tiện",
+          content: "Cuối cùng, nhấn Lưu để ghi nhận xe vào hệ thống của bạn.",
+          placement: "top"
+        }
+      ];
+    } else if (pathname === "/users/setting") {
+      steps = [
+        {
+          targetId: "setting-tabs-list",
+          title: "Trung tâm cài đặt",
+          content: "Tất cả các tùy chỉnh về tài khoản, ứng dụng và bảo mật đều tập trung tại đây.",
+          placement: "bottom"
+        },
+        {
+          targetId: "setting-app-tab",
+          title: "Cấu hình ứng dụng",
+          content: "Hãy chuyển sang tab này để cài đặt các tính năng hệ thống như Vị trí và Thông báo.",
+          placement: "bottom"
+        },
+        {
+          targetId: "setting-location-switch",
+          title: "Dịch vụ vị trí",
+          content: "Bật định vị để hệ thống tự động tìm bãi đỗ xe gần bạn nhất một cách chính xác.",
+          placement: "left"
+        },
+        {
+          targetId: "setting-notif-switch",
+          title: "Thông báo đẩy",
+          content: "Đừng bỏ lỡ các thông báo quan trọng về lịch đặt chỗ và các chương trình ưu đãi.",
+          placement: "left"
+        },
+        {
+          targetId: "setting-theme-switch",
+          title: "Chế độ hiển thị",
+          content: "Bạn có thể chuyển đổi giữa giao diện Sáng và Tối tùy theo sở thích cá nhân.",
+          placement: "left"
+        }
+      ];
+    } else if (pathname?.startsWith("/users/detailParking/")) {
+      steps = [
+        {
+          targetId: "parking-gallery-main",
+          title: "Hình ảnh bãi đỗ",
+          content: "Xem hình ảnh thực tế của bãi đỗ xe tại đây.",
+          placement: "bottom"
+        },
+        {
+          targetId: "parking-amenities-section",
+          title: "Tiện ích & Dịch vụ",
+          content: "Kiểm tra các dịch vụ đi kèm như camera, mái che, cứu hộ...",
+          placement: "top"
+        },
+        {
+          targetId: "parking-price-selector",
+          title: "Bảng giá chi tiết",
+          content: "Chọn loại phương tiện để xem mức giá áp dụng chính xác.",
+          placement: "left"
+        },
+        {
+          targetId: "detail-book-now-btn",
+          title: "Tiến hành đặt chỗ",
+          content: "Nhấn nút này để bắt đầu quy trình đặt chỗ đỗ xe.",
+          placement: "top"
+        }
+      ];
+    } else {
+      steps = [
+        {
+          targetId: "home-nav-link",
+          title: "Khám phá trang",
+          content: "Chào mừng bạn đến với " + (pathname === "/" ? "Trang chủ" : pathname) + ". Hãy khám phá các tính năng tại đây.",
+          placement: "bottom"
+        }
+      ];
+    }
+
     startTour("page", steps);
   };
 

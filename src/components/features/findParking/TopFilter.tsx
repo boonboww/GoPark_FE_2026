@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, Filter, Home, Moon, Sun, ChevronDown, MapPin, DollarSign, Building, Loader2 } from "lucide-react"
+import { Search, Filter, Home, Moon, Sun, ChevronDown, MapPin, DollarSign, Building, Loader2, Globe } from "lucide-react"
 import Link from "next/link";
 import { useTheme } from "next-themes";
 
@@ -171,6 +171,18 @@ export function TopFilter({
     setShowAdvanced(false);
   };
 
+  const handleResetAll = () => {
+    setSearchValue("");
+    setSelectedCity("");
+    setSelectedPriceSort("");
+    setNearMeFilter(null);
+    onSearch?.(null);
+    onTextSearch?.("");
+    onNearMeChange?.(null);
+    onFilterChange?.({ city: "", priceSort: "" });
+    setShowAdvanced(false);
+  };
+
   const handleToggleNearMe = () => {
     if (nearMeFilter) {
       setNearMeFilter(null);
@@ -274,6 +286,17 @@ export function TopFilter({
         {/* Cụm công cụ (Theme + Lọc nâng cao) */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 rounded-full border border-input bg-background/90 dark:bg-black/30 px-2 py-1">
+            <Button
+              id="all-parking-btn"
+              variant="outline"
+              type="button"
+              onClick={handleResetAll}
+              className="rounded-full h-8 px-3 text-xs dark:text-white dark:border-white/30 dark:hover:bg-[#059669]"
+            >
+              <Globe className="h-3.5 w-3.5 mr-1" />
+              Tất cả
+            </Button>
+            <div className="w-px h-4 bg-border mx-1 hidden sm:block"></div>
             <Button
               id="near-me-btn"
               variant={nearMeFilter ? "default" : "outline"}

@@ -9,8 +9,8 @@ import { ParkingRules } from "@/components/features/parking-detail/ParkingRules"
 import { ReviewsList } from "@/components/features/parking-detail/ReviewsList";
 import { SuggestedParking } from "@/components/features/parking-detail/SuggestedParking";
 import ParkingProvider from "@/components/features/parking-detail/ProviderContext";
-import BreadcrumbTitle from "@/components/features/parking-detail/BreadcrumbTitle";
 import Header from "@/components/layout/Header";
+import { Button } from "@/components/ui/button";
 
 export default function DetailParkingPage() {
   const router = useRouter();
@@ -20,18 +20,17 @@ export default function DetailParkingPage() {
     <Header/>
 
     <ParkingProvider>
-      <div className="min-h-screen bg-gray-50/50 dark:bg-gray-950 py-6 transition-colors">
+      <div className="min-h-screen bg-gray-50/50 dark:bg-gray-950 py-6 transition-colors font-sans">
         <div className="container max-w-7xl mx-auto px-4 space-y-6">
-          {/* Nút Quay lại */}
-          <button 
+          {/* Nút Quay lại sử dụng Shadcn Button */}
+          <Button 
+            variant="outline"
             onClick={() => router.push('/?tab=nearby')}
-            className="group flex items-center gap-2.5 bg-white/70 dark:bg-stone-900/70 backdrop-blur-md px-4 py-2.5 rounded-full border border-gray-200/50 dark:border-stone-700/50 shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-stone-600 transition-all text-sm font-bold text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer w-fit"
+            className="group rounded-full bg-white/70 dark:bg-stone-900/70 backdrop-blur-md border-gray-200/50 dark:border-stone-700/50 shadow-sm hover:shadow-md transition-all font-bold text-gray-700 dark:text-gray-200 h-10 px-5"
           >
-            <div className="bg-gray-100 dark:bg-stone-800 rounded-full p-1.5 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 transition-colors">
-              <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-            </div>
+            <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
             Quay lại bãi đỗ
-          </button>
+          </Button>
 
           {/* Khung Thông tin chi tiết */}
           <ParkingInfo />
@@ -39,16 +38,12 @@ export default function DetailParkingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* Cột trái (Chiếm 2/3): Sơ đồ & Đánh giá */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Khung Sơ đồ vị trí đỗ */}
-              {/* <ParkingLayout /> */}
-
               {/* Khung Đánh giá của khách hàng */}
               <ReviewsList />
             </div>
 
             {/* Cột phải (Chiếm 1/3) */}
             <div className="lg:col-span-1 space-y-6">
-              {/* <BookingForm /> */}
               <ParkingRules />
             </div>
           </div>

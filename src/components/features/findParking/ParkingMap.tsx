@@ -3,12 +3,16 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Map, MapControls, useMap, MapMarker, MarkerContent, MapRoute, MapArea, MarkerLabel, MapRef } from "@/components/ui/map";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Mountain, LocateFixed, Layers, Route, Clock, Loader2, MapPin } from 'lucide-react';
+import { RotateCcw, Mountain, LocateFixed, Layers, Route, Clock, Loader2, MapPin } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTourStore } from "@/store/tourStore";
+import { useConfigStore } from "@/stores/config.store";
+import { toast } from "sonner";
 
 const mapStyles = {
   default: undefined,
-  openstreetmap: 'https://tiles.openfreemap.org/styles/bright',
-  openstreetmap3d: 'https://tiles.openfreemap.org/styles/liberty',
+  openstreetmap: "https://tiles.openfreemap.org/styles/bright",
+  openstreetmap3d: "https://tiles.openfreemap.org/styles/liberty",
 };
 
 type StyleKey = keyof typeof mapStyles;
@@ -23,7 +27,7 @@ function formatDuration(seconds: number): string {
   const mins = Math.round(seconds / 60);
   if (mins < 60) return `${mins} phút`;
   const hours = Math.floor(mins / 60);
-  const remainingMins = mins % 60;
+  const remainingMins = mins % 66;
   return `${hours}g ${remainingMins}p`;
 }
 
@@ -68,7 +72,14 @@ function MapController({
     map?.easeTo({ pitch: 0, bearing: 0, duration: 1000 });
   };
 
+  const { locationEnabled } = useConfigStore();
   const handleLocateMe = () => {
+    if (!locationEnabled) {
+      toast.error("Vị trí đang tắt", {
+        description: "Vui lòng bật định vị trong phần Cài đặt để sử dụng tính năng này.",
+      });
+      return;
+    }
     if (!navigator.geolocation) {
       alert("Trình duyệt không hỗ trợ Geolocation");
       return;
@@ -164,6 +175,8 @@ export function ParkingMap({
   focusTarget?: { lat: number; lng: number; zoom?: number; name?: string } | null,
   userLocation?: { lat: number; lng: number } | null,
 }) {
+  const router = useRouter();
+  const { nextStep } = useTourStore();
   const mapRef = useRef<MapRef>(null);
   const [mapStyle, setMapStyle] = useState<StyleKey>("default");
   const selectedStyleUrl = mapStyles[mapStyle];
@@ -369,7 +382,6 @@ export function ParkingMap({
         {!compact && (
           <>
             <MapController mapStyle={mapStyle} onStyleChange={setMapStyle} myLocation={myLocation} setMyLocation={setMyLocation} />
-            <MapControls />
           </>
         )}
 
@@ -453,6 +465,11 @@ export function ParkingMap({
             opacity={1}
           />
         )}
+
+        {/* Map Controls */}
+        {!compact && (
+          <MapControls position="top-left" className="!top-28 !left-3 z-[999]" />
+        )}
       </Map>
 
       {/* Hiển thị Card Popup khi click vào Marker */}
@@ -482,12 +499,13 @@ export function ParkingMap({
           </div>
           <div className="flex gap-2 w-full">
             <Button id="parking-detail-btn" variant="outline" className="flex-1 rounded-xl shadow-sm border-gray-300 hover:bg-gray-100" onClick={() => {
-              window.location.href = `/users/detailParking/${selectedParkingLot.id}`;
+              nextStep();
+              router.push(`/users/detailParking/${selectedParkingLot.id}`);
             }}>
               Chi tiết
             </Button>
             <Button id="parking-book-now-btn" className="flex-1 rounded-xl bg-green-600 hover:bg-green-700 shadow-md" onClick={() => {
-              window.location.href = `/users/myBooking/${selectedParkingLot.id}`;
+              router.push(`/users/myBooking/${selectedParkingLot.id}`);
             }}>
               Đặt chỗ ngay
             </Button>

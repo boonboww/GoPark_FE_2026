@@ -224,7 +224,7 @@ export default function Chatbot() {
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          z-index: 9998;
+          z-index: 100010;
           transform-origin: bottom right;
           animation: gpIn .22s cubic-bezier(.34,1.56,.64,1);
         }
@@ -387,7 +387,7 @@ export default function Chatbot() {
 
         /* ── FAB — ẩn khi panel mở, hiện lại khi đóng ── */
         .gp-fab {
-          position:fixed; right:24px; bottom:24px; z-index:9999;
+          position:fixed; right:24px; bottom:24px; z-index:100011;
           width:52px; height:52px; border-radius:50%; border:none;
           background:linear-gradient(135deg,#16a34a,#22c55e);
           cursor:pointer; display:flex; align-items:center; justify-content:center;
