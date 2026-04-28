@@ -5,7 +5,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { X, Maximize2, Minimize2, ChevronRight, ChevronLeft, Loader2, Route, Clock, ArrowLeft, LocateFixed, Search } from "lucide-react"
 
+import { useConfigStore } from "@/stores/config.store"
+import { toast } from "sonner"
+
 export function ParkingList({ parkingLots = [], loading = false, onSelectLot, selectedLotId, onRouteFound, onClearRoute, isNavigating, onStartNavigation }: { parkingLots?: any[], loading?: boolean, onSelectLot?: (lot: any) => void, selectedLotId?: number, onRouteFound?: (route: any) => void, onClearRoute?: () => void, isNavigating?: boolean, onStartNavigation?: () => void }) {
+  const { locationEnabled } = useConfigStore();
   const [isOpen, setIsOpen] = useState(true);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,6 +37,12 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
   };
 
   const handleGetDirections = (lot: any) => {
+    if (!locationEnabled) {
+      toast.error("Vị trí đang tắt", {
+        description: "Vui lòng bật định vị trong phần Cài đặt để sử dụng tính năng này."
+      });
+      return;
+    }
     if (!navigator.geolocation) {
       alert("Trình duyệt không hỗ trợ Geolocation");
       return;
@@ -128,7 +138,7 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
   };
 
   return (
-    <div className={`bg-background dark:bg-black border-r dark:border-white/10 h-full flex flex-col overflow-hidden transition-all duration-300 ease-in-out z-40 relative ${isFullScreen ? "w-full absolute inset-0 z-50" : "w-87.5 lg:w-100 shrink-0"}`}>
+    <div id="parking-list-sidebar" className={`bg-background dark:bg-black border-r dark:border-white/10 h-full flex flex-col overflow-hidden transition-all duration-300 ease-in-out z-40 relative ${isFullScreen ? "w-full absolute inset-0 z-50" : "w-87.5 lg:w-100 shrink-0"}`}>
       <div className="p-4 border-b dark:border-white/10 flex items-center justify-between">
         <div className="font-medium text-lg dark:text-white">
           {directionLot ? "Chỉ đường" : `Kết quả tìm kiếm (${parkingLots.length})`}
@@ -312,6 +322,7 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
                     </div>
                     
                     <Button
+                      id="get-directions-btn"
                       variant="secondary"
                       className="bg-gray-100 hover:bg-gray-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-black dark:text-white font-bold rounded-lg h-7 px-2 text-[9px] border-none transition-all flex items-center gap-1 shrink-0"
                       onClick={(e) => {

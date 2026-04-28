@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { MapPin, Clock, Ticket, BadgeCheck, Zap, Navigation, Plus, User as UserIcon, Search, Settings, Send, PhoneCall, Shield, Home, Car, ChevronDown, X, ChevronLeft, ChevronRight, Loader2, ArrowLeft } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
+import { useConfigStore } from "@/stores/config.store";
 import { parkingService } from "@/services/parking.service";
 import { ParkingMap } from "@/components/features/findParking/ParkingMap";
 import { useSearchParams } from "next/navigation";
@@ -282,6 +283,7 @@ const HeroSection = () => {
   }, [tabParam]);
 
   const user = useAuthStore((state) => state.user);
+  const { locationEnabled } = useConfigStore();
 
   useEffect(() => {
     const fetchHomeParkings = async () => {
@@ -339,7 +341,7 @@ const HeroSection = () => {
 
 
   useEffect(() => {
-    if (activeTab !== "nearby" || hasRequestedLocation) return;
+    if (activeTab !== "nearby" || hasRequestedLocation || !locationEnabled) return;
     setHasRequestedLocation(true);
 
     if (!navigator.geolocation) {
@@ -420,9 +422,9 @@ const HeroSection = () => {
   }, [parkings, myLocation]);
 
   const nearbyParkings = useMemo((): ParkingWithDistance[] => {
-    if (!myLocation) return [];
+    if (!myLocation || !locationEnabled) return [];
     return sortedParkings.filter((lot) => lot.distanceKm !== null && lot.distanceKm <= 60);
-  }, [sortedParkings, myLocation]);
+  }, [sortedParkings, myLocation, locationEnabled]);
 
   useEffect(() => {
     if (activeTab === 'layout' && nearbyParkings.length > 0) {
@@ -485,6 +487,7 @@ const HeroSection = () => {
 
         <div className="flex bg-white/80 dark:bg-black/60 backdrop-blur-xl rounded-2xl sm:rounded-full shadow-md p-1.5 overflow-x-auto w-full max-w-full sm:max-w-max justify-start sm:justify-center hide-scrollbar border border-white/20">
           <button 
+            id="nearby-tab-btn"
             onClick={() => setActiveTab("nearby")}
             className={`px-4 sm:px-6 py-2.5 cursor-pointer rounded-xl sm:rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "nearby" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white"}`}
           >
@@ -746,7 +749,24 @@ const HeroSection = () => {
       {/* NEARBY PARKINGS VIEW (MAIN CONTENT + BOTTOM WIDGETS) */}
       {activeTab === 'nearby' && (
         <>
-          {locationLoading ? (
+          {!locationEnabled ? (
+            <div className="flex-1 w-full flex flex-col items-center justify-center z-10 animate-in fade-in zoom-in duration-500">
+              <div className="w-24 h-24 bg-red-100 dark:bg-red-900/30 rounded-3xl flex items-center justify-center mb-6 shadow-xl shadow-red-500/10">
+                <MapPin className="w-12 h-12 text-red-600" />
+              </div>
+              <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white text-center">Vị trí của bạn đang tắt</h2>
+              <p className="text-gray-500 dark:text-gray-400 mt-3 text-center max-w-md font-medium">
+                Để khám phá các bãi đỗ xe gần nhất và nhận chỉ đường chính xác, vui lòng bật dịch vụ vị trí trong phần cài đặt.
+              </p>
+              <Link 
+                href="/users/setting?tab=app" 
+                className="mt-8 bg-black dark:bg-white text-white dark:text-black px-10 py-4 rounded-2xl font-black shadow-2xl hover:scale-105 transition-transform flex items-center gap-3"
+              >
+                <Settings className="w-5 h-5" />
+                Đi tới Cài đặt
+              </Link>
+            </div>
+          ) : locationLoading ? (
             <div className="flex-1 w-full flex flex-col items-center justify-center z-10 animate-pulse">
               <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mb-6">
                 <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
@@ -783,13 +803,12 @@ const HeroSection = () => {
                           {parking.name}
                         </h2>
 
-                        {parking.name.length > 25 && (
+                        {parking.name.length > 20 && (
                           <button
                             onClick={() => setIsNameExpanded(!isNameExpanded)}
-                            className="flex justify-center md:justify-start gap-1 text-sm font-semibold mt-3 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors w-full md:w-auto items-center"
+                            className="flex justify-center md:justify-start gap-1.5 text-[11px] font-bold mt-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-all items-center bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-full w-fit mx-auto md:mx-0"
                           >
-                            {isNameExpanded ? "Thu gọn" : "Xem thêm"}
-                            <ChevronDown className={`w-4 h-4 transition-transform ${isNameExpanded ? 'rotate-180' : ''}`} />
+                            {isNameExpanded ? "(^ Thu gọn)" : "(V Xem thêm)"}
                           </button>
                         )}
 
@@ -817,7 +836,7 @@ const HeroSection = () => {
                         </div>
 
                         <div className="mt-6 flex flex-col sm:flex-row">
-                          <Link href={`/users/detailParking/${parking.id}`} className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 px-8 rounded-full shadow-lg transition-all transform hover:-translate-y-1 hover:shadow-xl w-full sm:w-auto text-center">
+                          <Link id="hero-booking-btn" href={`/users/detailParking/${parking.id}`} className="inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 px-8 rounded-full shadow-lg transition-all transform hover:-translate-y-1 hover:shadow-xl w-full sm:w-auto text-center">
                             Đặt chỗ ngay
                           </Link>
                         </div>

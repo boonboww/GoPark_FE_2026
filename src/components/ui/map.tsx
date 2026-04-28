@@ -227,6 +227,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
       attributionControl: {
         compact: true,
       },
+      zoomControl: false,
       ...props,
       ...viewport,
     });
@@ -838,10 +839,10 @@ function MapControls({
       {showZoom && (
         <ControlGroup>
           <ControlButton onClick={handleZoomIn} label="Zoom in">
-            <Plus className="size-4" />
+            <Plus className="size-5" />
           </ControlButton>
           <ControlButton onClick={handleZoomOut} label="Zoom out">
-            <Minus className="size-4" />
+            <Minus className="size-5" />
           </ControlButton>
         </ControlGroup>
       )}

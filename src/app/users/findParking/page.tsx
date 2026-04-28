@@ -155,21 +155,29 @@ export default function FindParkingPage() {
 
   const isPointInPolygon = (point: {lat: number, lng: number}, geojson: any): boolean => {
     if (!geojson || !geojson.coordinates) return false;
-    const { lat, lng } = point;
-    const polygons = geojson.type === 'MultiPolygon' ? geojson.coordinates : [geojson.coordinates];
+    const { lat: y, lng: x } = point;
     
-    for (const polygon of polygons) {
-      const ring = geojson.type === 'MultiPolygon' ? polygon[0] : polygon;
-      const coords = Array.isArray(ring[0][0]) ? ring[0] : ring;
-      
+    // Check if point belongs to a single polygon ring
+    const checkPolygon = (ring: any[]) => {
       let isInside = false;
-      for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
-        const xi = coords[i][0], yi = coords[i][1];
-        const xj = coords[j][0], yj = coords[j][1];
-        const intersect = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        // Note: Nominatim geojson coordinates are [longitude, latitude]
+        const xi = ring[i][0], yi = ring[i][1];
+        const xj = ring[j][0], yj = ring[j][1];
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
         if (intersect) isInside = !isInside;
       }
-      if (isInside) return true;
+      return isInside;
+    };
+
+    if (geojson.type === 'Polygon') {
+      // GeoJSON Polygon is array of rings, first is exterior.
+      return checkPolygon(geojson.coordinates[0]);
+    } else if (geojson.type === 'MultiPolygon') {
+      // GeoJSON MultiPolygon is array of polygons (which are arrays of rings)
+      for (const poly of geojson.coordinates) {
+        if (checkPolygon(poly[0])) return true;
+      }
     }
     return false;
   };
@@ -199,6 +207,7 @@ export default function FindParkingPage() {
     });
 
     let result = lotsWithDistance.filter((lot) => {
+      // 1. City Filter (Top Priority)
       if (filters.city) {
         const coordinates = getLotCoordinates(lot);
         const address = toLowerSafe(lot.address);
@@ -207,58 +216,38 @@ export default function FindParkingPage() {
         const matchesByBounds = coordinates ? isWithinCityBounds(coordinates, filters.city) : false;
         if (!matchesByAddress && !matchesByBounds) return false;
       }
-      
-      if (searchTitle) {
-        const titleRaw = toLowerSafe(lot.name);
-        const addressRaw = toLowerSafe(lot.address);
-        const queryRaw = searchTitle.toLowerCase();
-        
-        const titleClean = removeAccents(titleRaw);
-        const addressClean = removeAccents(addressRaw);
-        const queryClean = removeAccents(queryRaw);
-        
-        // 1. Text match (fuzzy/accent-insensitive)
-        const matchesText = titleClean.includes(queryClean) || addressClean.includes(queryClean);
-        
-        // 2. Word-based match (refined)
-        const STOP_WORDS = ["bai", "xe", "do", "car", "parking"];
-        const queryWords = queryClean.split(' ').filter(w => w.length > 1);
-        
-        // If query has more than just stop words, filter stop words out for the match check
-        const specificQueryWords = queryWords.filter(w => !STOP_WORDS.includes(w));
-        const wordsToMatch = specificQueryWords.length > 0 ? specificQueryWords : queryWords;
-        
-        const matchesWords = wordsToMatch.length > 0 && wordsToMatch.every(word => 
-          titleClean.includes(word) || addressClean.includes(word)
-        );
 
-        // 3. Geographic area match (strict)
-        let matchesArea = false;
-        if (destination?.geojson && lot.lat && lot.lng) {
-          matchesArea = isPointInPolygon({ lat: lot.lat, lng: lot.lng }, destination.geojson);
+      // 2. Search Logic (Destination / Search Title)
+      if (destination || searchTitle) {
+        if (destination?.geojson) {
+          // A. Tìm theo khu vực có Polygon: Bất buộc bãi đỗ phải nằm bên trong Polygon đó.
+          const isInside = lot.lat && lot.lng ? isPointInPolygon({ lat: lot.lat, lng: lot.lng }, destination.geojson) : false;
+          if (!isInside) return false;
+        } else if (destination) {
+          // B. Tìm theo một điểm/địa chỉ (point): Bắt buộc nằm trong bán kính 3km
+          const isNear = lot.distanceKm !== null && lot.distanceKm < 3;
+          if (!isNear) return false;
+        } else if (searchTitle) {
+          // C. Chỉ gõ chữ mà Nominatim không trả về location: Lọc the Text Match chính xác
+          const titleRaw = toLowerSafe(lot.name);
+          const addressRaw = toLowerSafe(lot.address);
+          const queryRaw = searchTitle.toLowerCase();
+          
+          const titleClean = removeAccents(titleRaw);
+          const addressClean = removeAccents(addressRaw);
+          const queryClean = removeAccents(queryRaw);
+          
+          const exactMatch = titleClean.includes(queryClean) || addressClean.includes(queryClean);
+          if (!exactMatch) return false;
         }
-
-        // 4. Proximity match (point search)
-        const isPointSearch = destination && !destination.geojson;
-        const matchesProximity = isPointSearch && destinationCenter && lot.distanceKm !== null && lot.distanceKm < 2;
-        
-        // 5. Special City Check: If query contains "da nang", "ho chi minh", etc.
-        let cityMismatch = false;
-        if (queryClean.includes("da nang") && !addressClean.includes("da nang")) cityMismatch = true;
-        if ((queryClean.includes("ho chi minh") || queryClean.includes("hcm") || queryClean.includes("sai gon")) && 
-            !(addressClean.includes("ho chi minh") || addressClean.includes("hcm") || addressClean.includes("sai gon"))) cityMismatch = true;
-        if (queryClean.includes("ha noi") && !addressClean.includes("ha noi")) cityMismatch = true;
-
-        if (cityMismatch && !matchesArea && !matchesProximity) return false;
-        
-        if (!matchesText && !matchesWords && !matchesArea && !matchesProximity) return false;
       }
 
+      // 3. Near Me Filter
       if (!filters.city && nearMeCenter && nearMeRadius) {
         if (lot.nearMeDistanceKm === null || lot.nearMeDistanceKm > nearMeRadius) return false;
       }
 
-      // Price Range Filtering
+      // 4. Price Sort/Range
       const price = extractLotPrice(lot);
       if (filters.priceSort === "under-15") {
         if (price > 15000) return false;
@@ -271,16 +260,25 @@ export default function FindParkingPage() {
       return true;
     });
 
+    // Sorting
     if (filters.priceSort === "asc") {
       result = [...result].sort((a, b) => extractLotPrice(a) - extractLotPrice(b));
     } else if (filters.priceSort === "desc") {
       result = [...result].sort((a, b) => extractLotPrice(b) - extractLotPrice(a));
+    } else if (destinationCenter) {
+      // If searching, sort by distance to search point
+      result = [...result].sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
     }
 
     return result;
   }, [parkingLots, destination, filters, nearMeFilter, searchTitle]);
 
   const mapParkingLots = useMemo(() => {
+    // Để bản đồ và khung danh sách khớp dữ liệu với nhau khi thực hiện search
+    if (searchTitle || destination) {
+      return filteredParkingLots;
+    }
+
     const nearMeCenter = nearMeFilter?.origin || null;
     const nearMeRadius = nearMeFilter?.radiusKm || null;
 
@@ -310,7 +308,7 @@ export default function FindParkingPage() {
 
       return true;
     });
-  }, [parkingLots, filters, nearMeFilter]);
+  }, [parkingLots, filters, nearMeFilter, searchTitle, destination, filteredParkingLots]);
 
   const mapFocusTarget = useMemo(() => {
     if (filters.city && CITY_FOCUS[filters.city]) {
