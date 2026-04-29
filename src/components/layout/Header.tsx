@@ -486,6 +486,7 @@ const Header = () => {
                         href="/users/report"
                         id="header-report-link"
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-stone-800 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                        onClick={() => setIsDropdownOpen(false)}
                       >
                         <ShieldAlert className="h-4 w-4" />
                         Báo cáo & Khiếu nại

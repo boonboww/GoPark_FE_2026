@@ -126,9 +126,57 @@ export function UserGuide() {
           placement: "top" as const
         },
         {
+          targetId: "parking-gallery-main",
+          title: "Hình ảnh bãi đỗ",
+          content: "Bạn có thể xem hình ảnh thực tế của bãi đỗ tại đây.",
+          placement: "bottom" as const
+        },
+        {
+          targetId: "parking-price-selector",
+          title: "Bảng giá",
+          content: "Xem giá theo từng khu vực và tầng khác nhau.",
+          placement: "top" as const
+        },
+        {
           targetId: "detail-book-now-btn",
           title: "Đặt chỗ ngay",
-          content: "Tại đây, bạn kiểm tra bảng giá và nhấn 'Đặt ngay' để hoàn tất quá trình giữ chỗ.",
+          content: "Tại đây, bạn kiểm tra bảng giá và nhấn 'Đặt ngay' để sang trang chọn vị trí cụ thể.",
+          placement: "top" as const
+        },
+        {
+          targetId: "parking-layout-container",
+          title: "Sơ đồ bãi đỗ",
+          content: "Chọn một vị trí (Slot) còn trống (màu trắng) trên sơ đồ để đặt.",
+          placement: "top" as const
+        },
+        {
+          targetId: "booking-vehicle-select",
+          title: "Chọn phương tiện",
+          content: "Chọn xe ô tô bạn sẽ sử dụng. Đảm bảo biển số xe chính xác để hệ thống nhận diện AI thuận tiện.",
+          placement: "left" as const
+        },
+        {
+          targetId: "booking-time-select",
+          title: "Thời gian đặt chỗ",
+          content: "Tùy chỉnh thời gian vào và ra mong muốn. Hệ thống sẽ tự động tính toán giá tiền dựa trên khung giờ này.",
+          placement: "left" as const
+        },
+        {
+          targetId: "booking-payment-method",
+          title: "Thanh toán",
+          content: "Lựa chọn phương thức thanh toán phù hợp (Ví GoPark hoặc VNPAY).",
+          placement: "left" as const
+        },
+        {
+          targetId: "booking-total-price",
+          title: "Tổng tiền tạm tính",
+          content: "Kiểm tra lại đơn giá và tổng số tiền trước khi xác nhận.",
+          placement: "top" as const
+        },
+        {
+          targetId: "confirm-booking-btn",
+          title: "Xác nhận đặt chỗ",
+          content: "Cuối cùng, nhấn 'Xác nhận' để hoàn tất quy trình giữ chỗ.",
           placement: "top" as const
         }
       ];

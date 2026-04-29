@@ -22,7 +22,7 @@ export function ParkingLayout() {
 
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-colors">
+    <div id="parking-layout-container" className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-colors">
       <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Sơ đồ bãi đỗ ô tô :   {dataLot.name}</h2>
 
       {/* Chú thích */}

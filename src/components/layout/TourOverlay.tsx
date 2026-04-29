@@ -15,6 +15,31 @@ export function TourOverlay() {
   const router = useRouter();
 
   const handleNext = () => {
+    // Nếu đây là bước chuyển sang trang chi tiết bãi đỗ
+    if (step?.targetId === 'parking-detail-btn') {
+      const detailBtn = document.querySelector('#parking-detail-btn');
+      if (detailBtn) {
+        // Giả lập click vào nút chi tiết để router xử lý chuyển trang
+        (detailBtn as HTMLElement).click();
+        setTimeout(() => {
+          nextStep();
+        }, 1000);
+        return;
+      }
+    }
+
+    // Nếu đây là bước chuyển sang trang sơ đồ đặt chỗ
+    if (step?.targetId === 'detail-book-now-btn') {
+      const bookNowBtn = document.querySelector('#detail-book-now-btn');
+      if (bookNowBtn) {
+        (bookNowBtn as HTMLElement).click();
+        setTimeout(() => {
+          nextStep();
+        }, 1000);
+        return;
+      }
+    }
+
     // Nếu đây là bước yêu cầu chuyển sang trang tìm kiếm
     if (step?.targetId === 'find-parking-nav-link' && pathname !== '/users/findParking') {
       router.push('/users/findParking');

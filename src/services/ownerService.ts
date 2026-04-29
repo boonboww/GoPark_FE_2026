@@ -73,7 +73,7 @@ export const changePassword = async (payload: ChangePasswordRequest): Promise<vo
 // ─── Parking Lots ─────────────────────────────────────────────────────────────
 
 export const getOwnerParkingLots = async (ownerId: string): Promise<ParkingLotType[]> => {
-  return get<ParkingLotType[]>(`/parking-lots/owner/me/lots`);
+  return get<ParkingLotType[]>(`/parking-lots/owner/${ownerId}`);
 };
 
 export const getOwnerTotals = async (ownerId: string): Promise<OwnerTotalsType> => {
