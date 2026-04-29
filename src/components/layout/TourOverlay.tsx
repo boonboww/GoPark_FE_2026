@@ -8,7 +8,7 @@ import { ChevronRight, ChevronLeft, X, CheckCircle2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
 export function TourOverlay() {
-  const { isTourActive, currentStep, steps, nextStep, prevStep, stopTour } = useTourStore();
+  const { isTourActive, currentStep, steps, nextStep, prevStep, stopTour, tourType } = useTourStore();
   const [coords, setCoords] = useState<{ top: number, left: number, width: number, height: number } | null>(null);
   const step = steps[currentStep];
   const pathname = usePathname();
@@ -40,13 +40,16 @@ export function TourOverlay() {
       }
     }
 
-    // Nếu đây là bước yêu cầu chuyển sang trang tìm kiếm
-    if (step?.targetId === 'find-parking-nav-link' && pathname !== '/users/findParking') {
-      router.push('/users/findParking');
-      setTimeout(() => {
-        nextStep();
-      }, 500);
-      return;
+    // Nếu đây là bước yêu cầu chuyển sang trang tìm kiếm trong tour "full" hoặc "booking"
+    if ((tourType === 'full' || tourType === 'booking') && step?.targetId === 'find-parking-nav-link' && pathname !== '/users/findParking') {
+      const navLink = document.querySelector('#find-parking-nav-link');
+      if (navLink) {
+        (navLink as HTMLElement).click();
+        setTimeout(() => {
+          nextStep();
+        }, 800);
+        return;
+      }
     }
 
     // Nếu đây là bước yêu cầu quay về trang chủ

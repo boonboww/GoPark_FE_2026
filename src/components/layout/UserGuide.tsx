@@ -92,103 +92,102 @@ export function UserGuide() {
 
   const handleStartBookingTour = () => {
     setShowOptions(false);
+    
+    // Nếu đang ở trang chủ, hướng dẫn người dùng bấm vào Find Parking trước
+    const steps = [
+      {
+        targetId: "find-parking-nav-link",
+        title: "Tìm bãi đỗ xe",
+        content: "Bấm vào đây để đến trang bản đồ và bắt đầu khám phá bãi đỗ xe quanh bạn!",
+        placement: "bottom" as const
+      },
+      {
+        targetId: "top-search-input",
+        title: "Tìm kiếm",
+        content: "Bạn có thể nhập địa chỉ bãi đỗ tại đây.",
+        placement: "bottom" as const
+      },
+      {
+        targetId: "near-me-btn",
+        title: "Gần tôi",
+        content: "Hoặc bấm vào đây để hệ thống tự động tìm bãi đỗ quanh vị trí của bạn.",
+        placement: "bottom" as const
+      },
+      {
+        targetId: "near-me-radius-select",
+        title: "Phạm vi tìm kiếm",
+        content: "Chọn bán kính (km) để mở rộng hoặc thu hẹp vùng tìm kiếm.",
+        placement: "bottom" as const
+      },
+      {
+        targetId: "[id^='parking-marker-']",
+        title: "Chọn bãi đỗ",
+        content: "Bấm vào một biểu tượng bãi đỗ trên bản đồ để xem nhanh thông tin.",
+        placement: "top" as const
+      },
+      {
+        targetId: "parking-detail-btn",
+        title: "Xem chi tiết",
+        content: "Bấm 'Chi tiết' để xem đầy đủ thông tin bãi đỗ. Hướng dẫn sẽ tiếp tục ở trang sau.",
+        placement: "top" as const
+      },
+      {
+        targetId: "parking-gallery-main",
+        title: "Hình ảnh bãi đỗ",
+        content: "Bạn có thể xem hình ảnh thực tế của bãi đỗ tại đây.",
+        placement: "bottom" as const
+      },
+      {
+        targetId: "parking-price-selector",
+        title: "Bảng giá",
+        content: "Xem giá theo từng khu vực và tầng khác nhau.",
+        placement: "top" as const
+      },
+      {
+        targetId: "detail-book-now-btn",
+        title: "Đặt chỗ ngay",
+        content: "Tại đây, bạn kiểm tra bảng giá và nhấn 'Đặt ngay' để sang trang chọn vị trí cụ thể.",
+        placement: "top" as const
+      },
+      {
+        targetId: "parking-layout-container",
+        title: "Sơ đồ bãi đỗ",
+        content: "Chọn một vị trí (Slot) còn trống (màu trắng) trên sơ đồ để đặt.",
+        placement: "top" as const
+      },
+      {
+        targetId: "booking-vehicle-select",
+        title: "Chọn phương tiện",
+        content: "Chọn xe ô tô bạn sẽ sử dụng. Đảm bảo biển số xe chính xác để hệ thống nhận diện AI thuận tiện.",
+        placement: "left" as const
+      },
+      {
+        targetId: "booking-time-select",
+        title: "Thời gian đặt chỗ",
+        content: "Tùy chỉnh thời gian vào và ra mong muốn. Hệ thống sẽ tự động tính toán giá tiền dựa trên khung giờ này.",
+        placement: "left" as const
+      },
+      {
+        targetId: "booking-payment-method",
+        title: "Thanh toán",
+        content: "Lựa chọn phương thức thanh toán phù hợp (Ví GoPark hoặc VNPAY).",
+        placement: "left" as const
+      },
+      {
+        targetId: "booking-total-price",
+        title: "Tổng tiền tạm tính",
+        content: "Kiểm tra lại đơn giá và tổng số tiền trước khi xác nhận.",
+        placement: "top" as const
+      },
+      {
+        targetId: "confirm-booking-btn",
+        title: "Xác nhận đặt chỗ",
+        content: "Cuối cùng, nhấn 'Xác nhận' để hoàn tất quy trình giữ chỗ.",
+        placement: "top" as const
+      }
+    ];
 
-    const navigateAndStart = () => {
-      const steps = [
-        {
-          targetId: "top-search-input",
-          title: "Tìm kiếm",
-          content: "Bạn có thể nhập địa chỉ bãi đỗ tại đây.",
-          placement: "bottom" as const
-        },
-        {
-          targetId: "near-me-btn",
-          title: "Gần tôi",
-          content: "Hoặc bấm vào đây để hệ thống tự động tìm bãi đỗ quanh vị trí của bạn.",
-          placement: "bottom" as const
-        },
-        {
-          targetId: "near-me-radius-select",
-          title: "Phạm vi tìm kiếm",
-          content: "Chọn bán kính (km) để mở rộng hoặc thu hẹp vùng tìm kiếm.",
-          placement: "bottom" as const
-        },
-        {
-          targetId: "[id^='parking-marker-']",
-          title: "Chọn bãi đỗ",
-          content: "Bấm vào một biểu tượng bãi đỗ trên bản đồ để xem nhanh thông tin.",
-          placement: "top" as const
-        },
-        {
-          targetId: "parking-detail-btn",
-          title: "Xem chi tiết",
-          content: "Bấm 'Chi tiết' để xem đầy đủ thông tin bãi đỗ. Hướng dẫn sẽ tiếp tục ở trang sau.",
-          placement: "top" as const
-        },
-        {
-          targetId: "parking-gallery-main",
-          title: "Hình ảnh bãi đỗ",
-          content: "Bạn có thể xem hình ảnh thực tế của bãi đỗ tại đây.",
-          placement: "bottom" as const
-        },
-        {
-          targetId: "parking-price-selector",
-          title: "Bảng giá",
-          content: "Xem giá theo từng khu vực và tầng khác nhau.",
-          placement: "top" as const
-        },
-        {
-          targetId: "detail-book-now-btn",
-          title: "Đặt chỗ ngay",
-          content: "Tại đây, bạn kiểm tra bảng giá và nhấn 'Đặt ngay' để sang trang chọn vị trí cụ thể.",
-          placement: "top" as const
-        },
-        {
-          targetId: "parking-layout-container",
-          title: "Sơ đồ bãi đỗ",
-          content: "Chọn một vị trí (Slot) còn trống (màu trắng) trên sơ đồ để đặt.",
-          placement: "top" as const
-        },
-        {
-          targetId: "booking-vehicle-select",
-          title: "Chọn phương tiện",
-          content: "Chọn xe ô tô bạn sẽ sử dụng. Đảm bảo biển số xe chính xác để hệ thống nhận diện AI thuận tiện.",
-          placement: "left" as const
-        },
-        {
-          targetId: "booking-time-select",
-          title: "Thời gian đặt chỗ",
-          content: "Tùy chỉnh thời gian vào và ra mong muốn. Hệ thống sẽ tự động tính toán giá tiền dựa trên khung giờ này.",
-          placement: "left" as const
-        },
-        {
-          targetId: "booking-payment-method",
-          title: "Thanh toán",
-          content: "Lựa chọn phương thức thanh toán phù hợp (Ví GoPark hoặc VNPAY).",
-          placement: "left" as const
-        },
-        {
-          targetId: "booking-total-price",
-          title: "Tổng tiền tạm tính",
-          content: "Kiểm tra lại đơn giá và tổng số tiền trước khi xác nhận.",
-          placement: "top" as const
-        },
-        {
-          targetId: "confirm-booking-btn",
-          title: "Xác nhận đặt chỗ",
-          content: "Cuối cùng, nhấn 'Xác nhận' để hoàn tất quy trình giữ chỗ.",
-          placement: "top" as const
-        }
-      ];
-      startTour("booking", steps);
-    };
-
-    if (pathname !== "/users/findParking") {
-      router.push("/users/findParking");
-      setTimeout(navigateAndStart, 1000);
-    } else {
-      navigateAndStart();
-    }
+    startTour("booking", steps);
   };
 
   const handleStartPageTour = () => {
