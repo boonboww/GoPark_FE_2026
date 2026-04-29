@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+export type EditMode = "none" | "profile" | "password" | "avatar";
+
 interface OwnerProfileProps {
   profile: OwnerProfileType | null;
   initialMode?: EditMode;

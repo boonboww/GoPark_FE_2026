@@ -32,8 +32,8 @@ import { motion, AnimatePresence } from "framer-motion";
 const formSchema = z.object({
   name: z.string().min(1, "Tên bãi đỗ là bắt buộc"),
   address: z.string().min(1, "Địa chỉ là bắt buộc"),
-  lat: z.coerce.number({ invalid_type_error: "Vĩ độ phải là số" }),
-  lng: z.coerce.number({ invalid_type_error: "Kinh độ phải là số" }),
+  lat: z.preprocess((v) => Number(v), z.number()),
+  lng: z.preprocess((v) => Number(v), z.number()),
   description: z.string().optional(),
 });
 

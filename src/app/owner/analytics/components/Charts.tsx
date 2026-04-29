@@ -155,43 +155,58 @@ export function AnalyticsCharts({
         <CardHeader>
           <CardTitle>Phương thức Thanh toán</CardTitle>
           <CardDescription>
-            Phân bổ các cổng thanh toán thành công.
+            Phân bổ theo số lượt sử dụng các cổng thanh toán.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[350px] w-full flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={paymentData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={80}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {paymentData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  content={<CustomTooltip />}
-                  cursor={{ fill: "transparent" }}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  height={36}
-                  iconType="circle"
-                  formatter={(value) => (
-                    <span className="text-sm font-medium text-foreground">
-                      {value}
-                    </span>
-                  )}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {paymentData && paymentData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={paymentData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={80}
+                    outerRadius={120}
+                    paddingAngle={5}
+                    dataKey="value"
+                    nameKey="method"
+                    stroke="none"
+                  >
+                    {paymentData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    content={
+                      <CustomTooltip 
+                        formatter={(value: number) => `${value} lượt giao dịch`} 
+                      />
+                    }
+                    cursor={{ fill: "transparent" }}
+                  />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={40}
+                    iconType="circle"
+                    formatter={(value, entry: any) => {
+                      const { payload } = entry;
+                      return (
+                        <span className="text-sm font-medium text-foreground">
+                          {value} ({payload.value} lượt)
+                        </span>
+                      );
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center space-y-2">
+                <div className="text-muted-foreground text-sm">Chưa có dữ liệu thanh toán</div>
+                <div className="text-xs text-muted-foreground/60">Giao dịch thành công sẽ xuất hiện tại đây</div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

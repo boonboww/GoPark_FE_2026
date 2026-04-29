@@ -1,10 +1,15 @@
 import React from "react";
 import { Download } from "lucide-react";
-import { format } from "date-fns";
-
 import { Button } from "@/components/ui/button";
 import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
 import { DateRange } from "react-day-picker";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 interface DashboardHeaderProps {
   dateRange: DateRange | undefined;
@@ -27,20 +32,20 @@ export function DashboardHeader({
       </div>
 
       <div className="flex flex-col sm:flex-row items-center gap-3">
-        {/* Date Range Picker Placeholder or Real Component */}
+        {/* Date Range Picker */}
         <DatePickerWithRange
           date={dateRange}
           setDate={setDateRange}
           className="w-full sm:w-auto sm:min-w-[260px]"
         />
 
-        <Button
+        <Button 
+          variant="outline" 
+          className="gap-2 border-primary/20 hover:bg-primary/5"
           onClick={onExport}
-          variant="outline"
-          className="w-full sm:w-auto"
         >
-          <Download className="mr-2 h-4 w-4" />
-          Xuất dữ liệu
+          <Download className="h-4 w-4" />
+          Xuất báo cáo
         </Button>
       </div>
     </div>

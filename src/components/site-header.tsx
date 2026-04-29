@@ -76,21 +76,6 @@ export function SiteHeader() {
             <Bell className="h-5 w-5 text-muted-foreground" />
             <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
           </button>
-
-          {/* User info */}
-          <div className="hidden sm:flex items-center gap-3 pl-3 border-l border-border ml-1">
-            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-bold shrink-0 shadow-sm">
-              {user?.profile?.name?.charAt(0)?.toUpperCase() ?? "O"}
-            </div>
-            <div className="leading-tight">
-              <p className="text-base font-bold text-foreground line-clamp-1">
-                {user?.profile?.name ?? "Chủ bãi"}
-              </p>
-              <p className="text-xs font-medium text-muted-foreground line-clamp-1">
-                {user?.email ?? "owner@gopark.vn"}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </header>

@@ -91,7 +91,9 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
                       <TableCell className="font-medium">{tx.parkingLotName}</TableCell>
                       <TableCell>{tx.licensePlate}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {format(new Date(tx.time), 'dd MMM, HH:mm')}
+                        {tx.time && !isNaN(new Date(tx.time).getTime()) 
+                          ? format(new Date(tx.time), 'dd MMM, HH:mm') 
+                          : 'N/A'}
                       </TableCell>
                       <TableCell>{formatCurrency(tx.amount)}</TableCell>
                       <TableCell>{getStatusBadge(tx.status)}</TableCell>

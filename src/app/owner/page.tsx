@@ -21,7 +21,7 @@ export default function Page() {
 
   const { data, isLoading, error } = useQuery<DashboardSummaryResponse>({
     queryKey: ["dashboardSummary", ownerId],
-    queryFn: () => dashboardService.getDashboardSummary(ownerId),
+    queryFn: () => dashboardService.getDashboardSummary(ownerId as string),
     enabled: !!user?.id && role === "owner", // Only fetch owner stats if role is owner
   });
 

@@ -109,7 +109,7 @@ export function OperationCenter({ alerts, overview }: OperationCenterProps) {
         </div>
 
         {/* Section 3: Shortcut */}
-        <Link href="/owner/reports" className="mt-auto">
+        <Link href="/owner/analytics" className="mt-auto">
           <Button variant="outline" className="w-full justify-between group h-11" size="sm">
             <span className="flex items-center gap-2">
               <IconChartBar size={18} className="text-primary" />
