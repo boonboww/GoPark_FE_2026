@@ -45,4 +45,9 @@ export const chatService = {
     const res = await del<any>(`/chat/conversations/${conversationId}`);
     return res.data || res;
   },
+
+  getUserProfile: async (id: string) => {
+    const res = await get<any>(`/users/${id}`);
+    return res.data || res;
+  },
 };

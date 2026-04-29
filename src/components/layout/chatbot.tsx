@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { useAuthStore } from "@/stores/auth.store";
+import { chatService } from "@/services/chat.service";
+import Link from "next/link";
 
 type Message = { role: "user" | "assistant" | "system"; content: string };
 type Status = "unknown" | "connected" | "disconnected";
@@ -48,6 +51,27 @@ export default function Chatbot() {
   const [status, setStatus] = useState<Status>("unknown");
   const [hasUnread, setHasUnread] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+
+  const user = useAuthStore((s) => s.user);
+  const [ownerUnreadCount, setOwnerUnreadCount] = useState(0);
+
+  // ─── Fetch Owner Chat Unread Count ─────────────────────────────────────────
+  useEffect(() => {
+    if (user?.role === "OWNER" || user?.role === "STAFF") {
+      const fetchUnread = async () => {
+        try {
+          const convs = await chatService.getConversations();
+          const total = convs.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+          setOwnerUnreadCount(total);
+        } catch (e) {
+          // Fail silently
+        }
+      };
+      fetchUnread();
+      const interval = setInterval(fetchUnread, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);

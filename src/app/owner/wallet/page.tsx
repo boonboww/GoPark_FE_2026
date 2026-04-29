@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -365,6 +365,21 @@ function PaginatedTransactionHistory({
   itemsPerPage: number;
 }) {
   const [activeTab, setActiveTab] = useState("all");
+  const [lastSeen, setLastSeen] = useState<Record<string, string>>({});
+
+  // Load last seen timestamps from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("owner_wallet_last_seen");
+      if (saved) {
+        try {
+          setLastSeen(JSON.parse(saved));
+        } catch (e) {
+          console.error("Error parsing wallet last seen data", e);
+        }
+      }
+    }
+  }, []);
 
   const handleTabChange = (val: string) => {
     setActiveTab(val);
@@ -383,6 +398,23 @@ function PaginatedTransactionHistory({
     outcome: filteredOutcome,
   };
 
+  // Update last seen when active tab changes or new transactions arrive
+  useEffect(() => {
+    if (activeTab && dataByTab[activeTab] && dataByTab[activeTab].length > 0) {
+      const latestTx = dataByTab[activeTab][0];
+      const latestTime = latestTx.created_at || latestTx.createdAt;
+      
+      setLastSeen(prev => {
+        if (latestTime && latestTime !== prev[activeTab]) {
+          const newState = { ...prev, [activeTab]: latestTime };
+          localStorage.setItem("owner_wallet_last_seen", JSON.stringify(newState));
+          return newState;
+        }
+        return prev;
+      });
+    }
+  }, [activeTab, allTransactions]);
+
   const activeData = dataByTab[activeTab] ?? [];
   const totalPages = Math.max(1, Math.ceil(activeData.length / itemsPerPage));
 
@@ -400,9 +432,18 @@ function PaginatedTransactionHistory({
   );
 
   const badgeCounts: Record<string, number> = {
-    all: filteredAll.length,
-    income: filteredIncome.length,
-    outcome: filteredOutcome.length,
+    all: filteredAll.filter(t => {
+      const txTime = t.created_at || t.createdAt;
+      return lastSeen["all"] && new Date(txTime) > new Date(lastSeen["all"]);
+    }).length,
+    income: filteredIncome.filter(t => {
+      const txTime = t.created_at || t.createdAt;
+      return lastSeen["income"] && new Date(txTime) > new Date(lastSeen["income"]);
+    }).length,
+    outcome: filteredOutcome.filter(t => {
+      const txTime = t.created_at || t.createdAt;
+      return lastSeen["outcome"] && new Date(txTime) > new Date(lastSeen["outcome"]);
+    }).length,
   };
 
   return (
@@ -435,7 +476,11 @@ function PaginatedTransactionHistory({
               >
                 {tab.label}
                 {badgeCounts[tab.value] > 0 && (
-                  <span className={`inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full text-[10px] font-black transition-colors ${activeTab === tab.value ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                  <span className={`inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full text-[10px] font-black transition-all ${
+                    activeTab === tab.value 
+                    ? 'bg-slate-900 text-white opacity-0 scale-0' 
+                    : 'bg-red-500 text-white shadow-sm shadow-red-200'
+                  }`}>
                     {badgeCounts[tab.value]}
                   </span>
                 )}

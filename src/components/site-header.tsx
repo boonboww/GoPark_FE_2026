@@ -14,6 +14,8 @@ import { useOwnerTotals } from "@/hooks/useOwnerTotals";
 import { useCustomerStore } from "@/stores/customer.store";
 import { useAuthStore } from "@/stores/auth.store";
 
+import { NotificationBell } from "@/components/owner/NotificationBell";
+
 export function SiteHeader() {
   const { lotId, setLotId } = useCustomerStore();
   const { data: parkingLots, isLoading: isLoadingLots } = useOwnerParkingLots();
@@ -72,10 +74,7 @@ export function SiteHeader() {
 
         {/* Right: Notification + user */}
         <div className="flex items-center gap-3">
-          <button className="w-10 h-10 rounded-xl border border-border bg-card flex items-center justify-center hover:bg-muted transition-colors relative">
-            <Bell className="h-5 w-5 text-muted-foreground" />
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-primary" />
-          </button>
+          <NotificationBell />
         </div>
       </div>
     </header>

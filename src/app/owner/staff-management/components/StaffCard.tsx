@@ -2,18 +2,18 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { 
-  Phone, 
-  Mail, 
-  Trash2, 
-  Shield, 
+import {
+  Phone,
+  Mail,
+  Trash2,
+  Shield,
   MoreVertical,
   User,
-  Building
+  Building,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -27,7 +27,11 @@ interface StaffCardProps {
 
 export function StaffCard({ staff, onDelete }: StaffCardProps) {
   const name = staff.profile?.name || "N/A";
-  const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase();
+  const initials = name
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase();
 
   return (
     <motion.div
@@ -46,12 +50,19 @@ export function StaffCard({ staff, onDelete }: StaffCardProps) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-slate-400 hover:text-slate-900">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-xl text-slate-400 hover:text-slate-900"
+            >
               <MoreVertical className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="rounded-2xl p-2 border-slate-100 shadow-xl">
-            <DropdownMenuItem 
+          <DropdownMenuContent
+            align="end"
+            className="rounded-2xl p-2 border-slate-100 shadow-xl"
+          >
+            <DropdownMenuItem
               className="text-red-500 focus:text-red-500 focus:bg-red-50 rounded-xl cursor-pointer"
               onClick={() => onDelete(staff.id, name)}
             >
@@ -69,7 +80,9 @@ export function StaffCard({ staff, onDelete }: StaffCardProps) {
           </h3>
           <div className="flex items-center gap-1.5 mt-1 text-slate-400">
             <Shield className="w-3 h-3" />
-            <span className="text-[10px] font-bold uppercase tracking-widest">Nhân viên vận hành</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">
+              Nhân viên vận hành
+            </span>
           </div>
         </div>
 
@@ -84,19 +97,11 @@ export function StaffCard({ staff, onDelete }: StaffCardProps) {
             <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
               <Phone className="w-4 h-4 text-slate-400" />
             </div>
-            <span className="text-xs font-medium">{staff.profile?.phone || "N/A"}</span>
+            <span className="text-xs font-medium">
+              {staff.profile?.phone || "N/A"}
+            </span>
           </div>
         </div>
-      </div>
-
-      <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hoạt động</span>
-        </div>
-        <Button variant="ghost" size="sm" className="h-8 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900">
-          Chi tiết
-        </Button>
       </div>
     </motion.div>
   );
