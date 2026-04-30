@@ -58,10 +58,11 @@ export default function ParkingLotList({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {parkingLots.map((lot) => (
+      {parkingLots.map((lot, index) => (
         <ModernParkingLotCard
           key={lot.id}
           lot={lot}
+          isFirst={index === 0}
           onClick={() => onManage?.(lot.id)}
           onManageSlots={(e) => {
             e.stopPropagation();

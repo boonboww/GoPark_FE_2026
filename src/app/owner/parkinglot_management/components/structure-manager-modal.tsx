@@ -45,7 +45,7 @@ interface ZonePayload {
 // ──────────────────────────────────────────────────────────
 //  Component
 // ──────────────────────────────────────────────────────────
-export function StructureManagerTab() {
+export function StructureManagerTab({ onClose }: { onClose?: () => void }) {
   const { lotId } = useCustomerStore();
   const queryClient = useQueryClient();
 
@@ -369,8 +369,20 @@ export function StructureManagerTab() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Close button for tour and normal use */}
+          <Button
+            id="structure-close-btn"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 font-medium"
+          >
+            Đóng
+          </Button>
+
           {/* Sync toàn bộ Lot */}
           <Button
+            id="structure-sync-all-btn"
             variant="outline"
             size="sm"
             onClick={() => genLotMut.mutate()}
@@ -385,6 +397,7 @@ export function StructureManagerTab() {
             Đồng bộ tất cả ô đỗ
           </Button>
           <Button
+            id="structure-add-floor-btn"
             onClick={() => {
               setAddingFloor(true);
               setExpandedFloor(null);
@@ -643,7 +656,7 @@ export function StructureManagerTab() {
                 {/* Zones */}
                 {isExpanded && (
                   <div className="border-t divide-y bg-slate-50/50">
-                    {zones.map((zone: any) => (
+                    {zones.map((zone: any, zoneIdx: number) => (
                       <div key={zone.id} className="px-5 py-4">
                         {editingZone === zone.id ? (
                           /* ── Edit Zone Form ── */
@@ -835,6 +848,7 @@ export function StructureManagerTab() {
                                 Đồng bộ sơ đồ
                               </Button>
                               <Button
+                                id={zoneIdx === 0 ? "structure-edit-zone-btn-0" : undefined}
                                 variant="outline"
                                 size="sm"
                                 onClick={() => startEditZone(floor.id, zone)}

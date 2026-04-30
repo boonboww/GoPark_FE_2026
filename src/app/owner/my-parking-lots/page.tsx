@@ -44,7 +44,6 @@ export default function MyParkingLotsPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <SiteHeader />
         <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-10 w-full">
           {/* Header Section */}
           <div className="flex flex-col space-y-6">
@@ -67,6 +66,7 @@ export default function MyParkingLotsPage() {
               </div>
 
               <Button
+                id="add-parking-lot-btn"
                 onClick={() => setIsCreateModalOpen(true)}
                 className="bg-black hover:bg-slate-800 text-white font-bold px-8 py-7 rounded-[24px] shadow-xl shadow-slate-200 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3"
               >
@@ -77,7 +77,10 @@ export default function MyParkingLotsPage() {
           </div>
 
           {/* List Section */}
-          <div className="bg-slate-50/50 rounded-[40px] p-1 border border-slate-100">
+          <div
+            id="parking-lot-list-card"
+            className="bg-slate-50/50 rounded-[40px] p-1 border border-slate-100"
+          >
             <div className="bg-white rounded-[38px] p-6 sm:p-8 shadow-sm">
               <ParkingLotList
                 parkingLots={parkingLots}

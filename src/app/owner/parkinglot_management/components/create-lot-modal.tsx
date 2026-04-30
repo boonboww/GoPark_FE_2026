@@ -135,6 +135,7 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                         </FormLabel>
                         <FormControl>
                           <Input 
+                            id="lot-name-input"
                             placeholder="VD: GoPark Central" 
                             {...field} 
                             className="h-11 bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-bold"
@@ -156,6 +157,7 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                         </FormLabel>
                         <FormControl>
                           <Input 
+                            id="lot-address-input"
                             placeholder="VD: 123 Lê Lợi, Đà Nẵng" 
                             {...field} 
                             className="h-11 bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-bold"
@@ -216,6 +218,7 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                       <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mô tả (Không bắt buộc)</FormLabel>
                       <FormControl>
                         <Textarea 
+                          id="lot-description-input"
                           placeholder="Mô tả sơ qua về bãi đỗ của bạn..." 
                           className="min-h-[100px] bg-slate-50 border-slate-200 resize-none font-medium"
                           {...field} 
@@ -232,7 +235,7 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                     <Upload className="w-3 h-3" /> Hình ảnh bãi đỗ
                   </label>
                   
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div id="lot-images-input" className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <AnimatePresence>
                       {previews.map((preview, index) => (
                         <motion.div
@@ -265,6 +268,7 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                 <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
                   <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting} className="font-bold">Hủy</Button>
                   <Button 
+                    id="lot-submit-btn"
                     type="submit" 
                     disabled={isSubmitting} 
                     className="min-w-[150px] shadow-lg shadow-primary/25 rounded-xl font-bold"
@@ -293,7 +297,7 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
               <p className="text-[10px] text-slate-500 font-medium mt-1">Chọn vị trí trên bản đồ để tự động lấy tọa độ và địa chỉ.</p>
             </div>
             
-            <div className="flex-1 relative">
+            <div id="lot-map-picker" className="flex-1 relative">
               <MapLocationPicker
                 location={{ lat: watchedLat, lng: watchedLng }}
                 onChange={(loc) => {

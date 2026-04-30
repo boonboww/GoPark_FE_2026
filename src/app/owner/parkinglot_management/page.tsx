@@ -49,6 +49,8 @@ import { parkingService } from "@/services/parking.service";
 import { useCustomerStore } from "@/stores/customer.store";
 import { Loader2 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
+import { useTourStore } from "@/store/tourStore";
+import { Slot } from "./components/slot";
 
 export default function ParkingLotManagementPage() {
   const { user: authUser } = useAuthStore();
@@ -61,6 +63,8 @@ export default function ParkingLotManagementPage() {
   const [isFetchingAvailable, setIsFetchingAvailable] = React.useState(false);
   const [availableMapData, setAvailableMapData] = React.useState<any>(null);
   const [previewTime, setPreviewTime] = React.useState<number | null>(null);
+  
+  const isTourActive = useTourStore((state) => state.isTourActive);
 
   // Fetch all bookings to find overdue ones
   const { data: lotBookings = [] } = useQuery({
@@ -226,16 +230,30 @@ export default function ParkingLotManagementPage() {
     const currentZoneName =
       activeZones.length === 1 ? activeZones[0].name : "Khu vực";
 
-    const isValidActive = validActiveSlotIds.has(slot.id.toString());
+    const isMock = slot.id >= 9990;
+    const isValidActive = isMock || validActiveSlotIds.has(slot.id.toString());
     const effectiveStatus = isValidActive ? slot.status : "AVAILABLE";
 
-    if (effectiveStatus === "OCCUPIED" || effectiveStatus === "RESERVED") {
+    if (effectiveStatus === "OCCUPIED" || effectiveStatus === "RESERVED" || effectiveStatus === "occupied") {
       // Tìm booking tương ứng trong danh sách đã load sẵn
-      const activeBooking = lotBookings.find(
+      let activeBooking = lotBookings.find(
         (b) =>
           b.slotId.toString() === slot.id.toString() &&
           (b.status === "ACTIVE" || b.status === "PENDING"),
       );
+
+      if (isMock) {
+        activeBooking = {
+          id: 999201,
+          userName: "Khách Mẫu Hướng Dẫn",
+          licensePlate: "51A-999.99",
+          status: "ACTIVE",
+          slotId: "9992",
+          totalPrice: 20000,
+          startTime: new Date(Date.now() - 3600000).toISOString(),
+          endTime: new Date(Date.now() + 3600000).toISOString()
+        } as any;
+      }
 
       if (activeBooking) {
         setSelectedTicket({
@@ -377,6 +395,7 @@ export default function ParkingLotManagementPage() {
             <div className="flex items-center gap-3">
               {!hasData ? (
                 <Button
+                  id="setup-first-grid-btn"
                   onClick={() => openConfigModal("setup")}
                   className="bg-black hover:bg-slate-800 text-white font-bold h-12 px-6 rounded-2xl shadow-lg shadow-slate-200 transition-all"
                 >
@@ -384,6 +403,7 @@ export default function ParkingLotManagementPage() {
                 </Button>
               ) : (
                 <Button
+                  id="config-tech-price-btn"
                   onClick={() => openConfigModal("edit")}
                   variant="outline"
                   className="h-12 px-6 rounded-2xl border-slate-200 font-bold hover:bg-slate-50 transition-all"
@@ -731,7 +751,7 @@ export default function ParkingLotManagementPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto bg-slate-50/40 p-4 sm:p-8 relative min-h-[460px]">
+            <div id="parking-grid-map" className="flex-1 overflow-auto bg-slate-50/40 p-4 sm:p-8 relative min-h-[460px]">
               {/* Dot pattern background */}
               <div
                 className="absolute inset-0 opacity-[0.035] pointer-events-none"
@@ -818,9 +838,40 @@ export default function ParkingLotManagementPage() {
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">
               Chú thích
             </span>
+
+            {/* Mock slots for Tour Guide */}
+            {isTourActive && (
+              <div className="flex items-center gap-6 mt-4 p-4 border-2 border-dashed border-primary/50 bg-primary/5 rounded-2xl w-full justify-center">
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase">Mẫu Slot Trống</span>
+                  <div id="tour-mock-available-slot" onClick={() => handleSlotClick({ id: 9991, code: "M-A01", status: "AVAILABLE" } as any)}>
+                    <Slot
+                      slot={{ id: 9991, code: "M-A01", status: "available", label: "M-A01" }}
+                      onClick={() => {}}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500 uppercase">Mẫu Slot Có Khách</span>
+                  <div id="tour-mock-occupied-slot" onClick={() => handleSlotClick({ id: 9992, code: "M-A02", status: "OCCUPIED" } as any)}>
+                    <Slot
+                      slot={{ 
+                        id: 9992, code: "M-A02", status: "occupied", label: "M-A02",
+                        ticket: {
+                          startTime: new Date(Date.now() - 3600000), // 1 hour ago
+                          endTime: new Date(Date.now() + 3600000)    // 1 hour left
+                        }
+                      }}
+                      onClick={() => {}}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center gap-3">
               {/* Available */}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full">
+              <div id="legend-slot-available" className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full">
                 <div className="w-4 h-7 rounded-sm bg-white border-2 border-dashed border-slate-300 shadow-sm shrink-0" />
                 <span className="text-xs font-semibold text-muted-foreground">
                   Chỗ trống
@@ -829,7 +880,7 @@ export default function ParkingLotManagementPage() {
               </div>
 
               {/* Occupied */}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border border-border rounded-full">
+              <div id="legend-slot-occupied" className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border border-border rounded-full">
                 <div className="relative w-4 h-7 rounded-sm bg-muted border-2 border-muted-foreground shadow-sm overflow-hidden shrink-0">
                   <div className="absolute bottom-0 left-0 w-full h-1/2 bg-muted-foreground" />
                 </div>
@@ -900,7 +951,7 @@ export default function ParkingLotManagementPage() {
               {activeTab === "setup" && (
                 <SetupWizardTab onClose={() => setIsConfigOpen(false)} />
               )}
-              {activeTab === "edit" && <StructureManagerTab />}
+              {activeTab === "edit" && <StructureManagerTab onClose={() => setIsConfigOpen(false)} />}
             </div>
           </DialogContent>
         </Dialog>

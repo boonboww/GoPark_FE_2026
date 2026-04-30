@@ -175,6 +175,7 @@ export default function EditParkingLotDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
+                        id="edit-lot-name"
                         placeholder="VD: Bãi đỗ xe trung tâm"
                         className="bg-background border-border focus:ring-primary"
                         {...field}
@@ -190,7 +191,7 @@ export default function EditParkingLotDialog({
                   Hình ảnh bãi đỗ xe
                 </FormLabel>
                 
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                <div id="edit-lot-images" className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                   {/* Hiển thị ảnh đã up (existing) */}
                   {existingImages.map((url, index) => (
                     <div key={`existing-${index}`} className="relative aspect-square rounded-xl overflow-hidden border border-border group animate-in fade-in zoom-in duration-200">
@@ -262,6 +263,7 @@ export default function EditParkingLotDialog({
                     </FormLabel>
                     <FormControl>
                       <Textarea
+                        id="edit-lot-desc"
                         placeholder="Nhập mô tả về bãi đỗ xe của bạn..."
                         className="resize-none bg-background border-border focus:ring-primary min-h-[140px]"
                         {...field}
@@ -284,6 +286,7 @@ export default function EditParkingLotDialog({
                 Hủy bỏ
               </Button>
               <Button
+                id="edit-lot-submit"
                 type="submit"
                 disabled={mutation.isPending}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[140px] shadow-sm"

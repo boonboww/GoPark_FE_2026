@@ -36,7 +36,7 @@ export default function BookingsPage() {
             </p>
           </div>
 
-          <Card>
+          <Card id="booking-table-card">
             <CardContent className="p-4">
               <BookingDataTable />
             </CardContent>

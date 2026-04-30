@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Roboto } from "next/font/google";
 import "./owner-theme.css";
+import { OwnerGuide } from "@/components/owner/OwnerGuide";
 
 const roboto = Roboto({
   subsets: ["latin", "vietnamese"],
@@ -12,6 +13,7 @@ export default function OwnerLayout({ children }: { children: ReactNode }) {
   return (
     <div className={`${roboto.variable} font-roboto theme-owner min-h-screen bg-background text-foreground flex flex-col`}>
       {children}
+      <OwnerGuide />
     </div>
   );
 }

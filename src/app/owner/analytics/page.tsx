@@ -151,16 +151,22 @@ export default function AnalyticsPage() {
               </div>
             ) : data ? (
               <div className="space-y-6">
-                <OverviewCards metrics={data.metrics} />
-                <AnalyticsCharts 
-                  revenueData={data.revenueOverTime}
-                  paymentData={data.paymentMethods}
-                  trafficData={data.trafficFlow}
-                />
-                <DataTables 
-                  recentTransactions={data.recentTransactions}
-                  topParkingLots={data.topParkingLots}
-                />
+                <div id="analytics-kpi-cards">
+                  <OverviewCards metrics={data.metrics} />
+                </div>
+                <div id="analytics-charts">
+                  <AnalyticsCharts 
+                    revenueData={data.revenueOverTime}
+                    paymentData={data.paymentMethods}
+                    trafficData={data.trafficFlow}
+                  />
+                </div>
+                <div id="analytics-tables">
+                  <DataTables 
+                    recentTransactions={data.recentTransactions}
+                    topParkingLots={data.topParkingLots}
+                  />
+                </div>
               </div>
             ) : null}
           </div>

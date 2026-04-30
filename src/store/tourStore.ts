@@ -8,6 +8,8 @@ interface TourStep {
   title: string;
   content: string;
   placement: 'top' | 'bottom' | 'left' | 'right' | 'center';
+  triggerId?: string;
+  action?: 'click' | 'close-dialog';
 }
 
 interface TourState {
@@ -15,7 +17,8 @@ interface TourState {
   currentStep: number;
   tourType: TourType;
   steps: TourStep[];
-  startTour: (type: TourType, steps: TourStep[]) => void;
+  initialPathname: string | null;
+  startTour: (type: TourType, steps: TourStep[], pathname?: string) => void;
   nextStep: () => void;
   prevStep: () => void;
   stopTour: () => void;
@@ -28,12 +31,14 @@ export const useTourStore = create<TourState>()(
       currentStep: 0,
       tourType: null,
       steps: [],
+      initialPathname: null,
 
-      startTour: (type, steps) => set({ 
+      startTour: (type, steps, pathname) => set({ 
         isTourActive: true, 
         tourType: type, 
         steps, 
-        currentStep: 0 
+        currentStep: 0,
+        initialPathname: pathname || null
       }),
 
       nextStep: () => set((state) => ({ 
@@ -48,7 +53,8 @@ export const useTourStore = create<TourState>()(
         isTourActive: false, 
         tourType: null, 
         steps: [], 
-        currentStep: 0 
+        currentStep: 0,
+        initialPathname: null
       }),
     }),
     {

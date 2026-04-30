@@ -462,6 +462,7 @@ export function SetupWizardTab({ onClose }: any) {
                 </div>
               ))}
               <Button
+                id="setup-add-floor-btn"
                 variant="outline"
                 onClick={addFloor}
                 className="w-full border-dashed border-2 py-8 text-slate-500 hover:text-black hover:border-black hover:bg-slate-50/50 transition-colors"
@@ -524,6 +525,7 @@ export function SetupWizardTab({ onClose }: any) {
                               <div className="space-y-2">
                                 <Label>Tên Khu vực</Label>
                                 <Input
+                                  id={`setup-zone-name-${i}`}
                                   value={z.name}
                                   onChange={(e) =>
                                     setZones(
@@ -541,6 +543,7 @@ export function SetupWizardTab({ onClose }: any) {
                               <div className="space-y-2">
                                 <Label>Số lượng chỗ</Label>
                                 <Input
+                                  id={`setup-zone-count-${i}`}
                                   type="number"
                                   min={1}
                                   max={100}
@@ -588,6 +591,7 @@ export function SetupWizardTab({ onClose }: any) {
                               <div className="space-y-2">
                                 <Label>Giá theo giờ (VNĐ)</Label>
                                 <Input
+                                  id={`setup-zone-price-${i}`}
                                   type="number"
                                   min={0}
                                   value={z.priceHour}
@@ -759,6 +763,7 @@ export function SetupWizardTab({ onClose }: any) {
 
       <div className="p-6 border-t bg-white flex gap-3 sm:justify-between items-center shadow-[0_-10px_40px_rgba(0,0,0,0.04)] shrink-0">
         <Button
+          id="setup-close-wizard-btn"
           variant="ghost"
           onClick={onClose}
           className="text-slate-400 hover:text-slate-600 font-medium hidden sm:block"
@@ -776,6 +781,7 @@ export function SetupWizardTab({ onClose }: any) {
           </Button>
           {step < 3 ? (
             <Button
+              id="setup-next-btn"
               onClick={handleNext}
               className="w-full sm:w-auto px-10 bg-black hover:bg-slate-800 text-white font-semibold shadow-md border border-black"
               disabled={setupMutation.isPending}
@@ -784,6 +790,7 @@ export function SetupWizardTab({ onClose }: any) {
             </Button>
           ) : (
             <Button
+              id="setup-save-btn"
               onClick={handleSave}
               disabled={setupMutation.isPending}
               className="w-full sm:w-auto px-10 bg-black hover:bg-zinc-800 text-white font-bold shadow-xl ring-2 ring-black/10 ring-offset-2"

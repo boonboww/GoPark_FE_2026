@@ -53,6 +53,7 @@ export const Slot = ({ slot, onClick, orientation = "top", size = "normal" }: an
       style={getBackgroundStyle()}
       className={cn(
         "relative flex flex-col items-center justify-center transition-all duration-300 shadow-sm cursor-pointer overflow-hidden flex-shrink-0 rounded-md group",
+        `slot-${status}`,
         sizeClasses,
         getStatusClasses()
       )}

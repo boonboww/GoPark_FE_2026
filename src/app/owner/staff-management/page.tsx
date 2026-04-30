@@ -190,7 +190,7 @@ export default function StaffManagementPage() {
               onOpenChange={setIsCreateDialogOpen}
             >
               <DialogTrigger asChild>
-                <Button className="bg-black hover:bg-slate-800 text-white font-bold px-8 py-7 rounded-[24px] shadow-xl shadow-slate-200 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3">
+                <Button id="add-staff-btn" className="bg-black hover:bg-slate-800 text-white font-bold px-8 py-7 rounded-[24px] shadow-xl shadow-slate-200 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3">
                   <UserPlus className="w-6 h-6" />
                   Thêm nhân viên mới
                 </Button>
@@ -225,7 +225,7 @@ export default function StaffManagementPage() {
                             value={field.value}
                           >
                             <FormControl>
-                              <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-transparent focus:ring-0">
+                              <SelectTrigger id="staff-lot-select" className="h-12 rounded-xl bg-slate-50 border-transparent focus:ring-0">
                                 <SelectValue placeholder="Chọn bãi đỗ xe" />
                               </SelectTrigger>
                             </FormControl>
@@ -258,6 +258,7 @@ export default function StaffManagementPage() {
                             <div className="relative">
                               <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                               <Input
+                                id="staff-name-input"
                                 placeholder="Nguyễn Văn A"
                                 className="h-12 pl-12 rounded-xl bg-slate-50 border-transparent focus:ring-0"
                                 {...field}
@@ -282,6 +283,7 @@ export default function StaffManagementPage() {
                               <div className="relative">
                                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                 <Input
+                                  id="staff-email-input"
                                   placeholder="hung"
                                   className="h-12 pl-10 rounded-xl bg-slate-50 border-transparent focus:ring-0 text-sm"
                                   {...field}
@@ -305,6 +307,7 @@ export default function StaffManagementPage() {
                               <div className="relative">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                 <Input
+                                  id="staff-password-input"
                                   type="password"
                                   placeholder="******"
                                   className="h-12 pl-10 rounded-xl bg-slate-50 border-transparent focus:ring-0 text-sm"
@@ -330,6 +333,7 @@ export default function StaffManagementPage() {
                             <div className="relative">
                               <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                               <Input
+                                id="staff-phone-input"
                                 placeholder="0987654321"
                                 className="h-12 pl-12 rounded-xl bg-slate-50 border-transparent focus:ring-0"
                                 {...field}
@@ -342,6 +346,7 @@ export default function StaffManagementPage() {
                     />
 
                     <Button
+                      id="staff-submit-btn"
                       type="submit"
                       className="w-full h-14 rounded-2xl bg-black hover:bg-slate-800 text-white font-bold shadow-lg shadow-slate-200 mt-4"
                       disabled={form.formState.isSubmitting}
@@ -363,7 +368,7 @@ export default function StaffManagementPage() {
 
           {/* Filters and List */}
           <div className="space-y-6">
-            <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-[32px] border border-slate-100 shadow-sm">
+            <div id="staff-search-filter" className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-[32px] border border-slate-100 shadow-sm">
               <div className="relative flex-1 w-full">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input

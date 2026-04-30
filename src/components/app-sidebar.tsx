@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   IconChartBar,
   IconDashboard,
-  IconHelp,
   IconLayoutGrid,
   IconList,
   IconListDetails,
@@ -78,14 +77,6 @@ const data = {
       icon: IconUsers,
     },
   ],
-
-  navSecondary: [
-    {
-      title: "Trợ giúp",
-      url: "/owner/help",
-      icon: IconHelp,
-    },
-  ],
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -133,7 +124,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarContent className="px-2 py-3 gap-0">
         <NavMain items={filteredNavMain} label="MENU" />
-        <NavMain items={data.navSecondary} label="GENERAL" />
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border pt-3">

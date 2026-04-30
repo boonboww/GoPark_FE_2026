@@ -8,11 +8,18 @@ import { ChevronRight, ChevronLeft, X, CheckCircle2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
 export function TourOverlay() {
-  const { isTourActive, currentStep, steps, nextStep, prevStep, stopTour } = useTourStore();
+  const { isTourActive, currentStep, steps, nextStep, prevStep, stopTour, tourType, initialPathname } = useTourStore();
   const [coords, setCoords] = useState<{ top: number, left: number, width: number, height: number } | null>(null);
   const step = steps[currentStep];
   const pathname = usePathname();
   const router = useRouter();
+
+  // Stop tour if pathname changes and it's a page-specific tour
+  useEffect(() => {
+    if (isTourActive && tourType === 'page' && initialPathname && pathname !== initialPathname) {
+      stopTour();
+    }
+  }, [pathname, isTourActive, tourType, stopTour, initialPathname]);
 
   const handleNext = () => {
     // Nếu đây là bước yêu cầu chuyển sang trang tìm kiếm
@@ -37,6 +44,20 @@ export function TourOverlay() {
   };
 
   useEffect(() => {
+    if (isTourActive && step?.action) {
+      if (step.action === 'close-dialog') {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      } else if (step.action === 'click') {
+        const selector = step.targetId.startsWith('#') || step.targetId.startsWith('.') || step.targetId.startsWith('[') 
+          ? step.targetId 
+          : `#${step.targetId}`;
+        const el = document.querySelector(selector) as HTMLElement;
+        if (el) el.click();
+      }
+    }
+  }, [isTourActive, currentStep, step]);
+
+  useEffect(() => {
     if (!isTourActive || !step) return;
 
     const updateCoords = () => {
@@ -56,6 +77,17 @@ export function TourOverlay() {
         });
       } else {
         setCoords(null);
+        
+        // Auto-trigger logic: if target is missing/hidden and triggerId exists, try to click it
+        if (isTourActive && step.triggerId) {
+          const isModalOpen = document.querySelector('[role="dialog"]') || document.querySelector('.radix-dialog-content');
+          if (!isModalOpen) {
+            const triggerEl = document.querySelector(step.triggerId.startsWith('#') ? step.triggerId : `#${step.triggerId}`) as HTMLElement;
+            if (triggerEl) {
+              triggerEl.click();
+            }
+          }
+        }
       }
     };
 
@@ -98,66 +130,78 @@ export function TourOverlay() {
         {coords && (
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute border-2 border-green-500 rounded-xl shadow-lg z-[100000]"
-            style={{
+            animate={{ 
+              opacity: 1,
               top: coords.top - 10,
               left: coords.left - 10,
               width: coords.width + 20,
               height: coords.height + 20,
             }}
+            exit={{ opacity: 0 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+            className="absolute border-2 border-green-500 rounded-xl shadow-lg z-[100000]"
           />
         )}
       </AnimatePresence>
 
       {/* Thẻ hướng dẫn - Luôn hiển thị ở vị trí an toàn */}
       <motion.div
-        key={currentStep}
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
+        animate={{ 
+          opacity: 1, 
+          scale: 1, 
+          y: 0,
+          ...(() => {
+            if (!coords) {
+              return {
+                top: window.innerHeight / 2 - 110, // Center vertically (approx half height)
+                left: window.innerWidth / 2 - 144, // Center horizontally (approx half width)
+              };
+            }
+
+            const padding = 40;
+            const cardWidth = 288;
+            const cardHeight = 220;
+
+            let top = coords.top + coords.height + padding;
+            let left = coords.left + coords.width / 2 - cardWidth / 2;
+
+            // Điều chỉnh dựa trên placement
+            if (step.placement === "top") {
+              top = coords.top - cardHeight - padding;
+            } else if (step.placement === "left") {
+              top = coords.top + coords.height / 2 - cardHeight / 2;
+              left = coords.left - cardWidth - padding;
+            } else if (step.placement === "right") {
+              top = coords.top + coords.height / 2 - cardHeight / 2;
+              left = coords.left + coords.width + padding;
+            } else if (step.placement === "center") {
+              top = window.innerHeight / 2 - cardHeight / 2;
+              left = window.innerWidth / 2 - cardWidth / 2;
+            } else if (step.placement === "bottom") {
+               // Tối ưu cho nút ở góc phải màn hình
+               if (coords.left + coords.width > window.innerWidth - 100) {
+                  left = coords.left + coords.width - cardWidth;
+               }
+            }
+
+            // Kiểm tra biên để không bị tràn màn hình
+            top = Math.max(10, Math.min(window.innerHeight - cardHeight - 20, top));
+            left = Math.max(10, Math.min(window.innerWidth - cardWidth - 10, left));
+
+            return { top, left };
+          })()
+        }}
+        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
         className="absolute z-[100001] pointer-events-auto w-72 bg-white dark:bg-stone-900 rounded-2xl shadow-2xl p-5 border border-gray-100 dark:border-stone-800"
-        style={(() => {
-          if (!coords) {
-            return {
-              bottom: "40px",
-              left: "50%",
-              transform: "translateX(-50%)",
-            };
-          }
-
-          const padding = 40;
-          const cardWidth = 288;
-          const cardHeight = 220;
-
-          let top = coords.top + coords.height + padding;
-          let left = coords.left + coords.width / 2 - cardWidth / 2;
-
-          // Điều chỉnh dựa trên placement
-          if (step.placement === "top") {
-            top = coords.top - cardHeight - padding;
-          } else if (step.placement === "left") {
-            top = coords.top + coords.height / 2 - cardHeight / 2;
-            left = coords.left - cardWidth - padding;
-          } else if (step.placement === "right") {
-            top = coords.top + coords.height / 2 - cardHeight / 2;
-            left = coords.left + coords.width + padding;
-          } else if (step.placement === "center") {
-            top = window.innerHeight / 2 - cardHeight / 2;
-            left = window.innerWidth / 2 - cardWidth / 2;
-          } else if (step.placement === "bottom") {
-             // Tối ưu cho nút ở góc phải màn hình
-             if (coords.left + coords.width > window.innerWidth - 100) {
-                left = coords.left + coords.width - cardWidth;
-             }
-          }
-
-          // Kiểm tra biên để không bị tràn màn hình
-          top = Math.max(10, Math.min(window.innerHeight - cardHeight - 20, top));
-          left = Math.max(10, Math.min(window.innerWidth - cardWidth - 10, left));
-
-          return { top, left };
-        })()}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          e.nativeEvent.stopImmediatePropagation();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.nativeEvent.stopImmediatePropagation();
+        }}
       >
         <div className="flex justify-between items-center mb-3">
           <span className="text-[10px] font-bold text-green-600 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full uppercase tracking-tighter">

@@ -315,6 +315,7 @@ export function TicketDetail({
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                         <Input
+                          id="booking-name-input"
                           value={bookingForm.name}
                           onChange={(e) =>
                             setBookingForm((prev) => ({
@@ -336,6 +337,7 @@ export function TicketDetail({
                       <div className="relative">
                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                         <Input
+                          id="booking-phone-input"
                           value={bookingForm.phone}
                           onChange={(e) =>
                             setBookingForm((prev) => ({
@@ -370,6 +372,7 @@ export function TicketDetail({
                       <div className="relative">
                         <Car className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                         <Input
+                          id="booking-plate-input"
                           value={bookingForm.plate}
                           onChange={(e) =>
                             setBookingForm((prev) => ({
@@ -394,6 +397,7 @@ export function TicketDetail({
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 pointer-events-none" />
                         <Input
+                          id="booking-time-input"
                           type="datetime-local"
                           value={bookingForm.startTime}
                           onChange={(e) =>
@@ -493,7 +497,7 @@ export function TicketDetail({
 
           {/* ===== OCCUPIED / RESERVED: Ticket Detail ===== */}
           {!isAvailable && data && (
-            <div className="space-y-5">
+            <div id="occupied-ticket-body" className="space-y-5">
               {/* Ticket Code & License Plate */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -612,6 +616,7 @@ export function TicketDetail({
                     Hủy
                   </Button>
                   <Button
+                    id="booking-next-btn"
                     onClick={() => setBookingStep(2)}
                     disabled={
                       !bookingForm.name ||

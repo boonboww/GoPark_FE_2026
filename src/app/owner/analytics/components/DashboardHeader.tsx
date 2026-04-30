@@ -33,13 +33,16 @@ export function DashboardHeader({
 
       <div className="flex flex-col sm:flex-row items-center gap-3">
         {/* Date Range Picker */}
-        <DatePickerWithRange
-          date={dateRange}
-          setDate={setDateRange}
-          className="w-full sm:w-auto sm:min-w-[260px]"
-        />
+        <div id="analytics-date-range">
+          <DatePickerWithRange
+            date={dateRange}
+            setDate={setDateRange}
+            className="w-full sm:w-auto sm:min-w-[260px]"
+          />
+        </div>
 
         <Button 
+          id="analytics-export-btn"
           variant="outline" 
           className="gap-2 border-primary/20 hover:bg-primary/5"
           onClick={onExport}

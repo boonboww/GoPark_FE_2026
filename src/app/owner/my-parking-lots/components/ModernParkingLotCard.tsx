@@ -20,6 +20,7 @@ interface ModernParkingLotCardProps {
   onClick: () => void;
   onManageSlots: (e: React.MouseEvent) => void;
   onEdit: (e: React.MouseEvent) => void;
+  isFirst?: boolean;
 }
 
 export function ModernParkingLotCard({
@@ -27,6 +28,7 @@ export function ModernParkingLotCard({
   onClick,
   onManageSlots,
   onEdit,
+  isFirst,
 }: ModernParkingLotCardProps) {
   // Tính toán công suất thực tế từ API
   const occupiedSlots = (lot.totalSlots || 0) - (lot.availableSlots || 0);
@@ -131,6 +133,7 @@ export function ModernParkingLotCard({
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
           <Button
+            id={isFirst ? "lot-manage-btn" : undefined}
             variant="outline"
             size="sm"
             onClick={onManageSlots}
@@ -140,6 +143,7 @@ export function ModernParkingLotCard({
             Quản lý sơ đồ
           </Button>
           <Button
+            id={isFirst ? "lot-edit-btn" : undefined}
             variant="ghost"
             size="icon"
             onClick={onEdit}

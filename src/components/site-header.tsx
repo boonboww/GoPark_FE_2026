@@ -41,7 +41,7 @@ export function SiteHeader() {
               onValueChange={(val) => setLotId(Number(val))}
               disabled={isLoadingLots || !parkingLots?.length}
             >
-              <SelectTrigger className="pl-10 w-[240px] bg-muted/40 border-border rounded-xl h-10 text-base font-medium">
+              <SelectTrigger id="lot-selector" className="pl-10 w-[240px] bg-muted/40 border-border rounded-xl h-10 text-base font-medium">
                 {isLoadingLots ? (
                   <span className="flex items-center gap-2 text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" /> Đang tải...

@@ -43,13 +43,14 @@ export function NavMain({
             return (
               <SidebarMenuItem key={item.title}>
                 <button
+                  id={`sidebar-item-${item.url.split("/").pop() || "dashboard"}`}
                   onClick={() => router.push(item.url)}
                   title={item.title}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                     isActive
                       ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                   )}
                 >
                   {item.icon && (
@@ -58,7 +59,7 @@ export function NavMain({
                         "size-5 shrink-0 transition-colors",
                         isActive
                           ? "text-sidebar-primary-foreground"
-                          : "text-sidebar-foreground/60"
+                          : "text-sidebar-foreground/60",
                       )}
                     />
                   )}
