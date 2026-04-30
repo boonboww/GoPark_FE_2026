@@ -482,11 +482,7 @@ export default function ProfilePage() {
           prev.map((v) => (v.id.toString() === editingVehicleId ? res.data : v))
         );
       } else {
-        // Add new
-        if ((vehicles?.length || 0) >= MAX_VEHICLES) {
-          toast.error(`Chỉ có thể thêm tối đa ${MAX_VEHICLES} phương tiện.`);
-          return;
-        }
+        // Thêm mới thành công
         const res = await apiClient<any>("/vehicles", {
           method: "POST",
           body: JSON.stringify(payload),
@@ -494,16 +490,8 @@ export default function ProfilePage() {
         toast.success("Thêm phương tiện mới thành công.");
         setVehicles((prev) => [...(prev || []), res.data]);
 
-        // Sinh data QR Code ảo chứa mã nhận diện của xe và user
-        const qrPayload = JSON.stringify({
-          action: "PARKING_CHECKIN",
-          vehicleId: res.data.id,
-          plateNumber: res.data.plate_number,
-          userId: authUser?.id,
-          timestamp: new Date().toISOString()
-        });
-        setQrCodeData(qrPayload);
-        setIsQrDialogOpen(true);
+        // Sau khi đăng ký xe xong, không hiển thị QR ngay vì chưa có booking
+        setQrCodeData(null);
       }
 
       setIsVehicleDialogOpen(false);
@@ -565,23 +553,19 @@ export default function ProfilePage() {
   };
 
   const handleShowQR = (vehicle: Vehicle) => {
+    // Tạo payload chứa thông tin chi tiết của phương tiện
+    const vehiclePayload = JSON.stringify({
+      type: "VEHICLE_INFO",
+      id: vehicle.id,
+      plateNumber: vehicle.plate_number,
+      ownerName: vehicle.owner_name,
+      brand: vehicle.brand,
+      vehicleType: vehicle.type,
+      timestamp: new Date().toISOString()
+    });
 
-    // 1. Lấy booking mới nhất
-    const latestBooking = getLatestConfirmedBookingForVehicle(vehicle.plate_number);
-
-    // 2. Kiểm tra xem có booking và có nội dung QR không
-    if (latestBooking && latestBooking.qrCode?.content) {
-      setQrCodeData(latestBooking.qrCode.content);
-      setIsQrDialogOpen(true);
-    } else {
-      // 3. Nếu không có booking, có thể hiển thị mã định danh xe mặc định 
-      // hoặc thông báo cho người dùng
-      toast.error(`Xe ${vehicle.plate_number} hiện không có lịch đặt chỗ nào được xác nhận.`);
-
-      // Nếu bạn vẫn muốn hiện QR biển số xe (QR rỗng) thì dùng dòng dưới:
-      // setQrCodeData(vehicle.plate_number); 
-      // setIsQrDialogOpen(true);
-    }
+    setQrCodeData(vehiclePayload);
+    setIsQrDialogOpen(true);
   };
 
 
@@ -772,32 +756,15 @@ export default function ProfilePage() {
                               </div>
                             )}
                           </div>
-                          {/* QR Code */}
-                          {latestBooking ? (
-                            <div
-                              className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-green-200 flex flex-col items-center justify-center bg-green-50 flex-shrink-0 cursor-pointer hover:bg-green-100 transition-transform hover:scale-[1.02]"
-                              onClick={() => {
-                                if (latestBooking.qrCode?.content) {
-                                  setQrCodeData(latestBooking.qrCode.content);
-                                  setIsQrDialogOpen(true);
-                                } else {
-                                  handleShowQR(v);
-                                }
-                              }}
-                            >
-                              <QrCode className="w-10 h-10 text-green-700 mb-1" />
-                              <span className="text-[10px] text-green-700 font-bold tracking-wide uppercase px-1">Mã Book</span>
-                              <span className="text-[9px] text-green-600 mt-0.5 px-2 py-[1px] bg-green-200 rounded-full font-bold">CONFIRMED</span>
-                            </div>
-                          ) : (
-                            <div
-                              className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-slate-100 flex flex-col items-center justify-center bg-slate-50 flex-shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
-                              onClick={() => handleShowQR(v)}
-                            >
-                              <QrCode className="w-12 h-12 text-slate-800" />
-                              <span className="text-[10px] text-slate-500 mt-1 font-medium text-center px-1 break-all flex-wrap">Xem QR rỗng</span>
-                            </div>
-                          )}
+                          {/* QR Code Phương tiện - Hiển thị thông tin xe */}
+                          <div
+                            className="w-24 h-24 sm:w-28 sm:h-28 rounded-lg border border-slate-200 flex flex-col items-center justify-center bg-slate-50 flex-shrink-0 cursor-pointer hover:bg-slate-100 transition-all hover:scale-[1.02] shadow-sm"
+                            onClick={() => handleShowQR(v)}
+                          >
+                            <QrCode className="w-10 h-10 text-slate-700 mb-1" />
+                            <span className="text-[10px] text-slate-600 font-bold tracking-wide uppercase px-1 text-center">QR Xe</span>
+                            <span className="text-[9px] text-slate-500 mt-0.5 px-2 py-[1px] bg-slate-200 rounded-full font-medium">INFO</span>
+                          </div>
                         </div>
 
                         {/* Thông tin phương tiện */}
@@ -885,14 +852,25 @@ export default function ProfilePage() {
                                     {/* Nút Gia hạn: Chỉ hiển thị khi xe đang ở trạng thái 'ongoing' */}
                                     {(latestBooking.status.toLowerCase() === "ongoing" ||
                                       latestBooking.status.toLowerCase() === "confirmed") && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handleOpenExtend(latestBooking)}
-                                          className="w-fit text-[11px] h-7 border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1 shadow-sm"
-                                        >
-                                          <Clock className="w-3 h-3" /> Gia hạn thêm giờ
-                                        </Button>
+                                        <div className="flex flex-wrap gap-2">
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => handleOpenExtend(latestBooking)}
+                                            className="w-fit text-[11px] h-7 border-blue-200 text-blue-700 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1 shadow-sm"
+                                          >
+                                            <Clock className="w-3 h-3" /> Gia hạn
+                                          </Button>
+
+                                          <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            onClick={() => router.push(`/users/Ve-QR?id=${latestBooking.id}`)}
+                                            className="w-fit text-[11px] h-7 bg-green-100 text-green-700 hover:bg-green-600 hover:text-white transition-all flex items-center gap-1 shadow-sm border border-green-200"
+                                          >
+                                            <Info className="w-3 h-3" /> Chi tiết vé
+                                          </Button>
+                                        </div>
                                       )}
                                   </div>
                                 )}
@@ -1186,38 +1164,37 @@ export default function ProfilePage() {
       <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle className="text-center font-bold text-xl">Mã QR Check-in Xe</DialogTitle>
+            <DialogTitle className="text-center font-bold text-xl text-slate-800">Mã QR Phương Tiện</DialogTitle>
             <DialogDescription className="text-center">
-              Dùng mã này để quét tại cổng kiểm soát.
-              <br />Mã được sinh tự động ngay sau khi tạo xe mới.
+              Mã QR chứa thông tin chi tiết của xe để quét tại cổng kiểm soát.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-6 bg-white border border-gray-100 rounded-xl shadow-inner mt-2">
+          <div className="flex flex-col items-center justify-center p-6 bg-slate-50 border border-slate-100 rounded-2xl shadow-inner mt-2">
             {qrCodeData && (
-              <div className="bg-white p-4 border border-gray-200 rounded-2xl shadow-sm mb-4">
+              <div className="bg-white p-5 border border-slate-200 rounded-3xl shadow-md mb-4 transform transition-all hover:scale-[1.02]">
                 <QRCodeSVG
                   value={qrCodeData}
                   size={220}
                   bgColor={"#ffffff"}
-                  fgColor={"#0f172a"}
-                  level={"Q"}
-                  imageSettings={{
-                    src: "/logo.png",
-                    x: undefined,
-                    y: undefined,
-                    height: 48,
-                    width: 48,
-                    excavate: true,
-                  }}
+                  fgColor={"#1e293b"}
+                  level={"H"}
+                  includeMargin={true}
                 />
               </div>
             )}
-            <div className="text-sm font-semibold bg-gray-100 text-gray-700 px-4 py-2 rounded-full font-mono mt-1">
-              Biển số: {vForm.plate_number.toUpperCase()}
+            <div className="flex flex-col items-center gap-2 mt-2 w-full">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-widest bg-white px-4 py-1.5 rounded-full border border-slate-200 shadow-sm">
+                Xác Thực Phương Tiện
+              </div>
+              <p className="text-[10px] text-slate-400 text-center italic px-6">
+                Lưu ý: Mã này dùng để nhận diện xe khi ra vào bãi đỗ.
+              </p>
             </div>
           </div>
           <DialogFooter className="sm:justify-center mt-2">
-            <Button className="w-full" onClick={() => setIsQrDialogOpen(false)}>Đã lưu mã QR</Button>
+            <Button className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold" onClick={() => setIsQrDialogOpen(false)}>
+              Đóng lại
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

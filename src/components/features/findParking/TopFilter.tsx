@@ -312,8 +312,8 @@ export function TopFilter({
               id="near-me-radius-select"
               value={nearMeRadius}
               onChange={(e) => setNearMeRadius(e.target.value)}
-              className="border rounded-md px-2 py-1 text-xs bg-transparent dark:border-white/30 outline-none h-7"
-              disabled={!!selectedCity}
+              className="border rounded-md px-2 py-1 text-xs bg-transparent dark:border-white/30 outline-none h-7 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!!selectedCity || !nearMeFilter}
             >
               <option value="1" className="dark:bg-[#064e3b]">1km</option>
               <option value="2" className="dark:bg-[#064e3b]">2km</option>

@@ -395,7 +395,7 @@ export function BookingForm() {
 
         {/* Biển số xe */}
 
-        <div>
+        <div id="booking-vehicle-select">
 
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
 
@@ -451,7 +451,7 @@ export function BookingForm() {
         {/* Thời gian - Đã điều chỉnh để lấy toàn bộ chiều rộng (rộng hơn) */}
 
         {/* Grid Date/Time Inputs */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+        <div id="booking-time-select" className="grid grid-cols-2 gap-x-4 gap-y-4">
           {/* Check-in Date */}
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-gray-400 tracking-[0.05em] uppercase pl-1">NGÀY VÀO</label>
@@ -700,7 +700,7 @@ export function BookingForm() {
 
         {/* Chọn hình thức thanh toán */}
 
-        <div>
+        <div id="booking-payment-method">
 
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
 
@@ -744,7 +744,7 @@ export function BookingForm() {
 
         {/* Tổng tiền */}
 
-        <div className="border-t border-gray-100 dark:border-gray-700 pt-5 mt-2">
+        <div id="booking-total-price" className="border-t border-gray-100 dark:border-gray-700 pt-5 mt-2">
 
           <div className="flex justify-between items-center mb-3">
 
@@ -795,6 +795,8 @@ export function BookingForm() {
           <button
 
             type="button"
+
+            id="confirm-booking-btn"
 
             onClick={(handBooking)}
 

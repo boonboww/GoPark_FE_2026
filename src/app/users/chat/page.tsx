@@ -84,7 +84,7 @@ export default function ChatList() {
               return [
                 partnerId,
                 {
-                  title: `Chủ bãi #${partnerId?.slice(-5)}`,
+                  title: `Chủ bãi (Đã ẩn bãi)`,
                 },
               ] as const;
             }
@@ -110,7 +110,7 @@ export default function ChatList() {
             return [
               partnerId,
               {
-                title: `Chủ bãi #${partnerId?.slice(-5)}`,
+                title: "Chủ bãi",
               },
             ] as const;
           }
@@ -295,7 +295,7 @@ export default function ChatList() {
                         requestDeleteConversation(
                           e,
                           conv.id,
-                          meta?.title || `Chủ bãi #${partner?.slice(-5)}`,
+                          meta?.title || "Chủ bãi",
                         )
                       }
                       title="Xóa đoạn hội thoại"
@@ -326,7 +326,7 @@ export default function ChatList() {
                                 : "font-semibold text-slate-900 dark:text-white"
                             }`}
                           >
-                            {meta?.title || `Chủ bãi #${partner?.slice(-5)}`}
+                            {meta?.title || "Chủ bãi"}
                           </h4>
                           <div className="flex items-center gap-2 ml-2">
                             {lastMessage && (
