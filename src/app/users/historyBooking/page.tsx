@@ -2,19 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { get } from "@/lib/api";
-import {
-  Search,
-  MapPin,
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
-  Clock,
-  FileText,
-  RotateCcw,
-  Loader2,
-} from "lucide-react";
+import { Star, MapPin, Search, ChevronLeft, ChevronRight, Calendar, Clock, FileText, RotateCcw, Loader2, CheckCircle2, Eye } from "lucide-react";
 import Header from "@/components/layout/Header";
 import DetailHistoryBooking from "./detailHistoryBooking";
+import RateBookingModal from "./rateBookingModal";
+import ViewReviewModal from "./viewReviewModal";
 import { useAuthStore } from "@/stores";
 import { mapBookingData } from "@/lib/booking-until";
 import { Roboto } from "next/font/google";
@@ -146,6 +138,14 @@ function historyBooking() {
 
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [openModal, setOpenModal] = useState(false);
+  
+  const [ratingBooking, setRatingBooking] = useState<any>(null);
+  const [openRateModal, setOpenRateModal] = useState(false);
+  const [ratedBookings, setRatedBookings] = useState<Set<string>>(new Set());
+
+  // State for viewing existing review
+  const [viewingReviewBooking, setViewingReviewBooking] = useState<any>(null);
+  const [openViewReviewModal, setOpenViewReviewModal] = useState(false);
 
   const [currentTime, setCurrentTime] = useState("");
   const [listDropdown, setListDropdown] = useState(false);
@@ -168,6 +168,29 @@ function historyBooking() {
       .then((res: any) => {
         const mapData = res.data.map((item: any) => mapBookingData(item));
         setBooking(mapData);
+
+        // Check which COMPLETED bookings already have a review
+        const completedIds = mapData
+          .filter((b: any) => b.statusRaw === "COMPLETED")
+          .map((b: any) => b.id);
+
+        // Load reviews in parallel
+        Promise.allSettled(
+          completedIds.map((id: string) =>
+            get(`/reviews/booking/${id}/review`).then((r: any) => {
+              const reviewData = r?.data ?? r;
+              return { id, hasReview: !!reviewData && !!reviewData.id };
+            })
+          )
+        ).then((results) => {
+          const reviewedSet = new Set<string>();
+          results.forEach((r) => {
+            if (r.status === 'fulfilled' && r.value.hasReview) {
+              reviewedSet.add(r.value.id);
+            }
+          });
+          setRatedBookings(reviewedSet);
+        });
       })
       .catch((err) => {
         console.log(err);
@@ -545,7 +568,42 @@ function historyBooking() {
                               </span>
                             </div>
 
-                            <div className="flex justify-end w-full sm:w-1/2">
+                            <div className="flex justify-end gap-3 w-full sm:w-1/2">
+                              {item.statusRaw === "COMPLETED" && (
+                                ratedBookings.has(item.id) ? (
+                                  // Already reviewed: badge + separate view button
+                                  <>
+                                    <div className="flex items-center gap-2 h-14 px-4 rounded-2xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 font-black text-sm shrink-0">
+                                      <CheckCircle2 className="w-4 h-4 fill-emerald-100" />
+                                      Đã đánh giá
+                                    </div>
+                                    <Button
+                                      variant="outline"
+                                      onClick={() => {
+                                        setViewingReviewBooking(item);
+                                        setOpenViewReviewModal(true);
+                                      }}
+                                      className="h-14 px-5 rounded-2xl shadow-sm transition-all hover:-translate-y-1 active:scale-95 text-[14px] flex items-center gap-2 border-border text-foreground hover:bg-accent w-full sm:w-auto justify-center font-black"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                      Xem chi tiết
+                                    </Button>
+                                  </>
+                                ) : (
+                                  // Not yet reviewed
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setRatingBooking(item);
+                                      setOpenRateModal(true);
+                                    }}
+                                    className="h-14 px-6 rounded-2xl shadow-sm transition-all hover:-translate-y-1 active:scale-95 text-[15px] flex items-center gap-2 group border-emerald-600 text-emerald-600 hover:bg-emerald-50 w-full sm:w-auto justify-center font-black"
+                                  >
+                                    <Star className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                    Đánh giá ngay
+                                  </Button>
+                                )
+                              )}
                               <Button
                                 onClick={() => {
                                   setSelectedBooking(item);
@@ -628,6 +686,27 @@ function historyBooking() {
         onClose={() => setOpenModal(false)}
         booking={selectedBooking}
       />
+      
+      {ratingBooking && (
+        <RateBookingModal
+          isOpen={openRateModal}
+          onClose={() => setOpenRateModal(false)}
+          bookingId={parseInt(ratingBooking.id)}
+          lotName={ratingBooking.name}
+          onSuccess={() => {
+            setRatedBookings(prev => new Set([...prev, ratingBooking.id]));
+          }}
+        />
+      )}
+
+      {viewingReviewBooking && (
+        <ViewReviewModal
+          isOpen={openViewReviewModal}
+          onClose={() => setOpenViewReviewModal(false)}
+          bookingId={parseInt(viewingReviewBooking.id)}
+          lotName={viewingReviewBooking.name}
+        />
+      )}
     </div>
   );
 }

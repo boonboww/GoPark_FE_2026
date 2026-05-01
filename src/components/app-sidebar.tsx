@@ -76,6 +76,11 @@ const data = {
       url: "/owner/staff-management",
       icon: IconUsers,
     },
+    {
+      title: "Đánh giá khách hàng",
+      url: "/owner/reviews",
+      icon: IconMessageCircle,
+    },
   ],
 };
 
