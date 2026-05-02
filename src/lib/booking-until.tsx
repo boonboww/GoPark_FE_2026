@@ -4,7 +4,10 @@ export const mapBookingData = (item: any) => {
     const start = new Date(item.start_time);
     const end = new Date(item.end_time);
 
-    const [mainInvoice] = item.invoice || [];
+    const totalPrice = (item.invoice || []).reduce(
+    (sum: number, inv: any) => sum + Number(inv.total || 0),
+    0
+    );
 
     const formatDate = (date: Date) =>
         date.toLocaleDateString("vi-VN", {
@@ -47,7 +50,7 @@ export const mapBookingData = (item: any) => {
         start_timestamp: start.getTime(),
         statusRaw: item.status,
         status: statusMap[item.status],
-        total_price: mainInvoice ? Number(mainInvoice.total) : 0,
+        total_price: totalPrice,
         end_time_raw: item.end_time,
         qrCode_content: item.qrCode?.content || "",
     }
