@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useAuthStore } from "@/stores/auth.store";
 import { chatService } from "@/services/chat.service";
@@ -10,10 +9,10 @@ type Status = "unknown" | "connected" | "disconnected";
 
 const API_URL =
   process.env.NEXT_PUBLIC_CHATBOT_API ||
-  "http://localhost:8080/api/v1/chatbot/chat";
+  "http://localhost:8000/api/v1/chatbot/chat";
 const STATUS_URL =
   process.env.NEXT_PUBLIC_CHATBOT_STATUS ||
-  "http://localhost:8080/api/v1/chatbot/status";
+  "http://localhost:8000/api/v1/chatbot/status";
 
 const QUICK_CHIPS = [
   "Tìm bãi gần tôi",
@@ -23,7 +22,7 @@ const QUICK_CHIPS = [
   "Khiếu nại hóa đơn",
   "Tính năng chủ bãi",
   "Khuyến mãi",
-  "Liên hệ hỗ trợ",
+  "Liên hệ hỗ trợ"
 ];
 
 const WELCOME_MSG: Message = {
@@ -35,6 +34,8 @@ const WELCOME_MSG: Message = {
 export default function Chatbot() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
+  const { accessToken } = useAuthStore();
+  const chipsRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const raw =
@@ -46,10 +47,14 @@ export default function Chatbot() {
       return [WELCOME_MSG];
     }
   });
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState<Status>("unknown");
   const [hasUnread, setHasUnread] = useState(false);
+<<<<<<< HEAD
   const [inputFocused, setInputFocused] = useState(false);
 
   const user = useAuthStore((s) => s.user);
@@ -73,10 +78,19 @@ export default function Chatbot() {
     }
   }, [user]);
 
+=======
+  const [parkingLots, setParkingLots] = useState<any[]>([]);
+const [quickReplies, setQuickReplies] = useState<string[]>([]);
+>>>>>>> nguyen
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const quickChipsRef = useRef<HTMLDivElement>(null);
+  const suggestionChipsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const statusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const requestInProgressRef = useRef<boolean>(false); // ✅ Ngăn duplicate requests
+
+  const messagesRef = useRef<Message[]>(messages);
 
   // ─── Persist & scroll ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -90,9 +104,24 @@ export default function Chatbot() {
   }, [messages]);
 
   useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
     if (open) setHasUnread(false);
   }, [open]);
-
+  const scrollChips = (
+    ref: React.RefObject<HTMLDivElement>,
+    direction: "left" | "right",
+  ) => {
+    if (ref.current) {
+      const scrollAmount = 200;
+      ref.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
   // ─── Speech recognition ───────────────────────────────────────────────────
   useEffect(() => {
     const win: any = typeof window !== "undefined" ? window : {};
@@ -115,53 +144,107 @@ export default function Chatbot() {
 
   // ─── Status polling — 10 min, only when token present ─────────────────────
   const checkStatus = useCallback(async () => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (!token) { setStatus("unknown"); return; }
+    const token = accessToken; // Lấy từ store thay vì localStorage
+    if (!token) {
+      setStatus("unknown");
+      return;
+    }
     try {
       const res = await fetch(STATUS_URL, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setStatus(data?.running || data?.models?.groq?.ok ? "connected" : "disconnected");
+      setStatus(
+        data?.running || data?.models?.groq?.ok ? "connected" : "disconnected",
+      );
     } catch {
       setStatus("disconnected");
     }
-  }, []);
+  }, [accessToken]);
 
   useEffect(() => {
     checkStatus();
     statusTimerRef.current = setInterval(checkStatus, 10 * 60 * 1000);
-    return () => { if (statusTimerRef.current) clearInterval(statusTimerRef.current); };
+    return () => {
+      if (statusTimerRef.current) clearInterval(statusTimerRef.current);
+    };
   }, [checkStatus]);
 
   // ─── Send message ──────────────────────────────────────────────────────────
+  // Thay thế toàn bộ hàm sendMessage trong file của bạn bằng code này:
+
   async function sendMessage(text?: string) {
     const content = (text ?? input).trim();
-    if (!content) return;
+    if (!content || loading) return;
+
     const userMsg: Message = { role: "user", content };
-    setMessages((m) => [...m, userMsg]);
+    const newMessages = [...messagesRef.current, userMsg];
+
+    setMessages(newMessages);
+    messagesRef.current = newMessages;
     setInput("");
-    if (inputRef.current) inputRef.current.style.height = "auto";
     setLoading(true);
+
     try {
+      const token = accessToken;
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const userMessagesOnly = messagesRef.current.filter(
+        (m) => m.role === "user",
+      );
+
       const resp = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify([userMsg]),
+        headers,
+        body: JSON.stringify({ messages: userMessagesOnly }),
       });
-      const data = await resp.json();
-      const reply = (data?.message || data?.data?.text || "") as string;
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: reply || "Rất tiếc, không nhận được phản hồi." },
-      ]);
-    } catch {
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: "Lỗi khi kết nối tới server chatbot." },
-      ]);
+
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+
+      const response = await resp.json();
+      console.log("Response:", response);
+
+      // ✅ LẤY TEXT TỪ response.text (backend trả về { text, action?, data? })
+      const assistantText =
+        response?.text || response?.message || "Không có phản hồi";
+
+      // Xử lý action nếu có
+      if (response?.action === "list_parking" && response?.data?.lots) {
+        const lotNames = response.data.lots.map((lot: any) => lot.name);
+        setSuggestions(lotNames);
+        setParkingLots(response.data.lots);
+      } else {
+        setSuggestions([]);
+        setParkingLots([]);
+      }
+
+      // Handle redirect action
+      if (response?.action === "redirect" && response?.data?.url) {
+        window.location.href = response.data.url;
+        return;
+      }
+
+      // Thêm message assistant
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: assistantText,
+      };
+      const finalMessages = [...messagesRef.current, assistantMsg];
+      setMessages(finalMessages);
+      messagesRef.current = finalMessages;
+    } catch (err) {
+      console.error(err);
+      const errorMsg: Message = {
+        role: "assistant",
+        content: "Lỗi kết nối. Vui lòng thử lại.",
+      };
+      const finalMessages = [...messagesRef.current, errorMsg];
+      setMessages(finalMessages);
+      messagesRef.current = finalMessages;
     } finally {
       setLoading(false);
     }
@@ -169,7 +252,8 @@ export default function Chatbot() {
 
   function clearHistory() {
     setMessages([WELCOME_MSG]);
-    if (typeof window !== "undefined") localStorage.removeItem("gopark_chat_history");
+    if (typeof window !== "undefined")
+      localStorage.removeItem("gopark_chat_history");
   }
 
   function toggleListen() {
@@ -333,6 +417,7 @@ export default function Chatbot() {
           border-radius:999px; font-size:12px;
           cursor:pointer; transition:all .15s;
           white-space:nowrap;
+            scrollbar-width: thin;
         }
         .gp-chip:hover { background:rgba(34,197,94,.17); border-color:rgba(34,197,94,.38); color:#bbf7d0; }
 
@@ -349,6 +434,29 @@ export default function Chatbot() {
           border-radius:13px; padding:7px 7px 7px 11px;
           transition:border-color .18s;
         }
+          .gp-suggestions-wrap {
+  flex-shrink: 0;
+  padding: 6px 12px 7px;
+  border-top: 1px solid rgba(34,197,94,0.08);
+  background: rgba(255,255,255,0.01);
+}
+.gp-suggestions-scroll {
+  overflow-x: auto;
+  white-space: nowrap;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.gp-suggestions-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+.gp-suggestion-chip {
+  flex-shrink: 0;
+  background: rgba(34,197,94,0.12);
+  border-color: rgba(34,197,94,0.3);
+}
         .gp-inp-box.f { border-color:rgba(34,197,94,.46); }
         .gp-ta {
           flex:1; background:transparent; border:none; outline:none;
@@ -401,23 +509,73 @@ export default function Chatbot() {
           font-size:9px; color:#fff; display:flex;
           align-items:center; justify-content:center; font-weight:700;
         }
+
+        /* Parking List */
+        .gp-parking-list {
+          margin: 10px;
+          background: rgba(255,255,255,0.05);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .gp-parking-table {
+          width: 100%;
+          border-collapse: collapse;
+          color: #e2f5ea;
+          font-size: 12px;
+        }
+        .gp-parking-table th, .gp-parking-table td {
+          padding: 8px;
+          text-align: left;
+          border-bottom: 1px solid rgba(34,197,94,0.2);
+        }
+        .gp-parking-table th {
+          background: rgba(34,197,94,0.2);
+          font-weight: bold;
+        }
+        .gp-btn-detail, .gp-btn-book {
+          background: rgba(34,197,94,0.2);
+          border: 1px solid rgba(34,197,94,0.4);
+          color: #bbf7d0;
+          padding: 4px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-right: 4px;
+          font-size: 11px;
+        }
+        .gp-btn-detail:hover, .gp-btn-book:hover {
+          background: rgba(34,197,94,0.4);
+        }
       `}</style>
 
       <div className="gp">
         {/* ── Panel ── */}
         {open && (
           <div className="gp-panel">
-
             {/* Header */}
             <div className="gp-hdr">
               <div className="gp-hdr-row">
                 <div className="gp-brand">
                   <div className="gp-av">
                     {/* Simple GP logo mark, no emoji */}
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="10" rx="2"/>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                      <circle cx="12" cy="16" r="1.5" fill="#fff" stroke="none"/>
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="11" width="18" height="10" rx="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      <circle
+                        cx="12"
+                        cy="16"
+                        r="1.5"
+                        fill="#fff"
+                        stroke="none"
+                      />
                     </svg>
                   </div>
                   <div>
@@ -427,21 +585,49 @@ export default function Chatbot() {
                 </div>
                 <div className="gp-acts">
                   <div className="gp-pill">
-                    <div className="gp-dot-s" style={{ background: statusDot[status] }} />
+                    <div
+                      className="gp-dot-s"
+                      style={{ background: statusDot[status] }}
+                    />
                     {statusLabel[status]}
                   </div>
-                  <button className="gp-ibtn" title="Xóa lịch sử chat" onClick={clearHistory}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6"/>
-                      <path d="M19 6l-1 14H6L5 6"/>
-                      <path d="M10 11v6M14 11v6"/>
-                      <path d="M9 6V4h6v2"/>
+                  <button
+                    className="gp-ibtn"
+                    title="Xóa lịch sử chat"
+                    onClick={clearHistory}
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14H6L5 6" />
+                      <path d="M10 11v6M14 11v6" />
+                      <path d="M9 6V4h6v2" />
                     </svg>
                   </button>
-                  <button className="gp-ibtn" title="Đóng" onClick={() => setOpen(false)}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                      <line x1="18" y1="6" x2="6" y2="18"/>
-                      <line x1="6" y1="6" x2="18" y2="18"/>
+                  <button
+                    className="gp-ibtn"
+                    title="Đóng"
+                    onClick={() => setOpen(false)}
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
                   </button>
                 </div>
@@ -451,11 +637,24 @@ export default function Chatbot() {
             {/* Messages */}
             <div className="gp-msgs">
               {messages.map((m, i) => (
-                <div key={i} className={`gp-row${m.role === "user" ? " u" : ""}`}>
+                <div
+                  key={i}
+                  className={`gp-row${m.role === "user" ? " u" : ""}`}
+                >
                   {m.role === "assistant" && (
                     <div className="gp-mav">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#fff"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
                       </svg>
                     </div>
                   )}
@@ -465,11 +664,65 @@ export default function Chatbot() {
                 </div>
               ))}
 
+              {parkingLots.length > 0 && (
+                <div className="gp-parking-list">
+                  <table className="gp-parking-table">
+                    <thead>
+                      <tr>
+                        <th>Tên bãi</th>
+                        <th>Địa chỉ</th>
+                        <th>Đánh giá</th>
+                        <th>Giá/giờ</th>
+                        <th>Chỗ trống</th>
+                        <th>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parkingLots.map((lot, idx) => (
+                        <tr key={lot.id}>
+                          <td>{lot.name}</td>
+                          <td>{lot.address}</td>
+                          <td>⭐ {lot.avgRating?.toFixed(1) || "N/A"}</td>
+                          <td>{lot.pricePerHour}k</td>
+                          <td>
+                            {lot.available_slots}/{lot.total_slots}
+                          </td>
+                          <td>
+                            <button
+                              className="gp-btn-detail"
+                              onClick={() => handleViewDetail(lot)}
+                            >
+                              Xem chi tiết
+                            </button>
+                            <button
+                              className="gp-btn-book"
+                              onClick={() => handleBookNow(lot)}
+                            >
+                              Đặt ngay
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
               {loading && (
                 <div className="gp-row">
                   <div className="gp-mav">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
                     </svg>
                   </div>
                   <div className="gp-bub b">
@@ -483,20 +736,149 @@ export default function Chatbot() {
               )}
               <div ref={messagesEndRef} />
             </div>
-
+            {suggestions.length > 0 && (
+              <div className="gp-suggestions-wrap">
+                <div className="gp-clabel">✨ Chọn bãi để đặt</div>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                >
+                  <button
+                    onClick={() => scrollChips(suggestionChipsRef, "left")}
+                    style={{
+                      background: "rgba(34,197,94,0.2)",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "28px",
+                      height: "28px",
+                      cursor: "pointer",
+                      color: "#86efac",
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "16px",
+                    }}
+                    title="Cuộn trái"
+                  >
+                    ◀
+                  </button>
+                  <div
+                    ref={suggestionChipsRef}
+                    className="gp-chips"
+                    style={{
+                      overflowX: "auto",
+                      whiteSpace: "nowrap",
+                      display: "flex",
+                      flexWrap: "nowrap",
+                      gap: "5px",
+                      flex: 1,
+                      scrollBehavior: "smooth",
+                    }}
+                  >
+                    {suggestions.map((name, idx) => (
+                      <button
+                        key={idx}
+                        className="gp-chip gp-suggestion-chip"
+                        style={{ flexShrink: 0 }}
+                        onClick={() => sendMessage(`đặt bãi ${name}`)}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => scrollChips(suggestionChipsRef, "right")}
+                    style={{
+                      background: "rgba(34,197,94,0.2)",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "28px",
+                      height: "28px",
+                      cursor: "pointer",
+                      color: "#86efac",
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "16px",
+                    }}
+                    title="Cuộn phải"
+                  >
+                    ▶
+                  </button>
+                </div>
+              </div>
+            )}
             {/* Quick chips */}
             <div className="gp-chips-wrap">
-              <div className="gp-clabel">Câu hỏi thường gặp</div>
-              <div className="gp-chips">
-                {QUICK_CHIPS.map((label) => (
-                  <button
-                    key={label}
-                    className="gp-chip"
-                    onClick={() => sendMessage(label)}
-                  >
-                    {label}
-                  </button>
-                ))}
+              <div className="gp-clabel">📌 Câu hỏi thường gặp</div>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <button
+                  onClick={() => scrollChips(quickChipsRef, "left")}
+                  style={{
+                    background: "rgba(34,197,94,0.2)",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "28px",
+                    height: "28px",
+                    cursor: "pointer",
+                    color: "#86efac",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "16px",
+                  }}
+                  title="Cuộn trái"
+                >
+                  ◀
+                </button>
+                <div
+                  ref={quickChipsRef}
+                  className="gp-chips"
+                  style={{
+                    overflowX: "auto",
+                    whiteSpace: "nowrap",
+                    display: "flex",
+                    flexWrap: "nowrap",
+                    gap: "5px",
+                    flex: 1,
+                    scrollBehavior: "smooth",
+                  }}
+                >
+                  {QUICK_CHIPS.map((label) => (
+                    <button
+                      key={label}
+                      className="gp-chip"
+                      onClick={() => sendMessage(label)}
+                      style={{ flexShrink: 0 }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => scrollChips(quickChipsRef, "right")}
+                  style={{
+                    background: "rgba(34,197,94,0.2)",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "28px",
+                    height: "28px",
+                    cursor: "pointer",
+                    color: "#86efac",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "16px",
+                  }}
+                  title="Cuộn phải"
+                >
+                  ▶
+                </button>
               </div>
             </div>
 
@@ -528,11 +910,20 @@ export default function Chatbot() {
                   title={listening ? "Dừng ghi âm" : "Nhận dạng giọng nói"}
                   onClick={toggleListen}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="2" width="6" height="11" rx="3"/>
-                    <path d="M5 10a7 7 0 0 0 14 0"/>
-                    <line x1="12" y1="19" x2="12" y2="22"/>
-                    <line x1="8" y1="22" x2="16" y2="22"/>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.9"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="9" y="2" width="6" height="11" rx="3" />
+                    <path d="M5 10a7 7 0 0 0 14 0" />
+                    <line x1="12" y1="19" x2="12" y2="22" />
+                    <line x1="8" y1="22" x2="16" y2="22" />
                   </svg>
                 </button>
                 <button
@@ -541,13 +932,24 @@ export default function Chatbot() {
                   onClick={() => sendMessage()}
                   title="Gửi (Enter)"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"/>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#fff"
+                    strokeWidth="2.3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
                   </svg>
                 </button>
               </div>
-              <div className="gp-hint">Enter để gửi · Shift+Enter xuống dòng</div>
+              <div className="gp-hint">
+                Enter để gửi · Shift+Enter xuống dòng
+              </div>
             </div>
           </div>
         )}
@@ -560,11 +962,30 @@ export default function Chatbot() {
           aria-hidden={open}
         >
           {hasUnread && <span className="gp-badge">!</span>}
-          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          <svg
+            width="21"
+            height="21"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#fff"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
         </button>
       </div>
     </>
   );
+
+  function handleViewDetail(lot: any) {
+    // Chuyển đến trang chi tiết bãi
+    window.location.href = `/parking-lots/${lot.id}`;
+  }
+
+  function handleBookNow(lot: any) {
+    // Chuyển đến trang đặt chỗ với bãi đã chọn
+    window.location.href = `/users/mybooking?lotId=${lot.id}`;
+  }
 }
