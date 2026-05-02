@@ -1,11 +1,8 @@
 "use client";
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useAuthStore } from "@/stores/auth.store";
-import { chatService } from "@/services/chat.service";
-import Link from "next/link";
-
 type Message = { role: "user" | "assistant" | "system"; content: string };
 type Status = "unknown" | "connected" | "disconnected";
+import { useAuthStore } from "@/stores/auth.store";
 
 const API_URL =
   process.env.NEXT_PUBLIC_CHATBOT_API ||
@@ -22,7 +19,7 @@ const QUICK_CHIPS = [
   "Khiếu nại hóa đơn",
   "Tính năng chủ bãi",
   "Khuyến mãi",
-  "Liên hệ hỗ trợ"
+  "Liên hệ hỗ trợ",
 ];
 
 const WELCOME_MSG: Message = {
@@ -54,34 +51,8 @@ export default function Chatbot() {
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState<Status>("unknown");
   const [hasUnread, setHasUnread] = useState(false);
-<<<<<<< HEAD
-  const [inputFocused, setInputFocused] = useState(false);
-
-  const user = useAuthStore((s) => s.user);
-  const [ownerUnreadCount, setOwnerUnreadCount] = useState(0);
-
-  // ─── Fetch Owner Chat Unread Count ─────────────────────────────────────────
-  useEffect(() => {
-    if (user?.role === "OWNER" || user?.role === "STAFF") {
-      const fetchUnread = async () => {
-        try {
-          const convs = await chatService.getConversations();
-          const total = convs.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
-          setOwnerUnreadCount(total);
-        } catch (e) {
-          // Fail silently
-        }
-      };
-      fetchUnread();
-      const interval = setInterval(fetchUnread, 15000);
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
-=======
   const [parkingLots, setParkingLots] = useState<any[]>([]);
-const [quickReplies, setQuickReplies] = useState<string[]>([]);
->>>>>>> nguyen
+  const [quickReplies, setQuickReplies] = useState<string[]>([]);
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const quickChipsRef = useRef<HTMLDivElement>(null);
