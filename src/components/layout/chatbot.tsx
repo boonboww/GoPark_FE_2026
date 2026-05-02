@@ -1,9 +1,8 @@
 "use client";
-
 import React, { useEffect, useRef, useState, useCallback } from "react";
-
 type Message = { role: "user" | "assistant" | "system"; content: string };
 type Status = "unknown" | "connected" | "disconnected";
+import { useAuthStore } from "@/stores/auth.store";
 
 const API_URL =
   process.env.NEXT_PUBLIC_CHATBOT_API ||
@@ -20,7 +19,7 @@ const QUICK_CHIPS = [
   "Khiếu nại hóa đơn",
   "Tính năng chủ bãi",
   "Khuyến mãi",
-  "Liên hệ hỗ trợ",
+  "Liên hệ hỗ trợ"
 ];
 
 const WELCOME_MSG: Message = {
@@ -32,6 +31,8 @@ const WELCOME_MSG: Message = {
 export default function Chatbot() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
+  const { accessToken } = useAuthStore();
+  const chipsRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const raw =
@@ -43,17 +44,24 @@ export default function Chatbot() {
       return [WELCOME_MSG];
     }
   });
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState<Status>("unknown");
   const [hasUnread, setHasUnread] = useState(false);
-  const [inputFocused, setInputFocused] = useState(false);
-
+  const [parkingLots, setParkingLots] = useState<any[]>([]);
+const [quickReplies, setQuickReplies] = useState<string[]>([]);
   const recognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const quickChipsRef = useRef<HTMLDivElement>(null);
+  const suggestionChipsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const statusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const requestInProgressRef = useRef<boolean>(false); // ✅ Ngăn duplicate requests
+
+  const messagesRef = useRef<Message[]>(messages);
 
   // ─── Persist & scroll ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -67,9 +75,24 @@ export default function Chatbot() {
   }, [messages]);
 
   useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
     if (open) setHasUnread(false);
   }, [open]);
-
+  const scrollChips = (
+    ref: React.RefObject<HTMLDivElement>,
+    direction: "left" | "right",
+  ) => {
+    if (ref.current) {
+      const scrollAmount = 200;
+      ref.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
   // ─── Speech recognition ───────────────────────────────────────────────────
   useEffect(() => {
     const win: any = typeof window !== "undefined" ? window : {};
@@ -92,8 +115,7 @@ export default function Chatbot() {
 
   // ─── Status polling — 10 min, only when token present ─────────────────────
   const checkStatus = useCallback(async () => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = accessToken; // Lấy từ store thay vì localStorage
     if (!token) {
       setStatus("unknown");
       return;
@@ -110,7 +132,7 @@ export default function Chatbot() {
     } catch {
       setStatus("disconnected");
     }
-  }, []);
+  }, [accessToken]);
 
   useEffect(() => {
     checkStatus();
@@ -121,58 +143,79 @@ export default function Chatbot() {
   }, [checkStatus]);
 
   // ─── Send message ──────────────────────────────────────────────────────────
+  // Thay thế toàn bộ hàm sendMessage trong file của bạn bằng code này:
+
   async function sendMessage(text?: string) {
     const content = (text ?? input).trim();
-    if (!content) return;
+    if (!content || loading) return;
+
     const userMsg: Message = { role: "user", content };
-    const newMessages = [...messages, userMsg];
+    const newMessages = [...messagesRef.current, userMsg];
+
     setMessages(newMessages);
+    messagesRef.current = newMessages;
     setInput("");
-    if (inputRef.current) inputRef.current.style.height = "auto";
     setLoading(true);
+
     try {
-      // ✅ Lấy token từ localStorage - thử nhiều key có thể
-      let token: string | null = null;
-      if (typeof window !== "undefined") {
-        token = localStorage.getItem("token") 
-             || localStorage.getItem("accessToken") 
-             || localStorage.getItem("access_token")
-             || null;
-      }
+      const token = accessToken;
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      // Debug: log token để kiểm tra
-      console.log("[Chatbot] Token found:", token ? "YES" : "NO");
-
-      // Tạo headers với Authorization nếu có token
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-        console.log("[Chatbot] Sending with auth header");
-      } else {
-        console.log("[Chatbot] No token - sending without auth");
-      }
+      const userMessagesOnly = messagesRef.current.filter(
+        (m) => m.role === "user",
+      );
 
       const resp = await fetch(API_URL, {
         method: "POST",
         headers,
-        body: JSON.stringify({ messages: newMessages }), // ✅ Gửi toàn bộ lịch sử chat
+        body: JSON.stringify({ messages: userMessagesOnly }),
       });
-      const data = await resp.json();
-      const reply = (data?.message || data?.data?.text || "") as string;
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content: reply || "Rất tiếc, không nhận được phản hồi.",
-        },
-      ]);
-    } catch {
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: "Lỗi khi kết nối tới server chatbot." },
-      ]);
+
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+
+      const response = await resp.json();
+      console.log("Response:", response);
+
+      // ✅ LẤY TEXT TỪ response.text (backend trả về { text, action?, data? })
+      const assistantText =
+        response?.text || response?.message || "Không có phản hồi";
+
+      // Xử lý action nếu có
+      if (response?.action === "list_parking" && response?.data?.lots) {
+        const lotNames = response.data.lots.map((lot: any) => lot.name);
+        setSuggestions(lotNames);
+        setParkingLots(response.data.lots);
+      } else {
+        setSuggestions([]);
+        setParkingLots([]);
+      }
+
+      // Handle redirect action
+      if (response?.action === "redirect" && response?.data?.url) {
+        window.location.href = response.data.url;
+        return;
+      }
+
+      // Thêm message assistant
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: assistantText,
+      };
+      const finalMessages = [...messagesRef.current, assistantMsg];
+      setMessages(finalMessages);
+      messagesRef.current = finalMessages;
+    } catch (err) {
+      console.error(err);
+      const errorMsg: Message = {
+        role: "assistant",
+        content: "Lỗi kết nối. Vui lòng thử lại.",
+      };
+      const finalMessages = [...messagesRef.current, errorMsg];
+      setMessages(finalMessages);
+      messagesRef.current = finalMessages;
     } finally {
       setLoading(false);
     }
@@ -345,6 +388,7 @@ export default function Chatbot() {
           border-radius:999px; font-size:12px;
           cursor:pointer; transition:all .15s;
           white-space:nowrap;
+            scrollbar-width: thin;
         }
         .gp-chip:hover { background:rgba(34,197,94,.17); border-color:rgba(34,197,94,.38); color:#bbf7d0; }
 
@@ -361,6 +405,29 @@ export default function Chatbot() {
           border-radius:13px; padding:7px 7px 7px 11px;
           transition:border-color .18s;
         }
+          .gp-suggestions-wrap {
+  flex-shrink: 0;
+  padding: 6px 12px 7px;
+  border-top: 1px solid rgba(34,197,94,0.08);
+  background: rgba(255,255,255,0.01);
+}
+.gp-suggestions-scroll {
+  overflow-x: auto;
+  white-space: nowrap;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.gp-suggestions-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+.gp-suggestion-chip {
+  flex-shrink: 0;
+  background: rgba(34,197,94,0.12);
+  border-color: rgba(34,197,94,0.3);
+}
         .gp-inp-box.f { border-color:rgba(34,197,94,.46); }
         .gp-ta {
           flex:1; background:transparent; border:none; outline:none;
@@ -412,6 +479,42 @@ export default function Chatbot() {
           background:#ef4444; border:2px solid #070f1c;
           font-size:9px; color:#fff; display:flex;
           align-items:center; justify-content:center; font-weight:700;
+        }
+
+        /* Parking List */
+        .gp-parking-list {
+          margin: 10px;
+          background: rgba(255,255,255,0.05);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .gp-parking-table {
+          width: 100%;
+          border-collapse: collapse;
+          color: #e2f5ea;
+          font-size: 12px;
+        }
+        .gp-parking-table th, .gp-parking-table td {
+          padding: 8px;
+          text-align: left;
+          border-bottom: 1px solid rgba(34,197,94,0.2);
+        }
+        .gp-parking-table th {
+          background: rgba(34,197,94,0.2);
+          font-weight: bold;
+        }
+        .gp-btn-detail, .gp-btn-book {
+          background: rgba(34,197,94,0.2);
+          border: 1px solid rgba(34,197,94,0.4);
+          color: #bbf7d0;
+          padding: 4px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-right: 4px;
+          font-size: 11px;
+        }
+        .gp-btn-detail:hover, .gp-btn-book:hover {
+          background: rgba(34,197,94,0.4);
         }
       `}</style>
 
@@ -532,6 +635,50 @@ export default function Chatbot() {
                 </div>
               ))}
 
+              {parkingLots.length > 0 && (
+                <div className="gp-parking-list">
+                  <table className="gp-parking-table">
+                    <thead>
+                      <tr>
+                        <th>Tên bãi</th>
+                        <th>Địa chỉ</th>
+                        <th>Đánh giá</th>
+                        <th>Giá/giờ</th>
+                        <th>Chỗ trống</th>
+                        <th>Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parkingLots.map((lot, idx) => (
+                        <tr key={lot.id}>
+                          <td>{lot.name}</td>
+                          <td>{lot.address}</td>
+                          <td>⭐ {lot.avgRating?.toFixed(1) || "N/A"}</td>
+                          <td>{lot.pricePerHour}k</td>
+                          <td>
+                            {lot.available_slots}/{lot.total_slots}
+                          </td>
+                          <td>
+                            <button
+                              className="gp-btn-detail"
+                              onClick={() => handleViewDetail(lot)}
+                            >
+                              Xem chi tiết
+                            </button>
+                            <button
+                              className="gp-btn-book"
+                              onClick={() => handleBookNow(lot)}
+                            >
+                              Đặt ngay
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
               {loading && (
                 <div className="gp-row">
                   <div className="gp-mav">
@@ -560,20 +707,149 @@ export default function Chatbot() {
               )}
               <div ref={messagesEndRef} />
             </div>
-
+            {suggestions.length > 0 && (
+              <div className="gp-suggestions-wrap">
+                <div className="gp-clabel">✨ Chọn bãi để đặt</div>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                >
+                  <button
+                    onClick={() => scrollChips(suggestionChipsRef, "left")}
+                    style={{
+                      background: "rgba(34,197,94,0.2)",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "28px",
+                      height: "28px",
+                      cursor: "pointer",
+                      color: "#86efac",
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "16px",
+                    }}
+                    title="Cuộn trái"
+                  >
+                    ◀
+                  </button>
+                  <div
+                    ref={suggestionChipsRef}
+                    className="gp-chips"
+                    style={{
+                      overflowX: "auto",
+                      whiteSpace: "nowrap",
+                      display: "flex",
+                      flexWrap: "nowrap",
+                      gap: "5px",
+                      flex: 1,
+                      scrollBehavior: "smooth",
+                    }}
+                  >
+                    {suggestions.map((name, idx) => (
+                      <button
+                        key={idx}
+                        className="gp-chip gp-suggestion-chip"
+                        style={{ flexShrink: 0 }}
+                        onClick={() => sendMessage(`đặt bãi ${name}`)}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => scrollChips(suggestionChipsRef, "right")}
+                    style={{
+                      background: "rgba(34,197,94,0.2)",
+                      border: "none",
+                      borderRadius: "50%",
+                      width: "28px",
+                      height: "28px",
+                      cursor: "pointer",
+                      color: "#86efac",
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "16px",
+                    }}
+                    title="Cuộn phải"
+                  >
+                    ▶
+                  </button>
+                </div>
+              </div>
+            )}
             {/* Quick chips */}
             <div className="gp-chips-wrap">
-              <div className="gp-clabel">Câu hỏi thường gặp</div>
-              <div className="gp-chips">
-                {QUICK_CHIPS.map((label) => (
-                  <button
-                    key={label}
-                    className="gp-chip"
-                    onClick={() => sendMessage(label)}
-                  >
-                    {label}
-                  </button>
-                ))}
+              <div className="gp-clabel">📌 Câu hỏi thường gặp</div>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "6px" }}
+              >
+                <button
+                  onClick={() => scrollChips(quickChipsRef, "left")}
+                  style={{
+                    background: "rgba(34,197,94,0.2)",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "28px",
+                    height: "28px",
+                    cursor: "pointer",
+                    color: "#86efac",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "16px",
+                  }}
+                  title="Cuộn trái"
+                >
+                  ◀
+                </button>
+                <div
+                  ref={quickChipsRef}
+                  className="gp-chips"
+                  style={{
+                    overflowX: "auto",
+                    whiteSpace: "nowrap",
+                    display: "flex",
+                    flexWrap: "nowrap",
+                    gap: "5px",
+                    flex: 1,
+                    scrollBehavior: "smooth",
+                  }}
+                >
+                  {QUICK_CHIPS.map((label) => (
+                    <button
+                      key={label}
+                      className="gp-chip"
+                      onClick={() => sendMessage(label)}
+                      style={{ flexShrink: 0 }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => scrollChips(quickChipsRef, "right")}
+                  style={{
+                    background: "rgba(34,197,94,0.2)",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "28px",
+                    height: "28px",
+                    cursor: "pointer",
+                    color: "#86efac",
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "16px",
+                  }}
+                  title="Cuộn phải"
+                >
+                  ▶
+                </button>
               </div>
             </div>
 
@@ -673,4 +949,14 @@ export default function Chatbot() {
       </div>
     </>
   );
+
+  function handleViewDetail(lot: any) {
+    // Chuyển đến trang chi tiết bãi
+    window.location.href = `/parking-lots/${lot.id}`;
+  }
+
+  function handleBookNow(lot: any) {
+    // Chuyển đến trang đặt chỗ với bãi đã chọn
+    window.location.href = `/users/mybooking?lotId=${lot.id}`;
+  }
 }

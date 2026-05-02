@@ -160,7 +160,6 @@ function LoginPageContent() {
       };
 
       login(frontendUser, accessToken, refreshToken);
-
       setMessage("✅ Đăng nhập thành công!");
       setShowSuccessDialog(true);
 
