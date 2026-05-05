@@ -41,18 +41,25 @@ const checkIsBeforeStartHour = (h:string, startDate:string, endDate:string, star
   return isSameDay && parseInt(h) < parseInt(startHour);
 };
 
-export function BookingForm() {
+interface BookingFormProps {
+  defaultStart?: string;
+  defaultEnd?: string;
+  defaultVehicle?: string;
+  defaultPayment?: string;
+}
+
+export function BookingForm({ defaultStart, defaultEnd, defaultVehicle, defaultPayment }: BookingFormProps) {
 
   const router = useRouter();
-  const [selectedPlate, setSelectedPlate] = useState<string>("");
+  const [selectedPlate, setSelectedPlate] = useState<string>(defaultVehicle || "");
 
-  const [startTime, setStartTime] = useState<string>("");
+  const [startTime, setStartTime] = useState<string>(defaultStart || "");
 
-  const [endTime, setEndTime] = useState<string>("");
+  const [endTime, setEndTime] = useState<string>(defaultEnd || "");
 
   //const [servicePackage, setServicePackage] = useState("hourly");
 
-  const [paymentMethod, setPaymentMethod] = useState("vnpay");
+  const [paymentMethod, setPaymentMethod] = useState(defaultPayment || "vnpay");
 
   const today = dayjs().format("YYYY-MM-DD");
   //const [selectedVehicleId, setSelectedVehicleId] = useState<number | string>("");
@@ -73,16 +80,26 @@ export function BookingForm() {
 
 
   useEffect(() => {
+    if (defaultStart) {
+      setStartTime(defaultStart);
+    }
+    if (defaultEnd) {
+      setEndTime(defaultEnd);
+    }
+    if (defaultVehicle) {
+      setSelectedPlate(defaultVehicle);
+    }
+    if (defaultPayment) {
+      setPaymentMethod(defaultPayment.toLowerCase());
+    }
 
     //1.chọn biển số xe
-    if (dataLot?.userVehicles?.length > 0) {
-
+    if (dataLot?.userVehicles?.length > 0 && !selectedPlate) {
       setSelectedPlate(dataLot.userVehicles[0].plate_number);
-
     }
 
     //2.thiết lập thời gian mặc định
-    if(!startTime) {
+    if (!startTime) {
       const now = dayjs();
       // Tính toán số phút được làm tròn (ví dụ: 24 -> 30, 46 -> 00 của giờ kế tiếp)
       const currentMinute = now.minute();
@@ -148,8 +165,25 @@ export function BookingForm() {
 
   }, [dataLot, selectedPlate, selectedSpot]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
-  
+    const vehicleId = bookingDetails.vehicle?.id
+      ? String(bookingDetails.vehicle.id)
+      : undefined;
+    const normalizedPaymentMethod = paymentMethod
+      ? paymentMethod.toUpperCase()
+      : undefined;
+
+    (window as any).goparkBookingContext = {
+      parkingLotId: dataLot?.id ? String(dataLot.id) : undefined,
+      startTime: startTime || undefined,
+      endTime: endTime || undefined,
+      vehicleId,
+      paymentMethod: normalizedPaymentMethod,
+    };
+  }, [dataLot?.id, startTime, endTime, bookingDetails.vehicle?.id, paymentMethod]);
+
 
   // 4. Logic tính tổng tiền tạm tính
 
@@ -796,7 +830,7 @@ export function BookingForm() {
 
             type="button"
 
-            onClick={(handBooking)}
+            onClick={handBooking}
 
             className="group relative w-full bg-green-800 hover:bg-green-700 cursor-pointer text-white font-bold py-3.5 px-4 rounded-lg transition-all shadow-[0_4px_14px_0_rgba(22,163,74,0.39)] hover:shadow-[0_6px_20px_rgba(22,163,74,0.23)] active:scale-[0.98] text-lg overflow-hidden"
 
