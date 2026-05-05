@@ -17,13 +17,16 @@ const STATUS_URL =
   "http://localhost:8000/api/v1/chatbot/status";
 
 const QUICK_CHIPS = [
-  "Tìm bãi đỗ giá rẻ",
-  "Tìm bãi đỗ ở Hải Châu",
-  "Tìm bãi đỗ gần nhất",
+  "Tìm bãi giá rẻ",
+  "Bãi phù hợp nhất",
+  "Bãi có chỗ trống ngay",
+  "Tìm bãi gần tôi",
+  "Bãi phù hợp cho xe lớn",
+  "Ưu đãi hôm nay",
   "Cách thanh toán",
-  "Xem lịch sử đặt",
+  "Lịch sử đặt",
   "Số dư ví",
-  "Liên hệ hỗ trợ",
+  "Hỗ trợ khẩn cấp",
 ];
 
 const WELCOME_MSG: Message = {
@@ -195,7 +198,7 @@ export default function Chatbot() {
 
       const bookingContext =
         typeof window !== "undefined"
-          ? (window as any).goparkBookingContext ?? null
+          ? ((window as any).goparkBookingContext ?? null)
           : null;
 
       const bodyPayload: any = { messages: userMessagesOnly };
@@ -218,7 +221,9 @@ export default function Chatbot() {
         const assistantMsg: Message = {
           role: "assistant",
           type: "parking-list",
-          content: `📍 Tìm thấy ${response.data.lots.length} bãi đỗ. Vui lòng chọn bãi bên dưới để đặt chỗ.`,
+          content:
+            response?.text ||
+            `📍 Tìm thấy ${response.data.lots.length} bãi đỗ. Vui lòng chọn bãi bên dưới để đặt chỗ.`,
           data: { lots: response.data.lots },
         };
         setMessages([...messagesRef.current, assistantMsg]);
@@ -296,6 +301,14 @@ export default function Chatbot() {
     listening ? r.stop() : r.start();
   }
 
+  function removeMessage(index: number) {
+    setMessages((prev) => {
+      const updated = prev.filter((_, idx) => idx !== index);
+      messagesRef.current = updated;
+      return updated;
+    });
+  }
+
   function handleViewDetail(lot: any) {
     window.location.href = `/users/detailParking/${lot.id}`;
   }
@@ -351,7 +364,17 @@ export default function Chatbot() {
         .gp-chips { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width: thin; }
         .gp-chip { flex-shrink:0; background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.2); color:#86efac; padding:5px 12px; border-radius:20px; font-size:12px; cursor:pointer; white-space:nowrap; }
         .gp-chip:hover { background:rgba(34,197,94,.15); border-color:rgba(34,197,94,.4); }
-        .gp-parking-list { margin: 8px 0; background: rgba(255,255,255,0.03); border-radius: 12px; overflow-x: auto; }
+        .gp-parking-list { margin: 8px 0; background: rgba(255,255,255,0.03); border-radius: 12px; overflow-x: auto; padding: 12px; }
+        .gp-parking-card { background: rgba(16, 46, 28, 0.85); border: 1px solid rgba(34,197,94,0.24); border-radius: 16px; padding: 14px; display: grid; gap: 12px; }
+        .gp-parking-card-header { font-weight: 700; color: #d9ffde; margin-bottom: 6px; }
+        .gp-parking-card-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+        .gp-parking-card-main { flex: 1 1 220px; min-width: 220px; }
+        .gp-parking-card-meta { color: #c7f9cc; font-size: 12px; line-height:1.5; }
+        .gp-parking-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .gp-parking-card-close { border:none; background:transparent; color:#9ef08d; cursor:pointer; font-size:12px; padding:4px 6px; border-radius:8px; transition:background .2s; }
+        .gp-parking-card-close:hover { background:rgba(255,255,255,0.08); }
+        .gp-parking-secondary { margin-top: 12px; border-top: 1px solid rgba(34,197,94,0.12); padding-top: 12px; }
+        .gp-parking-secondary-title { font-size: 12px; color: #a7f3d0; font-weight: 700; margin-bottom: 8px; }
         .gp-parking-table { width: 100%; border-collapse: collapse; font-size: 11px; }
         .gp-parking-table th, .gp-parking-table td { padding: 8px 6px; text-align: left; border-bottom: 1px solid rgba(34,197,94,0.1); }
         .gp-parking-table th { background: rgba(34,197,94,0.1); color: #86efac; font-weight: 600; }
@@ -371,6 +394,12 @@ export default function Chatbot() {
         .gp-fab.hidden { opacity:0; visibility:hidden; transform:scale(0.8); pointer-events:none; }
         .gp-badge { position:absolute; top:-3px; right:-3px; width:16px; height:16px; border-radius:50%; background:#ef4444; border:2px solid #070f1c; font-size:9px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
         @media(max-width:480px){ .gp-fab{ right:16px; bottom:16px; } }
+        .gp-acts {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
       `}</style>
 
       <div className="gp">
@@ -475,66 +504,157 @@ export default function Chatbot() {
 
                   <div className={`gp-bub${m.role === "user" ? " u" : " b"}`}>
                     {m.type === "parking-list" ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                        }}
+                      >
                         <div>{m.content}</div>
-                        <div className="gp-parking-list">
-                          <table className="gp-parking-table">
-                            <thead>
-                              <tr>
-                                <th>Tên bãi</th>
-                                <th>Địa chỉ</th>
-                                <th>💰/h</th>
-                                <th>🅿️</th>
-                                <th></th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {m.data?.lots?.map((lot: any) => (
-                                <tr key={lot.id}>
-                                  <td style={{ fontWeight: 500 }}>{lot.name}</td>
-                                  <td
-                                    style={{
-                                      maxWidth: 120,
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                    }}
+                        {m.data?.lots?.length > 0 &&
+                          (() => {
+                            const primary = m.data.lots[0];
+                            const others = m.data.lots.slice(1);
+                            return (
+                              <div className="gp-parking-list">
+                                <div className="gp-parking-card">
+                                  <div
+                                    className="gp-parking-card-row"
+                                    style={{ alignItems: "flex-start" }}
                                   >
-                                    {lot.address}
-                                  </td>
-                                  <td>
-                                    {(lot.hourly_rate || 20000).toLocaleString(
-                                      "vi-VN",
-                                    )}
-                                    đ
-                                  </td>
-                                  <td>
-                                    {lot.available_slots !== undefined
-                                      ? `${lot.available_slots}/${lot.total_slots || "?"}`
-                                      : "✅ Còn chỗ"}
-                                  </td>
-                                  <td>
+                                    <div>
+                                      <div className="gp-parking-card-header">
+                                        Bãi phù hợp nhất
+                                      </div>
+                                      <div className="gp-parking-card-meta">
+                                        Ưu tiên cho bạn dựa trên giá, chỗ trống
+                                        và khoảng cách.
+                                      </div>
+                                    </div>
                                     <button
-                                      className="gp-btn-detail"
-                                      onClick={() =>
-                                        (window.location.href = `/users/detailParking/${lot.id}`)
-                                      }
+                                      className="gp-parking-card-close"
+                                      onClick={() => removeMessage(i)}
+                                      title="Đóng kết quả này"
                                     >
-                                      Chi tiết
+                                      ✕
                                     </button>
-                                    <button
-                                      className="gp-btn-book"
-                                      onClick={() =>
-                                        (window.location.href = `/users/myBooking/${lot.id}`)
-                                      }
-                                    >
-                                      Đặt
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                                  </div>
+                                  <div className="gp-parking-card-row">
+                                    <div className="gp-parking-card-main">
+                                      <div
+                                        style={{
+                                          fontWeight: 700,
+                                          color: "#ecfccb",
+                                        }}
+                                      >
+                                        {primary.name}
+                                      </div>
+                                      <div className="gp-parking-card-meta">
+                                        {primary.address}
+                                      </div>
+                                      <div
+                                        className="gp-parking-card-meta"
+                                        style={{ marginTop: 8 }}
+                                      >
+                                        Giá:{" "}
+                                        {(
+                                          primary.hourly_rate || 20000
+                                        ).toLocaleString("vi-VN")}{" "}
+                                        đ/giờ ·
+                                        {primary.available_slots !== undefined
+                                          ? ` ${primary.available_slots}/${primary.total_slots || "?"} chỗ trống`
+                                          : " Còn chỗ"}
+                                      </div>
+                                    </div>
+                                    <div className="gp-parking-card-actions">
+                                      <button
+                                        className="gp-btn-detail"
+                                        onClick={() =>
+                                          (window.location.href = `/users/detailParking/${primary.id}`)
+                                        }
+                                      >
+                                        Chi tiết
+                                      </button>
+                                      <button
+                                        className="gp-btn-book"
+                                        onClick={() =>
+                                          (window.location.href = `/users/myBooking/${primary.id}`)
+                                        }
+                                      >
+                                        Đặt
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                                {others.length > 0 && (
+                                  <div className="gp-parking-secondary">
+                                    <div className="gp-parking-secondary-title">
+                                      Các bãi khác bạn có thể tham khảo
+                                    </div>
+                                    <table className="gp-parking-table">
+                                      <thead>
+                                        <tr>
+                                          <th>Tên bãi</th>
+                                          <th>Địa chỉ</th>
+                                          <th>💰/h</th>
+                                          <th>🅿️</th>
+                                          <th></th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {others.map((lot: any) => (
+                                          <tr key={lot.id}>
+                                            <td style={{ fontWeight: 500 }}>
+                                              {lot.name}
+                                            </td>
+                                            <td
+                                              style={{
+                                                maxWidth: 120,
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                              }}
+                                            >
+                                              {lot.address}
+                                            </td>
+                                            <td>
+                                              {(
+                                                lot.hourly_rate || 20000
+                                              ).toLocaleString("vi-VN")}
+                                              đ
+                                            </td>
+                                            <td>
+                                              {lot.available_slots !== undefined
+                                                ? `${lot.available_slots}/${lot.total_slots || "?"}`
+                                                : "✅ Còn chỗ"}
+                                            </td>
+                                            <td>
+                                              <button
+                                                className="gp-btn-detail"
+                                                onClick={() =>
+                                                  (window.location.href = `/users/detailParking/${lot.id}`)
+                                                }
+                                              >
+                                                Chi tiết
+                                              </button>
+                                              <button
+                                                className="gp-btn-book"
+                                                onClick={() =>
+                                                  (window.location.href = `/users/myBooking/${lot.id}`)
+                                                }
+                                              >
+                                                Đặt
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                       </div>
                     ) : (
                       m.content
@@ -577,16 +697,7 @@ export default function Chatbot() {
               <div className="gp-chips" ref={quickChipsRef}>
                 {(dynamicSuggestions.length > 0
                   ? dynamicSuggestions
-                  : [
-                      "Tìm bãi gần tôi",
-                      "Bãi giá rẻ nhất",
-                      "Bãi phù hợp nhất với tôi",
-                      "Đặt bãi",
-                      "Lịch sử đặt",
-                      "Số dư ví",
-                      "Hướng dẫn thanh toán",
-                      "Liên hệ hỗ trợ",
-                    ]
+                  : QUICK_CHIPS
                 ).map((label) => (
                   <button
                     key={label}
