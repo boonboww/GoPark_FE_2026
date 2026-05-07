@@ -290,7 +290,13 @@ class ParkingService {
   async updateParkingLot(lotId: number, payload: UpdateParkingLotRequest) {
     const formData = new FormData();
     if (payload.name) formData.append("name", payload.name);
+    if (payload.address) formData.append("address", payload.address);
+    if (payload.lat !== undefined) formData.append("lat", payload.lat.toString());
+    if (payload.lng !== undefined) formData.append("lng", payload.lng.toString());
     if (payload.description) formData.append("description", payload.description);
+    if (payload.open_time) formData.append("open_time", payload.open_time);
+    if (payload.close_time) formData.append("close_time", payload.close_time);
+    if (payload.operating_days) formData.append("operating_days", payload.operating_days);
     
     if (payload.images) {
       const imageArray = Array.isArray(payload.images) ? payload.images : [payload.images];
@@ -331,6 +337,9 @@ class ParkingService {
     lat: number;
     lng: number;
     description?: string;
+    open_time?: string;
+    close_time?: string;
+    operating_days?: string;
     images?: File[];
   }) {
     const formData = new FormData();
@@ -339,6 +348,9 @@ class ParkingService {
     formData.append("lat", payload.lat.toString());
     formData.append("lng", payload.lng.toString());
     if (payload.description) formData.append("description", payload.description);
+    if (payload.open_time) formData.append("open_time", payload.open_time);
+    if (payload.close_time) formData.append("close_time", payload.close_time);
+    if (payload.operating_days) formData.append("operating_days", payload.operating_days);
 
     if (payload.images && payload.images.length > 0) {
       payload.images.forEach((file) => {

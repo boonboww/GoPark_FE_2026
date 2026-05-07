@@ -17,6 +17,9 @@ export interface ParkingLotType {
   availableSlots: number;
   status: "OPEN" | "CLOSED" | string;
   description?: string;
+  open_time?: string;
+  close_time?: string;
+  operating_days?: string;
   image?: {
     thumbnail?: string;
     gallery?: string[];
@@ -47,6 +50,12 @@ export interface ChangePasswordRequest {
 /** Request body cho update parking lot */
 export interface UpdateParkingLotRequest {
   name?: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
   description?: string;
+  open_time?: string;
+  close_time?: string;
+  operating_days?: string;
   images?: File | File[];
 }

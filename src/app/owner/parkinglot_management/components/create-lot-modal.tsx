@@ -35,6 +35,9 @@ const formSchema = z.object({
   lat: z.preprocess((v) => Number(v), z.number()),
   lng: z.preprocess((v) => Number(v), z.number()),
   description: z.string().optional(),
+  open_time: z.string().min(1, "Giờ mở cửa là bắt buộc"),
+  close_time: z.string().min(1, "Giờ đóng cửa là bắt buộc"),
+  operating_days: z.array(z.string()).min(1, "Chọn ít nhất 1 ngày hoạt động"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -58,6 +61,9 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
       lat: 16.0544,
       lng: 108.2022,
       description: "",
+      open_time: "06:00",
+      close_time: "22:00",
+      operating_days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
     },
   });
 
@@ -87,6 +93,9 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
       setIsSubmitting(true);
       await parkingService.createParkingLot({
         ...values,
+        open_time: new Date(`1970-01-01T${values.open_time}:00`).toISOString(),
+        close_time: new Date(`1970-01-01T${values.close_time}:00`).toISOString(),
+        operating_days: values.operating_days.join(","),
         images: selectedImages,
       });
       toast.success("Đã gửi yêu cầu tạo bãi đỗ thành công. Vui lòng chờ Admin phê duyệt.");
@@ -208,6 +217,90 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                     )}
                   />
                 </div>
+
+                {/* Giờ hoạt động */}
+                <div className="grid grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="open_time"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Giờ mở cửa</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="time" 
+                            {...field} 
+                            className="h-11 bg-slate-50 border-slate-200 font-bold"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="close_time"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1.5">
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Giờ đóng cửa</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="time" 
+                            {...field} 
+                            className="h-11 bg-slate-50 border-slate-200 font-bold"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Ngày hoạt động */}
+                <FormField
+                  control={form.control}
+                  name="operating_days"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ngày hoạt động</FormLabel>
+                      <div className="flex flex-wrap gap-2">
+                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => {
+                          const isSelected = field.value?.includes(day);
+                          const dayLabels: Record<string, string> = {
+                            Monday: "T2",
+                            Tuesday: "T3",
+                            Wednesday: "T4",
+                            Thursday: "T5",
+                            Friday: "T6",
+                            Saturday: "T7",
+                            Sunday: "CN",
+                          };
+                          return (
+                            <button
+                              key={day}
+                              type="button"
+                              onClick={() => {
+                                const newVal = isSelected
+                                  ? field.value.filter((d) => d !== day)
+                                  : [...(field.value || []), day];
+                                field.onChange(newVal);
+                              }}
+                              className={`w-10 h-10 rounded-xl border-2 transition-all font-bold text-xs flex items-center justify-center ${
+                                isSelected 
+                                  ? "bg-black border-black text-white" 
+                                  : "bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300"
+                              }`}
+                            >
+                              {dayLabels[day]}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <FormMessage className="text-xs" />
+                    </FormItem>
+                  )}
+                />
 
                 {/* Mô tả */}
                 <FormField
