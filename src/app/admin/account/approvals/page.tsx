@@ -65,6 +65,7 @@ import {
 import { useAdminStore, useAuthStore } from "@/stores";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { AdminStatCard } from "@/components/admin/AdminStatCard";
 
  
 
@@ -120,8 +121,8 @@ const requestTypeConfig: Record<
   OTHER: {
     label: "Yêu cầu khác",
     icon: FileText,
-    color: "text-gray-600",
-    bgColor: "bg-gray-100",
+    color: "text-muted-foreground",
+    bgColor: "bg-muted",
   },
 };
 
@@ -440,32 +441,32 @@ export default function ApprovalsPage() {
       value: stats.total,
       icon: ClipboardList,
       gradient: "from-blue-500 to-indigo-600",
-      bgTint: "from-blue-50 to-indigo-50",
-      border: "border-blue-100",
+      bgTint: "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
+      border: "border-blue-100 dark:border-blue-900/50",
     },
     {
       title: "Chờ xử lý",
       value: stats.pending,
       icon: Clock,
       gradient: "from-yellow-500 to-orange-500",
-      bgTint: "from-yellow-50 to-orange-50",
-      border: "border-yellow-100",
+      bgTint: "from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20",
+      border: "border-yellow-100 dark:border-yellow-900/50",
     },
     {
       title: "Từ chối",
       value: stats.rejected,
       icon: X,
       gradient: "from-red-500 to-rose-600",
-      bgTint: "from-red-50 to-rose-50",
-      border: "border-red-100",
+      bgTint: "from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20",
+      border: "border-red-100 dark:border-red-900/50",
     },
     {
       title: "Đã duyệt",
       value: stats.approved,
       icon: CheckCircle,
       gradient: "from-emerald-500 to-teal-600",
-      bgTint: "from-emerald-50 to-teal-50",
-      border: "border-emerald-100",
+      bgTint: "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
+      border: "border-emerald-100 dark:border-emerald-900/50",
     },
   ];
 
@@ -475,8 +476,8 @@ export default function ApprovalsPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Đang tải danh sách đơn yêu cầu...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải danh sách đơn yêu cầu...</p>
         </div>
       </div>
     );
@@ -488,13 +489,13 @@ export default function ApprovalsPage() {
     <div className="space-y-6">
 
       {/* ── Tiêu đề trang ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-2xl px-8 py-6 shadow-lg">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl px-8 py-6 shadow-lg">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
             <ClipboardList className="w-6 h-6" />
             Quản lý Đơn yêu cầu
           </h1>
-          <p className="text-blue-200/70 mt-1 text-sm">
+          <p className="text-primary-foreground/70 mt-1 text-sm">
             Tiếp nhận và xử lý đơn từ người dùng & chủ bãi đỗ
           </p>
           {error && <p className="text-red-300 text-xs mt-1">Lỗi kết nối: {error}</p>}
@@ -515,31 +516,22 @@ export default function ApprovalsPage() {
         {statCards.map((card, i) => {
           const Icon = card.icon;
           return (
-            <Card 
-              key={i} 
-              className={`bg-gradient-to-br ${card.bgTint} ${card.border} border hover:shadow-md transition-all duration-300 overflow-hidden relative shadow-sm`}
-            >
-              <div
-                className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${card.gradient} opacity-[0.04] rounded-full -translate-y-10 translate-x-10`}
-              />
-              <CardContent className="p-5 relative">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{card.title}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{card.value}</p>
-                  </div>
-                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-lg shadow-black/10`}>
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AdminStatCard
+              key={i || card.title}
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              description={card.subtitle || card.desc}
+              iconGradient={card.gradient || card.color}
+              bgTint={card.bgTint}
+              borderColor={card.border}
+            />
           );
         })}
       </div>
 
       {/* ── Thanh tìm kiếm & bộ lọc ───────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-5">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Ô tìm kiếm */}
           <div className="relative flex-1">
@@ -549,12 +541,12 @@ export default function ApprovalsPage() {
               placeholder="Tìm theo tên người gửi, tiêu đề, email..."
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="pl-10 h-11 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
+              className="pl-10 h-11 bg-muted border-border focus:bg-card text-foreground"
             />
           </div>
           {/* Lọc trạng thái */}
           <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
-            <SelectTrigger className="h-11 min-w-[160px] border-gray-200 bg-slate-50 text-slate-900">
+            <SelectTrigger className="h-11 min-w-[160px] border-border bg-muted text-foreground">
               <SelectValue placeholder="Tất cả trạng thái" />
             </SelectTrigger>
             <SelectContent>
@@ -568,7 +560,7 @@ export default function ApprovalsPage() {
 
           {/* Lọc loại đơn */}
           <Select value={filters.type || "all"} onValueChange={(val) => handleFilterChange("type", val === "all" ? "" : val)}>
-            <SelectTrigger className="h-11 min-w-[180px] border-gray-200 bg-slate-50 text-slate-900">
+            <SelectTrigger className="h-11 min-w-[180px] border-border bg-muted text-foreground">
               <SelectValue placeholder="Tất cả loại đơn" />
             </SelectTrigger>
             <SelectContent>
@@ -585,7 +577,7 @@ export default function ApprovalsPage() {
 
           {/* Sắp xếp */}
           <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
-            <SelectTrigger className="h-11 min-w-[140px] border-gray-200 bg-slate-50 text-slate-900">
+            <SelectTrigger className="h-11 min-w-[140px] border-border bg-muted text-foreground">
               <SelectValue placeholder="Sắp xếp" />
             </SelectTrigger>
             <SelectContent>
@@ -595,7 +587,7 @@ export default function ApprovalsPage() {
           </Select>
           {/* Nút xóa bộ lọc */}
           {(filters.search || filters.status || filters.type || filters.sortBy !== "newest") && (
-            <Button variant="default" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700 hover:bg-red-300 bg-red-100">
+            <Button variant="default" onClick={clearFilters} className="h-11 text-muted-foreground hover:text-foreground/80 hover:bg-red-300 bg-red-100">
               <X size={16} className="mr-1" />
               Xóa lọc
             </Button>
@@ -614,7 +606,7 @@ export default function ApprovalsPage() {
             <div
               key={request.id}
               onClick={() => openDetail(request)}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md hover:bg-gray-200/50 transition-all cursor-pointer group"
+              className="bg-card rounded-xl shadow-sm border border-border p-5 hover:shadow-md hover:bg-gray-200/50 transition-all cursor-pointer group"
             >
               <div className="flex flex-col sm:flex-row gap-4">
 
@@ -627,7 +619,7 @@ export default function ApprovalsPage() {
                 <div className="flex-1 min-w-0">
                   {/* Dòng 1: Tiêu đề + badges */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1.5">
-                    <h3 className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors truncate">
+                    <h3 className="text-sm font-semibold text-foreground group-hover:text-blue-700 transition-colors truncate">
                       {request.title}
                     </h3>
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -644,7 +636,7 @@ export default function ApprovalsPage() {
                   </div>
 
                   {/* Dòng 2: Mô tả ngắn */}
-                  <p className="text-sm text-gray-500 line-clamp-1 mb-2">{request.description}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{request.description}</p>
 
                   {/* Dòng 3: Thông tin meta */}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
@@ -653,7 +645,7 @@ export default function ApprovalsPage() {
                       <div className={`w-5 h-5 rounded-full bg-gradient-to-br ${getAvatarColor(request.requester.id)} flex items-center justify-center`}>
                         <span className="text-white text-[8px] font-bold">{getInitials(request.requester.name || request.requester.email)}</span>
                       </div>
-                      <span className="font-medium text-gray-600 truncate max-w-[120px]">{request.requester.name || request.requester.email}</span>
+                      <span className="font-medium text-muted-foreground truncate max-w-[120px]">{request.requester.name || request.requester.email}</span>
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0">
                         {request.requester.role ? roleLabels[request.requester.role] : "Người dùng"}
                       </Badge>
@@ -742,9 +734,9 @@ export default function ApprovalsPage() {
 
       {/* Phân trang */}
       {filteredRequests.length > 0 && (
-        <div className="px-5 py-4 bg-white rounded-xl border border-gray-100 flex items-center justify-between shadow-sm">
-          <div className="text-sm text-gray-500">
-            Hiển thị <span className="font-medium text-gray-900">{Math.min(filteredRequests.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredRequests.length, currentPage * pageSize)}</span> trong <span className="font-medium text-gray-900">{filteredRequests.length}</span> đơn yêu cầu
+        <div className="px-5 py-4 bg-card rounded-xl border border-border flex items-center justify-between shadow-sm">
+          <div className="text-sm text-muted-foreground">
+            Hiển thị <span className="font-medium text-foreground">{Math.min(filteredRequests.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredRequests.length, currentPage * pageSize)}</span> trong <span className="font-medium text-foreground">{filteredRequests.length}</span> đơn yêu cầu
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -779,7 +771,7 @@ export default function ApprovalsPage() {
                     variant={currentPage === page ? "default" : "outline"}
                     size="sm"
                     onClick={() => setCurrentPage(page)}
-                    className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                    className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}
                   >
                     {page}
                   </Button>
@@ -804,12 +796,12 @@ export default function ApprovalsPage() {
 
       {/* Trạng thái trống */}
       {filteredRequests.length === 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 py-16 text-center">
-          <div className="bg-gray-100 rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
+        <div className="bg-card rounded-xl shadow-sm border border-border py-16 text-center">
+          <div className="bg-muted rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
             <ClipboardList className="h-10 w-10 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy đơn yêu cầu nào</h3>
-          <p className="text-gray-500 mb-6 max-w-md mx-auto">
+          <h3 className="text-lg font-semibold text-foreground mb-2">Không tìm thấy đơn yêu cầu nào</h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm
           </p>
           <Button onClick={clearFilters} variant="outline">
@@ -840,7 +832,7 @@ export default function ApprovalsPage() {
                     <TypeIcon className={`w-7 h-7 ${typeConf.color}`} />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-gray-900">{selectedRequest.title}</h3>
+                    <h3 className="text-lg font-bold text-foreground">{selectedRequest.title}</h3>
                     <div className="flex items-center gap-2 mt-1.5">
                       <Badge variant="outline" className={`text-xs ${typeConf.bgColor} ${typeConf.color} border-0`}>
                         {typeConf.label}
@@ -853,7 +845,7 @@ export default function ApprovalsPage() {
                   </div>
                 </div>
 
-                 <div className="p-4 bg-gray-50 rounded-xl">
+                 <div className="p-4 bg-muted rounded-xl">
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Người gửi đơn</h4>
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(selectedRequest.requester.id)} flex items-center justify-center shadow-sm`}>
@@ -861,10 +853,10 @@ export default function ApprovalsPage() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-gray-900">{selectedRequest.requester.name || selectedRequest.requester.email}</p>
+                        <p className="text-sm font-semibold text-foreground">{selectedRequest.requester.name || selectedRequest.requester.email}</p>
                         <Badge variant="outline" className="text-xs">{selectedRequest.requester.role ? roleLabels[selectedRequest.requester.role] : "Người dùng"}</Badge>
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-gray-500">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1"><Mail size={12} />{selectedRequest.requester.email}</span>
                         {selectedRequest.requester.phone && <span className="flex items-center gap-1"><Phone size={12} />{selectedRequest.requester.phone}</span>}
                       </div>
@@ -875,7 +867,7 @@ export default function ApprovalsPage() {
                 {/* Nội dung đơn */}
                 <div>
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Nội dung yêu cầu</h4>
-                  <p className="text-sm text-gray-700 leading-relaxed bg-white border border-gray-100 rounded-lg p-4">
+                  <p className="text-sm text-foreground/80 leading-relaxed bg-card border border-border rounded-lg p-4">
                     {selectedRequest.description}
                   </p>
                 </div>
@@ -889,8 +881,8 @@ export default function ApprovalsPage() {
                         <MapPin size={18} className="text-violet-500" />
                         <div>
                           <p className="text-xs text-violet-400">Bãi đỗ liên quan</p>
-                          <p className="text-sm font-medium text-gray-900">{selectedRequest.relatedParkingLot.name}</p>
-                          <p className="text-xs text-gray-500">{selectedRequest.relatedParkingLot.address}</p>
+                          <p className="text-sm font-medium text-foreground">{selectedRequest.relatedParkingLot.name}</p>
+                          <p className="text-xs text-muted-foreground">{selectedRequest.relatedParkingLot.address}</p>
                         </div>
                       </div>
                     )}
@@ -911,12 +903,12 @@ export default function ApprovalsPage() {
                       <div className="sm:col-span-2 p-3 bg-orange-50 rounded-lg">
                         <p className="text-xs text-orange-400 mb-2">Thay đổi</p>
                         <div className="flex items-center gap-3">
-                          <div className="flex-1 p-2 bg-white rounded border border-orange-200">
+                          <div className="flex-1 p-2 bg-card rounded border border-orange-200">
                             <p className="text-xs text-gray-400 mb-0.5">Hiện tại</p>
-                            <p className="text-sm font-medium text-gray-900 line-through opacity-60">{selectedRequest.oldValue}</p>
+                            <p className="text-sm font-medium text-foreground line-through opacity-60">{selectedRequest.oldValue}</p>
                           </div>
                           <span className="text-orange-400 font-bold">→</span>
-                          <div className="flex-1 p-2 bg-white rounded border border-green-200">
+                          <div className="flex-1 p-2 bg-card rounded border border-green-200">
                             <p className="text-xs text-gray-400 mb-0.5">Mới</p>
                             <p className="text-sm font-medium text-green-700">{selectedRequest.newValue}</p>
                           </div>
@@ -933,7 +925,7 @@ export default function ApprovalsPage() {
                       <ShieldCheck size={14} />
                       Phản hồi từ Admin
                     </h4>
-                    <p className="text-sm text-gray-700">{selectedRequest.adminNote}</p>
+                    <p className="text-sm text-foreground/80">{selectedRequest.adminNote}</p>
                   </div>
                 )}
 
@@ -948,7 +940,7 @@ export default function ApprovalsPage() {
                       onChange={(e) => setAdminNote(e.target.value)}
                       placeholder="Nhập ghi chú hoặc lý do xử lý đơn..."
                       rows={3}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-sm resize-none"
+                      className="w-full px-4 py-3 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-card text-sm resize-none"
                     />
                   </div>
                 )}
@@ -968,7 +960,7 @@ export default function ApprovalsPage() {
                 </div>
 
                 {/* Nút hành động */}
-                <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                <div className="flex justify-end gap-3 pt-2 border-t border-border">
                   <Button variant="outline" onClick={() => setDetailOpen(false)}>
                     Đóng
                   </Button>
@@ -979,7 +971,7 @@ export default function ApprovalsPage() {
                       {selectedRequest.status === "PENDING" && (
                         <Button
                           variant="outline"
-                          className="border-blue-200 text-blue-600 hover:bg-blue-50"
+                          className="border-blue-200 text-primary hover:bg-primary/10"
                           onClick={() => handleMarkProcessing(selectedRequest)}
                         >
                           <RefreshCw size={16} className="mr-2" />

@@ -54,6 +54,7 @@ import {
   RecentTransaction,
 } from "@/services/admin.service";
 import { useAdminStore } from "@/stores";
+import { AdminStatCard } from "@/components/admin/AdminStatCard";
 
 // ─── Kiểu dữ liệu ───────────────────────────────────────────────────────────
  
@@ -152,8 +153,8 @@ const formatNumber = (num: number) => new Intl.NumberFormat("vi-VN").format(num)
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-100">
-        <p className="text-sm font-semibold text-gray-900 mb-1">{label}</p>
+      <div className="bg-card p-3 rounded-lg shadow-lg border border-border">
+        <p className="text-sm font-semibold text-foreground mb-1">{label}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} className="text-xs" style={{ color: entry.color }}>
             {entry.name}: {formatCompactCurrency(entry.value)}
@@ -235,8 +236,8 @@ export default function RevenueReportPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Đang tải báo cáo doanh thu...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải báo cáo doanh thu...</p>
         </div>
       </div>
     );
@@ -248,13 +249,13 @@ export default function RevenueReportPage() {
     <div className="space-y-6">
 
       {/* ── Tiêu đề + chọn khoảng thời gian ──────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-2xl px-8 py-6 shadow-lg">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-primary via-primary/90 to-primary/80 rounded-2xl px-8 py-6 shadow-lg">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
             <BarChart3 className="w-6 h-6" />
             Báo cáo Doanh thu
           </h1>
-          <p className="text-blue-200/70 mt-1 text-sm">Thống kê tổng quan doanh thu hệ thống GoPark</p>
+          <p className="text-primary-foreground/70 mt-1 text-sm">Thống kê tổng quan doanh thu hệ thống GoPark</p>
         </div>
         <div className="flex items-center gap-3 mt-4 sm:mt-0">
           {/* Bộ chọn khoảng thời gian */}
@@ -280,61 +281,51 @@ export default function RevenueReportPage() {
       {/* ── Thẻ thống kê tổng quan ────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Tổng doanh thu */}
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-indigo-50">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-11 h-11 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg">
-                <DollarSign className="w-5 h-5 text-white" />
-              </div>
-              <Badge className={`text-xs font-medium ${Number(summary.revenueGrowth) >= 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"} border-0`}>
-                {Number(summary.revenueGrowth) >= 0 ? <ArrowUpRight size={12} className="mr-0.5" /> : <ArrowDownRight size={12} className="mr-0.5" />}
-                {summary.revenueGrowth}%
-              </Badge>
-            </div>
-            <p className="text-sm text-gray-500">Tổng doanh thu</p>
-            <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatCompactCurrency(summary.totalRevenue)}</p>
-          </CardContent>
-        </Card>
+        <AdminStatCard
+          title="Tổng doanh thu (Tháng)"
+          value={formatCompactCurrency(summary.totalRevenue)}
+          icon={TrendingUp}
+          change={`${Number(summary.revenueGrowth) >= 0 ? "+" : ""}${Math.abs(Number(summary.revenueGrowth))}%`}
+          changeType={Number(summary.revenueGrowth) >= 0 ? "positive" : "negative"}
+          description="so với tháng trước"
+          iconGradient="from-blue-500 to-indigo-600"
+          bgTint="from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20"
+          borderColor="border-blue-100 dark:border-blue-900/50"
+        />
 
         {/* Doanh thu ròng */}
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-green-50 to-emerald-50">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-11 h-11 rounded-xl bg-green-500 flex items-center justify-center shadow-lg">
-                <Wallet className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-500">Doanh thu ròng</p>
-            <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatCompactCurrency(summary.netRevenue)}</p>
-          </CardContent>
-        </Card>
+        <AdminStatCard
+          title="Doanh thu ròng"
+          value={formatCompactCurrency(summary.netRevenue)}
+          icon={DollarSign}
+          description="Đã trừ hoàn tiền"
+          iconGradient="from-emerald-500 to-teal-600"
+          bgTint="from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20"
+          borderColor="border-emerald-100 dark:border-emerald-900/50"
+        />
 
         {/* Doanh thu hôm nay */}
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-violet-50 to-purple-50">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-11 h-11 rounded-xl bg-violet-500 flex items-center justify-center shadow-lg">
-                <TrendingUp className="w-5 h-5 text-white" />
-              </div>
-              <Badge className="bg-violet-100 text-violet-700 border-0 text-xs">Hôm nay</Badge>
-            </div>
-            <p className="text-sm text-gray-500">Doanh thu hôm nay</p>
-            <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatCompactCurrency(summary.todayRevenue)}</p>
-          </CardContent>
-        </Card>
+        <AdminStatCard
+          title="Tổng đơn đặt"
+          value={formatNumber(summary.todayBookings)}
+          icon={Calendar}
+          change="Hôm nay"
+          changeType="positive"
+          iconGradient="from-violet-500 to-purple-600"
+          bgTint="from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20"
+          borderColor="border-violet-100 dark:border-violet-900/50"
+        />
 
         {/* Tổng hoàn tiền */}
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-orange-50 to-amber-50">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-11 h-11 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg">
-                <TrendingDown className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-500">Tổng hoàn tiền</p>
-            <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatCompactCurrency(summary.totalRefunds)}</p>
-          </CardContent>
-        </Card>
+        <AdminStatCard
+          title="Tổng hoàn tiền"
+          value={formatCompactCurrency(summary.totalRefunds)}
+          icon={ArrowDownRight}
+          description="Các giao dịch lỗi/hủy"
+          iconGradient="from-amber-500 to-orange-600"
+          bgTint="from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20"
+          borderColor="border-amber-100 dark:border-amber-900/50"
+        />
       </div>
 
       {/* ── Biểu đồ doanh thu theo tháng (AreaChart) ──────────────────────── */}
@@ -342,8 +333,8 @@ export default function RevenueReportPage() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Doanh thu theo tháng</h3>
-              <p className="text-sm text-gray-500 mt-0.5">Biểu đồ phân tích doanh thu hệ thống trong năm</p>
+              <h3 className="text-lg font-bold text-foreground">Doanh thu theo tháng</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">Biểu đồ phân tích doanh thu hệ thống trong năm</p>
             </div>
             <div className="flex items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-500" />Đặt chỗ</span>
@@ -386,8 +377,8 @@ export default function RevenueReportPage() {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-5">
-              <PieChartIcon size={18} className="text-gray-500" />
-              <h3 className="text-lg font-bold text-gray-900">Phân bổ doanh thu</h3>
+              <PieChartIcon size={18} className="text-muted-foreground" />
+              <h3 className="text-lg font-bold text-foreground">Phân bổ doanh thu</h3>
             </div>
             <div className="flex items-center gap-6">
               <ResponsiveContainer width="50%" height={220}>
@@ -415,13 +406,13 @@ export default function RevenueReportPage() {
                   return (
                     <div key={source.name}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="flex items-center gap-2 text-sm text-gray-700">
+                        <span className="flex items-center gap-2 text-sm text-foreground/80">
                           <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: source.color }} />
                           {source.name}
                         </span>
-                        <span className="text-sm font-bold text-gray-900">{pct}%</span>
+                        <span className="text-sm font-bold text-foreground">{pct}%</span>
                       </div>
-                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: source.color }} />
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">{formatCompactCurrency(source.value)}</p>
@@ -437,8 +428,8 @@ export default function RevenueReportPage() {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-5">
-              <BarChart3 size={18} className="text-gray-500" />
-              <h3 className="text-lg font-bold text-gray-900">7 ngày gần nhất</h3>
+              <BarChart3 size={18} className="text-muted-foreground" />
+              <h3 className="text-lg font-bold text-foreground">7 ngày gần nhất</h3>
             </div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={dailyRevenue} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
@@ -450,8 +441,8 @@ export default function RevenueReportPage() {
               </BarChart>
             </ResponsiveContainer>
             {/* Tổng 7 ngày */}
-            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-              <span className="text-sm text-gray-500">Tổng 7 ngày</span>
+            <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Tổng 7 ngày</span>
               <span className="text-lg font-bold text-blue-600">
                 {formatCompactCurrency(dailyRevenue.reduce((s, d) => s + d.revenue, 0))}
               </span>
@@ -468,31 +459,31 @@ export default function RevenueReportPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <ParkingSquare size={18} className="text-gray-500" />
-                <h3 className="text-lg font-bold text-gray-900">Top bãi đỗ doanh thu</h3>
+                <ParkingSquare size={18} className="text-muted-foreground" />
+                <h3 className="text-lg font-bold text-foreground">Top bãi đỗ doanh thu</h3>
               </div>
               <Badge variant="outline" className="text-xs">Top {topParkingLots.length}</Badge>
             </div>
             <div className="space-y-3">
               {topParkingLots.map((lot, index) => (
-                <div key={lot.name} className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <div key={lot.name} className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
                   {/* Hạng */}
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 ${
                     index === 0 ? "bg-amber-100 text-amber-700" :
-                    index === 1 ? "bg-gray-200 text-gray-700" :
+                    index === 1 ? "bg-gray-200 text-foreground/80" :
                     index === 2 ? "bg-orange-100 text-orange-700" :
-                    "bg-gray-100 text-gray-500"
+                    "bg-muted text-muted-foreground"
                   }`}>
                     {index + 1}
                   </div>
                   {/* Thông tin */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{lot.name}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{lot.name}</p>
                     <p className="text-xs text-gray-400">{formatNumber(lot.bookings)} bookings</p>
                   </div>
                   {/* Doanh thu + phần trăm */}
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-gray-900">{formatCompactCurrency(lot.revenue)}</p>
+                    <p className="text-sm font-bold text-foreground">{formatCompactCurrency(lot.revenue)}</p>
                     <p className="text-xs text-blue-600">{lot.percentage}%</p>
                   </div>
                 </div>
@@ -506,14 +497,14 @@ export default function RevenueReportPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <Receipt size={18} className="text-gray-500" />
-                <h3 className="text-lg font-bold text-gray-900">Giao dịch gần đây</h3>
+                <Receipt size={18} className="text-muted-foreground" />
+                <h3 className="text-lg font-bold text-foreground">Giao dịch gần đây</h3>
               </div>
               <Badge variant="outline" className="text-xs">Hôm nay</Badge>
             </div>
             <div className="space-y-1">
               {recentTransactions.map((txn) => (
-                <div key={txn._id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                <div key={txn._id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted transition-colors">
                   {/* Icon loại */}
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
                     txn.type === "income" ? "bg-green-100" : "bg-red-100"
@@ -525,7 +516,7 @@ export default function RevenueReportPage() {
                   </div>
                   {/* Mô tả */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-700 truncate">{txn.description}</p>
+                    <p className="text-sm text-foreground/80 truncate">{txn.description}</p>
                     <p className="text-xs text-gray-400">{txn.time}</p>
                   </div>
                   {/* Số tiền */}
@@ -544,8 +535,8 @@ export default function RevenueReportPage() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Doanh thu ròng vs Hoàn tiền</h3>
-              <p className="text-sm text-gray-500 mt-0.5">So sánh doanh thu ròng và hoàn tiền qua từng tháng</p>
+              <h3 className="text-lg font-bold text-foreground">Doanh thu ròng vs Hoàn tiền</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">So sánh doanh thu ròng và hoàn tiền qua từng tháng</p>
             </div>
             <div className="flex items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500" />Doanh thu ròng</span>
@@ -569,30 +560,30 @@ export default function RevenueReportPage() {
       <Card className="border-0 shadow-sm">
         <CardContent className="p-6">
           <div className="flex items-center gap-2 mb-5">
-            <Calendar size={18} className="text-gray-500" />
-            <h3 className="text-lg font-bold text-gray-900">Bảng tổng hợp doanh thu theo tháng</h3>
+            <Calendar size={18} className="text-muted-foreground" />
+            <h3 className="text-lg font-bold text-foreground">Bảng tổng hợp doanh thu theo tháng</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50/80 border-b border-gray-100">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tháng</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Đặt chỗ</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Gói DV</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Phạt</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Tổng</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Hoàn tiền</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Doanh thu ròng</th>
+                <tr className="bg-muted/80 border-b border-border">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Tháng</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase">Đặt chỗ</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase">Gói DV</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase">Phạt</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase">Tổng</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase">Hoàn tiền</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase">Doanh thu ròng</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {monthlyRevenue.map((row) => (
-                  <tr key={row.month} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">{row.month}/2026</td>
+                  <tr key={row.month} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-4 py-3 text-sm font-semibold text-foreground">{row.month}/2026</td>
                     <td className="px-4 py-3 text-sm text-right text-blue-600">{formatCompactCurrency(row.bookingRevenue)}</td>
                     <td className="px-4 py-3 text-sm text-right text-violet-600">{formatCompactCurrency(row.subscriptionRevenue)}</td>
                     <td className="px-4 py-3 text-sm text-right text-amber-600">{formatCompactCurrency(row.penaltyRevenue)}</td>
-                    <td className="px-4 py-3 text-sm text-right font-bold text-gray-900">{formatCompactCurrency(row.totalRevenue)}</td>
+                    <td className="px-4 py-3 text-sm text-right font-bold text-foreground">{formatCompactCurrency(row.totalRevenue)}</td>
                     <td className="px-4 py-3 text-sm text-right text-red-500">−{formatCompactCurrency(row.refunds)}</td>
                     <td className="px-4 py-3 text-sm text-right font-bold text-green-600">{formatCompactCurrency(row.netRevenue)}</td>
                   </tr>
@@ -600,8 +591,8 @@ export default function RevenueReportPage() {
               </tbody>
               {/* Tổng cộng */}
               <tfoot>
-                <tr className="bg-gray-50 border-t-2 border-gray-200">
-                  <td className="px-4 py-3 text-sm font-bold text-gray-900">Tổng cộng</td>
+                <tr className="bg-muted border-t-2 border-border">
+                  <td className="px-4 py-3 text-sm font-bold text-foreground">Tổng cộng</td>
                   <td className="px-4 py-3 text-sm text-right font-bold text-blue-700">
                     {formatCompactCurrency(monthlyRevenue.reduce((s, m) => s + m.bookingRevenue, 0))}
                   </td>
@@ -611,7 +602,7 @@ export default function RevenueReportPage() {
                   <td className="px-4 py-3 text-sm text-right font-bold text-amber-700">
                     {formatCompactCurrency(monthlyRevenue.reduce((s, m) => s + m.penaltyRevenue, 0))}
                   </td>
-                  <td className="px-4 py-3 text-sm text-right font-bold text-gray-900">
+                  <td className="px-4 py-3 text-sm text-right font-bold text-foreground">
                     {formatCompactCurrency(summary.totalRevenue)}
                   </td>
                   <td className="px-4 py-3 text-sm text-right font-bold text-red-600">

@@ -45,6 +45,7 @@ import { adminService, type AdminStats, type AdminActivity, type SystemStatus } 
 
 import RoleGuard from "@/components/RoleGuard";
 import { useAdminStore } from "@/stores";
+import { AdminStatCard } from "@/components/admin/AdminStatCard";
 
 
 const MOCK_SYSTEM_STATUS: SystemStatus = {
@@ -161,9 +162,9 @@ export default function AdminDashboard() {
       icon: Users,
       description: "So với tháng trước",
       iconGradient: "from-blue-500 to-indigo-600",
-      bgTint: "from-blue-50 to-indigo-50",
-      borderColor: "border-blue-100",
-      accentColor: "text-blue-600",
+      bgTint: "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
+      borderColor: "border-blue-100 dark:border-blue-900/50",
+      accentColor: "text-primary",
     },
     {
       title: "Bãi đỗ xe",
@@ -173,8 +174,8 @@ export default function AdminDashboard() {
       icon: MapPin,
       description: "Bãi mới trong tháng",
       iconGradient: "from-emerald-500 to-teal-600",
-      bgTint: "from-emerald-50 to-teal-50",
-      borderColor: "border-emerald-100",
+      bgTint: "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
+      borderColor: "border-emerald-100 dark:border-emerald-900/50",
       accentColor: "text-emerald-600",
     },
     {
@@ -186,8 +187,8 @@ export default function AdminDashboard() {
       icon: Receipt,
       description: "So với hôm qua",
       iconGradient: "from-violet-500 to-purple-600",
-      bgTint: "from-violet-50 to-purple-50",
-      borderColor: "border-violet-100",
+      bgTint: "from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20",
+      borderColor: "border-violet-100 dark:border-violet-900/50",
       accentColor: "text-violet-600",
     },
     {
@@ -199,8 +200,8 @@ export default function AdminDashboard() {
       icon: TrendingUp,
       description: "So với tháng trước",
       iconGradient: "from-amber-500 to-orange-600",
-      bgTint: "from-amber-50 to-orange-50",
-      borderColor: "border-amber-100",
+      bgTint: "from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20",
+      borderColor: "border-amber-100 dark:border-amber-900/50",
       accentColor: "text-amber-600",
     },
   ];
@@ -210,15 +211,15 @@ export default function AdminDashboard() {
       {loading ? (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Đang tải dashboard admin...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Đang tải dashboard admin...</p>
           </div>
         </div>
       ) : error ? (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
               Lỗi server không hoạt động
             </h3>
             <Button onClick={() => window.location.reload()}>Thử lại</Button>
@@ -227,18 +228,18 @@ export default function AdminDashboard() {
       ) : (
       <div className="space-y-6">
         {/* Header */ }
-        <div className="flex justify-between items-center bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-2xl px-8 py-6 shadow-lg">
+        <div className="flex justify-between items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl px-8 py-6 shadow-lg">
           <div>
             <h1 className="text-2xl font-bold text-white tracking-tight">
               Dashboard Admin
             </h1>
-            <p className="text-blue-200/70 mt-1 text-sm">Tổng quan hệ thống GoPark</p>
+            <p className="text-primary-foreground/70 mt-1 text-sm">Tổng quan hệ thống GoPark</p>
           </div>
           <div className="flex items-center gap-3">
             <Badge
               className="bg-amber-400/15 text-amber-300 border border-amber-400/30 backdrop-blur-sm px-3 py-1"
             >
-              <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+              <AlertCircle className="w-3.5 h-3.5 mr-1.5 text-red-500/80" />
               {stats?.pendingApprovals || 0} chờ duyệt
             </Badge>
             <Button size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none">
@@ -252,40 +253,18 @@ export default function AdminDashboard() {
           {statCards.map((card, index) => {
             const Icon = card.icon;
             return (
-              <Card key={index} className={`bg-gradient-to-br ${card.bgTint} ${card.borderColor} border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden relative`}>
-                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${card.iconGradient} opacity-[0.04] rounded-full -translate-y-10 translate-x-10`} />
-                <CardContent className="p-5 relative">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                        {card.title}
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900 mb-2">
-                        {card.value}
-                      </p>
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`text-xs font-semibold px-1.5 py-0.5 rounded-md ${
-                            card.changeType === "positive"
-                              ? "text-emerald-700 bg-emerald-100"
-                              : "text-red-700 bg-red-100"
-                          }`}
-                        >
-                          {card.change}
-                        </span>
-                        <span className="text-[11px] text-gray-400">
-                          {card.description}
-                        </span>
-                      </div>
-                    </div>
-                    <div
-                      className={`w-11 h-11 rounded-xl bg-gradient-to-br ${card.iconGradient} flex items-center justify-center shadow-lg shadow-black/10`}
-                    >
-                      <Icon className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <AdminStatCard
+                key={index}
+                title={card.title}
+                value={card.value}
+                icon={card.icon}
+                change={card.change}
+                changeType={card.changeType as "positive" | "negative"}
+                description={card.description}
+                iconGradient={card.iconGradient}
+                bgTint={card.bgTint}
+                borderColor={card.borderColor}
+              />
             );
           })}
         </div>
@@ -293,20 +272,20 @@ export default function AdminDashboard() {
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Recent Activities */}
-          <Card className="lg:col-span-2 border-gray-100 dark:border-slate-800 shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+          <Card className="lg:col-span-2 border-border dark:border-slate-800 shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
              <CardHeader className="pb-3 px-6 pt-6 mb-2">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-6 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full" />
-                  <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wide">Hoạt động hệ thống</CardTitle>
+                  <div className="w-1.5 h-6 bg-gradient-to-b from-primary to-primary/80 rounded-full" />
+                  <CardTitle className="text-lg font-bold text-foreground dark:text-slate-100 uppercase tracking-wide">Hoạt động hệ thống</CardTitle>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="relative group">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                     <Input
                       placeholder="Tìm kiếm..."
-                      className="h-9 pl-9 text-sm w-[180px] md:w-[240px] border-slate-200 dark:border-slate-700 focus-visible:ring-blue-500/30 bg-slate-50 dark:bg-slate-800 text-slate-900"
+                      className="h-9 pl-9 text-sm w-[180px] md:w-[240px] border-border dark:border-slate-700 focus-visible:ring-primary/30 bg-muted dark:bg-slate-800 text-foreground"
                       value={searchTerm}
                       onChange={(e) => {
                         setSearchTerm(e.target.value);
@@ -335,15 +314,15 @@ export default function AdminDashboard() {
               </div>
             </CardHeader>
             <CardContent className="px-6 pb-6">
-              <div className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm">
+              <div className="rounded-xl border border-border dark:border-slate-800 overflow-hidden bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm">
                 <Table>
-                  <TableHeader className="bg-slate-50/50 dark:bg-slate-800/50">
-                    <TableRow className="hover:bg-transparent border-slate-100 dark:border-slate-800">
-                      <TableHead className="text-[11px] font-bold uppercase text-slate-500 tracking-wider h-10">Loại</TableHead>
-                      <TableHead className="text-[11px] font-bold uppercase text-slate-500 tracking-wider h-10 w-[40%]">Hoạt động</TableHead>
-                      <TableHead className="text-[11px] font-bold uppercase text-slate-500 tracking-wider h-10">Người thực hiện</TableHead>
-                      <TableHead className="text-[11px] font-bold uppercase text-slate-500 tracking-wider h-10">Thời gian</TableHead>
-                      <TableHead className="text-[11px] font-bold uppercase text-slate-500 tracking-wider h-10 text-right">Trạng thái</TableHead>
+                  <TableHeader className="bg-muted/50 dark:bg-slate-800/50">
+                    <TableRow className="hover:bg-transparent border-border dark:border-slate-800">
+                      <TableHead className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider h-10">Loại</TableHead>
+                      <TableHead className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider h-10 w-[40%]">Hoạt động</TableHead>
+                      <TableHead className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider h-10">Người thực hiện</TableHead>
+                      <TableHead className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider h-10">Thời gian</TableHead>
+                      <TableHead className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider h-10 text-right">Trạng thái</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -391,26 +370,26 @@ export default function AdminDashboard() {
                         const currentStatus = statusConfig[activity.status] || statusConfig.success;
 
                         return (
-                          <TableRow key={activity.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-slate-100 dark:border-slate-800 transition-colors group">
+                          <TableRow key={activity.id} className="hover:bg-muted/50 dark:hover:bg-slate-800/30 border-border dark:border-slate-800 transition-colors group">
                             <TableCell className="py-3">
                               <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-slate-100 dark:border-slate-800 group-hover:scale-110 transition-transform duration-300`}>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-border dark:border-slate-800 group-hover:scale-110 transition-transform duration-300`}>
                                   <Icon className={`w-4 h-4 text-${colorClass}-500`} />
                                 </div>
-                                <span className="text-[11px] font-bold uppercase text-slate-400 group-hover:text-slate-600 transition-colors tracking-tight">{activity.type}</span>
+                                <span className="text-[11px] font-bold uppercase text-slate-400 group-hover:text-muted-foreground transition-colors tracking-tight">{activity.type}</span>
                               </div>
                             </TableCell>
                             <TableCell className="py-3">
-                              <p className="text-sm font-bold text-slate-700 dark:text-slate-200 line-clamp-1 group-hover:text-blue-600 transition-colors">
+                              <p className="text-sm font-bold text-foreground/80 dark:text-slate-200 line-clamp-1 group-hover:text-primary transition-colors">
                                 {activity.content}
                               </p>
                             </TableCell>
                             <TableCell className="py-3">
                               <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                                <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 border border-border dark:border-slate-700 flex items-center justify-center">
                                   <Users className="w-3 h-3 text-slate-400" />
                                 </div>
-                                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{activity.username}</span>
+                                <span className="text-xs font-medium text-muted-foreground dark:text-slate-400">{activity.username}</span>
                               </div>
                             </TableCell>
                             <TableCell className="py-3">
@@ -431,11 +410,11 @@ export default function AdminDashboard() {
                       <TableRow>
                         <TableCell colSpan={5} className="h-48 text-center">
                           <div className="flex flex-col items-center justify-center space-y-3">
-                            <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center shadow-inner">
-                              <Activity className="w-6 h-6 text-slate-300 dark:text-slate-700" />
+                            <div className="w-12 h-12 bg-muted dark:bg-slate-800 rounded-full flex items-center justify-center shadow-inner">
+                              <Activity className="w-6 h-6 text-slate-300 dark:text-foreground/80" />
                             </div>
                             <div>
-                              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Không tìm thấy dữ liệu</p>
+                              <p className="text-xs font-bold text-foreground/80 dark:text-slate-200">Không tìm thấy dữ liệu</p>
                               <p className="text-[10px] text-slate-400 mt-0.5">Thử thay đổi bộ lọc hoặc tìm kiếm khác</p>
                             </div>
                           </div>
@@ -448,13 +427,13 @@ export default function AdminDashboard() {
 
               {/* Pagination Controls */}
               {displayTotal > 0 && (
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <div className="text-sm text-slate-500 dark:text-slate-400">
-                    Hiển thị <span className="font-medium text-slate-900 dark:text-white">{Math.min(displayTotal, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(displayTotal, currentPage * itemsPerPage)}</span> trong <span className="font-medium text-slate-900 dark:text-white">{displayTotal}</span> kết quả
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-border dark:border-slate-800">
+                  <div className="text-sm text-muted-foreground dark:text-slate-400">
+                    Hiển thị <span className="font-medium text-foreground dark:text-white">{Math.min(displayTotal, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(displayTotal, currentPage * itemsPerPage)}</span> trong <span className="font-medium text-foreground dark:text-white">{displayTotal}</span> kết quả
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-2 mr-2 md:mr-4 border-r border-slate-200 dark:border-slate-700 pr-2 md:pr-4">
-                      <span className="text-sm text-slate-500 dark:text-slate-400">Dòng mỗi trang:</span>
+                    <div className="flex items-center gap-2 mr-2 md:mr-4 border-r border-border dark:border-slate-700 pr-2 md:pr-4">
+                      <span className="text-sm text-muted-foreground dark:text-slate-400">Dòng mỗi trang:</span>
                       <Select
                         value={itemsPerPage.toString()}
                         onValueChange={(val) => {
@@ -462,7 +441,7 @@ export default function AdminDashboard() {
                           setCurrentPage(1);
                         }}
                       >
-                        <SelectTrigger className="h-8 w-[70px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm shadow-none">
+                        <SelectTrigger className="h-8 w-[70px] bg-muted dark:bg-slate-800 border-border dark:border-slate-700 text-sm shadow-none">
                           <SelectValue placeholder="5" />
                         </SelectTrigger>
                         <SelectContent>
@@ -479,9 +458,9 @@ export default function AdminDashboard() {
                       size="sm"
                       onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
-                      className="h-8 w-8 p-0 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                      className="h-8 w-8 p-0 bg-card dark:bg-slate-800 border-border dark:border-slate-700"
                     >
-                      <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                      <ChevronLeft className="w-4 h-4 text-muted-foreground dark:text-slate-300" />
                     </Button>
                     
                     {(() => {
@@ -507,14 +486,14 @@ export default function AdminDashboard() {
                             onClick={() => setCurrentPage(page)}
                             className={`h-8 w-8 p-0 text-sm ${
                               currentPage === page 
-                                ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" 
-                                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                                ? "bg-primary hover:bg-primary/90 text-primary-foreground border-primary" 
+                                : "bg-card dark:bg-slate-800 text-muted-foreground dark:text-slate-300 border-border dark:border-slate-700 hover:bg-muted dark:hover:bg-slate-700"
                             }`}
                           >
                             {page}
                           </Button>
                         ) : (
-                          <span key={idx} className="text-slate-400 dark:text-slate-500 px-1">...</span>
+                          <span key={idx} className="text-slate-400 dark:text-muted-foreground px-1">...</span>
                         )
                       ));
                     })()}
@@ -524,9 +503,9 @@ export default function AdminDashboard() {
                       size="sm"
                       onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                       disabled={currentPage >= totalPages || totalPages === 0}
-                      className="h-8 w-8 p-0 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                      className="h-8 w-8 p-0 bg-card dark:bg-slate-800 border-border dark:border-slate-700"
                     >
-                      <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground dark:text-slate-300" />
                     </Button>
                   </div>
                 </div>
@@ -535,11 +514,11 @@ export default function AdminDashboard() {
           </Card>
 
           {/* System Status */}
-          <Card className="border-gray-100 dark:border-slate-800 shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+          <Card className="border-border dark:border-slate-800 shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
             <CardHeader className="pb-3 px-6 pt-6">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-5 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full" />
-                <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-100">Trạng thái hệ thống</CardTitle>
+                <CardTitle className="text-base font-bold text-foreground dark:text-slate-100">Trạng thái hệ thống</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="px-6 pb-6">
@@ -548,7 +527,7 @@ export default function AdminDashboard() {
                   Object.entries(systemStatus).map(([key, service]) => {
                     let ServiceIcon = Server;
                     let iconBgGradient = "from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700";
-                    let iconColor = "text-slate-500 dark:text-slate-400";
+                    let iconColor = "text-muted-foreground dark:text-slate-400";
                     
                     if (key.toLowerCase().includes("database")) {
                       ServiceIcon = Database;
@@ -573,7 +552,7 @@ export default function AdminDashboard() {
                         key={key}
                         className={`flex items-center gap-4 p-3.5 rounded-xl border transition-all duration-200 group ${
                           service.status === "healthy"
-                            ? "bg-white dark:bg-slate-800/40 border-slate-100 dark:border-slate-800/50 hover:border-emerald-200 dark:hover:border-emerald-900/30"
+                            ? "bg-card dark:bg-slate-800/40 border-border dark:border-slate-800/50 hover:border-emerald-200 dark:hover:border-emerald-900/30"
                             : "bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/30 hover:border-red-200"
                         }`}
                       >
@@ -581,10 +560,10 @@ export default function AdminDashboard() {
                           <ServiceIcon className={`w-5 h-5 ${iconColor}`} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-slate-700 dark:text-slate-200 capitalize">
+                          <p className="text-sm font-bold text-foreground/80 dark:text-slate-200 capitalize">
                             {key.replace(/([A-Z])/g, " $1")}
                           </p>
-                          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                          <p className="text-[11px] text-slate-400 dark:text-muted-foreground mt-0.5 truncate">
                             {service.message}
                           </p>
                         </div>

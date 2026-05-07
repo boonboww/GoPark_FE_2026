@@ -50,6 +50,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useNotificationStore, SentNotification, NotificationType, TargetType, NotificationStatus, UserSelectItem } from "@/stores/notification.store";
 import { notificationService } from "@/services/notification.service";
 import { userService } from "@/services/userService";
+import { AdminStatCard } from "@/components/admin/AdminStatCard";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ const typeConfig: Record<string, { label: string; color: string; bgColor: string
   PROMOTION: { label: "Khuyến mãi", color: "text-purple-700", bgColor: "bg-purple-50 border-purple-200", icon: "🎉" },
   ALERT: { label: "Cảnh báo", color: "text-amber-700", bgColor: "bg-amber-50 border-amber-200", icon: "⚠️" },
   REMINDER: { label: "Nhắc nhở", color: "text-blue-700", bgColor: "bg-blue-50 border-blue-200", icon: "⏰" },
-  SYSTEM: { label: "Hệ thống", color: "text-slate-700", bgColor: "bg-slate-50 border-slate-200", icon: "⚙️" },
+  SYSTEM: { label: "Hệ thống", color: "text-foreground/80", bgColor: "bg-muted border-border", icon: "⚙️" },
 };
 
 const targetConfig: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -72,8 +73,8 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
   sent: { label: "Đã gửi", color: "text-emerald-700", bg: "bg-emerald-100" },
   SCHEDULED: { label: "Đã lên lịch", color: "text-blue-700", bg: "bg-blue-100" },
   scheduled: { label: "Đã lên lịch", color: "text-blue-700", bg: "bg-blue-100" },
-  DRAFT: { label: "Bản nháp", color: "text-gray-700", bg: "bg-gray-100" },
-  draft: { label: "Bản nháp", color: "text-gray-700", bg: "bg-gray-100" },
+  DRAFT: { label: "Bản nháp", color: "text-foreground/80", bg: "bg-muted" },
+  draft: { label: "Bản nháp", color: "text-foreground/80", bg: "bg-muted" },
   FAILED: { label: "Thất bại", color: "text-red-700", bg: "bg-red-100" },
   failed: { label: "Thất bại", color: "text-red-700", bg: "bg-red-100" },
   "Đã gửi": { label: "Đã gửi", color: "text-emerald-700", bg: "bg-emerald-100" },
@@ -261,45 +262,45 @@ export default function NotificationsPage() {
       value: notifications.length,
       icon: Bell,
       gradient: "from-blue-500 to-indigo-600",
-      bgTint: "from-blue-50 to-indigo-50",
-      border: "border-blue-100",
+      bgTint: "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
+      border: "border-blue-100 dark:border-blue-900/50",
     },
     {
       title: "Đã gửi thành công",
       value: totalSent,
       icon: CheckCircle2,
       gradient: "from-emerald-500 to-teal-600",
-      bgTint: "from-emerald-50 to-teal-50",
-      border: "border-emerald-100",
+      bgTint: "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
+      border: "border-emerald-100 dark:border-emerald-900/50",
     },
     {
       title: "Tổng người nhận",
       value: totalTargeted.toLocaleString("vi-VN"),
       icon: Users,
       gradient: "from-violet-500 to-purple-600",
-      bgTint: "from-violet-50 to-purple-50",
-      border: "border-violet-100",
+      bgTint: "from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20",
+      border: "border-violet-100 dark:border-violet-900/50",
     },
     {
       title: "Đã đọc",
       value: totalRead.toLocaleString("vi-VN"),
       icon: Eye,
       gradient: "from-amber-500 to-orange-600",
-      bgTint: "from-amber-50 to-orange-50",
-      border: "border-amber-100",
+      bgTint: "from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20",
+      border: "border-amber-100 dark:border-amber-900/50",
     },
   ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-2xl px-8 py-6 shadow-lg">
+      <div className="flex justify-between items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl px-8 py-6 shadow-lg">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
             <Megaphone className="w-6 h-6" />
             Quản lý Thông báo
           </h1>
-          <p className="text-blue-200/70 mt-1 text-sm">
+          <p className="text-primary-foreground/70 mt-1 text-sm">
             Tạo và quản lý thông báo gửi đến người dùng
           </p>
         </div>
@@ -322,37 +323,21 @@ export default function NotificationsPage() {
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <Card
-              key={i}
-              className={`bg-gradient-to-br ${stat.bgTint} ${stat.border} border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden relative`}
-            >
-              <div
-                className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.gradient} opacity-[0.04] rounded-full -translate-y-10 translate-x-10`}
-              />
-              <CardContent className="p-5 relative">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                      {stat.title}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {stat.value}
-                    </p>
-                  </div>
-                  <div
-                    className={`w-11 h-11 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg shadow-black/10`}
-                  >
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AdminStatCard
+              key={i || stat.title}
+              title={stat.title}
+              value={stat.value}
+              icon={stat.icon}
+              iconGradient={stat.gradient}
+              bgTint={stat.bgTint}
+              borderColor={stat.border}
+            />
           );
         })}
       </div>
 
       {/* Filters */}
-      <Card className="border-gray-100 shadow-sm bg-white">
+      <Card className="border-border shadow-sm bg-card">
         <CardContent className="p-5">
           <div className="flex flex-col gap-4">
             {/* Search */}
@@ -362,14 +347,14 @@ export default function NotificationsPage() {
                 placeholder="Tìm kiếm theo tiêu đề, nội dung..."
                 value={searchTerm}
                 onChange={(e) => setFilters({ searchTerm: e.target.value })}
-                className="pl-10 h-10 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
+                className="pl-10 h-10 bg-muted border-border focus:bg-card text-foreground"
               />
             </div>
 
             {/* Filter Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <Select value={filterType || "all"} onValueChange={(val) => setFilters({ filterType: val })}>
-                <SelectTrigger className="w-full h-10 border-gray-200 bg-slate-50 text-slate-900">
+                <SelectTrigger className="w-full h-10 border-border bg-muted text-foreground">
                   <SelectValue placeholder="Tất cả loại" />
                 </SelectTrigger>
                 <SelectContent>
@@ -382,7 +367,7 @@ export default function NotificationsPage() {
               </Select>
 
               <Select value={filterTarget || "all"} onValueChange={(val) => setFilters({ filterTarget: val })}>
-                <SelectTrigger className="w-full h-10 border-gray-200 bg-slate-50 text-slate-900">
+                <SelectTrigger className="w-full h-10 border-border bg-muted text-foreground">
                   <SelectValue placeholder="Tất cả đối tượng" />
                 </SelectTrigger>
                 <SelectContent>
@@ -395,7 +380,7 @@ export default function NotificationsPage() {
               </Select>
 
               <Select value={filterStatus || "all"} onValueChange={(val) => setFilters({ filterStatus: val })}>
-                <SelectTrigger className="w-full h-10 border-gray-200 bg-slate-50 text-slate-900">
+                <SelectTrigger className="w-full h-10 border-border bg-muted text-foreground">
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
@@ -415,19 +400,19 @@ export default function NotificationsPage() {
       </Card>
 
       {/* Notifications Table */}
-      <Card className="border-gray-100 shadow-sm bg-white">
+      <Card className="border-border shadow-sm bg-card">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-1.5 h-5 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full" />
-              <CardTitle className="text-base font-semibold text-gray-900">
+              <div className="w-1.5 h-5 bg-gradient-to-b from-primary to-primary/80 rounded-full" />
+              <CardTitle className="text-base font-semibold text-foreground">
                 Thông báo đã gửi ({filteredNotifications.length})
               </CardTitle>
             </div>
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-gray-500 gap-1.5"
+              className="text-muted-foreground gap-1.5"
               onClick={() => fetchNotifications()}
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -439,26 +424,26 @@ export default function NotificationsPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-y border-gray-100 bg-gray-50/60">
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                <tr className="border-y border-border bg-muted/60">
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                     Thông báo
                   </th>
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                     Loại
                   </th>
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                     Đối tượng
                   </th>
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                     Đã đọc
                   </th>
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                     Trạng thái
                   </th>
-                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                     Thời gian
                   </th>
-                  <th className="px-5 py-3 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-5 py-3 text-right text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                     Hành động
                   </th>
                 </tr>
@@ -486,7 +471,7 @@ export default function NotificationsPage() {
                         <div className="flex items-start gap-3">
                           <span className="text-lg shrink-0 mt-0.5">{tc.icon}</span>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
+                            <p className="text-sm font-semibold text-foreground truncate">
                               {notif.title}
                             </p>
                             <p className="text-xs text-gray-400 truncate mt-0.5">
@@ -517,7 +502,7 @@ export default function NotificationsPage() {
                           {notif.targetType === "specific" && (
                             <User className="w-3.5 h-3.5 text-amber-500" />
                           )}
-                          <span className="text-sm text-gray-700">
+                          <span className="text-sm text-foreground/80">
                             {(() => {
                               let targetKey = "SPECIFIC";
                               if (notif.targetType === "all" || notif.targetRole === "ALL") targetKey = "ALL";
@@ -541,10 +526,10 @@ export default function NotificationsPage() {
                       {/* Read Count */}
                       <td className="px-5 py-4">
                         <div className="flex flex-col gap-1.5">
-                          <span className="text-xs font-medium text-gray-600">
+                          <span className="text-xs font-medium text-muted-foreground">
                             {notif.readSummary || "0/0"}
                           </span>
-                          <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="w-20 h-1.5 bg-muted rounded-full overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
                               style={{
@@ -566,7 +551,7 @@ export default function NotificationsPage() {
 
                       {/* Time */}
                       <td className="px-5 py-4">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
                           {formatDate(notif.sentAt || notif.createdAt)}
                         </div>
@@ -582,7 +567,7 @@ export default function NotificationsPage() {
                               setSelectedNotification(notif);
                               setIsDetailOpen(true);
                             }}
-                            className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-primary/10 text-gray-400 hover:text-primary transition-colors"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -609,10 +594,10 @@ export default function NotificationsPage() {
 
           {filteredNotifications.length === 0 && (
             <div className="text-center py-16">
-              <div className="w-16 h-16 bg-gray-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+              <div className="w-16 h-16 bg-muted rounded-2xl mx-auto mb-4 flex items-center justify-center">
                 <Bell className="w-8 h-8 text-gray-300" />
               </div>
-              <h3 className="font-semibold text-gray-800 mb-1">
+              <h3 className="font-semibold text-foreground mb-1">
                 Không tìm thấy thông báo
               </h3>
               <p className="text-sm text-gray-400 mb-4">
@@ -628,7 +613,7 @@ export default function NotificationsPage() {
             </div>
           )}
           {filteredNotifications.length > 0 && (
-            <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+            <div className="px-5 py-4 border-t border-border flex items-center justify-between bg-card">
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -652,7 +637,7 @@ export default function NotificationsPage() {
                             variant={currentPage === p ? "default" : "outline"}
                             size="sm"
                             onClick={() => setCurrentPage(p)}
-                            className={`h-8 w-8 p-0 ${currentPage === p ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                            className={`h-8 w-8 p-0 ${currentPage === p ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
                           >
                             {p}
                           </Button>
@@ -689,7 +674,7 @@ export default function NotificationsPage() {
           <div className="space-y-5 py-2">
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                 Tiêu đề <span className="text-red-500">*</span>
               </label>
               <Input
@@ -704,7 +689,7 @@ export default function NotificationsPage() {
 
             {/* Message */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                 Nội dung <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -714,13 +699,13 @@ export default function NotificationsPage() {
                   setFormData((prev) => ({ ...prev, message: e.target.value }))
                 }
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
             </div>
 
             {/* Notification Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                 Loại thông báo
               </label>
               <div className="grid grid-cols-5 gap-2">
@@ -736,7 +721,7 @@ export default function NotificationsPage() {
                       className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-xs font-medium ${
                         formData.type === type
                           ? `${cfg.bgColor} ${cfg.color} border-current shadow-sm`
-                          : "border-gray-100 text-gray-500 hover:border-gray-200"
+                          : "border-border text-muted-foreground hover:border-border"
                       }`}
                     >
                       <span className="text-base">{cfg.icon}</span>
@@ -749,7 +734,7 @@ export default function NotificationsPage() {
 
             {/* Target Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-foreground/80 mb-1.5">
                 Gửi đến
               </label>
               <div className="grid grid-cols-3 gap-3">
@@ -762,7 +747,7 @@ export default function NotificationsPage() {
                   className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
                     formData.targetType === "all"
                       ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
-                      : "border-gray-100 text-gray-500 hover:border-gray-200"
+                      : "border-border text-muted-foreground hover:border-border"
                   }`}
                 >
                   <Globe className="w-6 h-6" />
@@ -781,7 +766,7 @@ export default function NotificationsPage() {
                   className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
                     formData.targetType === "role"
                       ? "border-violet-500 bg-violet-50 text-violet-700 shadow-sm"
-                      : "border-gray-100 text-gray-500 hover:border-gray-200"
+                      : "border-border text-muted-foreground hover:border-border"
                   }`}
                 >
                   <Shield className="w-6 h-6" />
@@ -800,7 +785,7 @@ export default function NotificationsPage() {
                   className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
                     formData.targetType === "specific"
                       ? "border-amber-500 bg-amber-50 text-amber-700 shadow-sm"
-                      : "border-gray-100 text-gray-500 hover:border-gray-200"
+                      : "border-border text-muted-foreground hover:border-border"
                   }`}
                 >
                   <User className="w-6 h-6" />
@@ -829,13 +814,13 @@ export default function NotificationsPage() {
                     }
                     className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
                       formData.targetRole === "user"
-                        ? "border-violet-500 bg-white shadow-sm"
-                        : "border-transparent bg-white/50 hover:bg-white"
+                        ? "border-violet-500 bg-card shadow-sm"
+                        : "border-transparent bg-white/50 hover:bg-card"
                     }`}
                   >
                     <Users className="w-5 h-5 text-violet-600" />
                     <div className="text-left">
-                      <p className="text-sm font-semibold text-gray-800">
+                      <p className="text-sm font-semibold text-foreground">
                         Khách hàng (User)
                       </p>
                       <p className="text-[10px] text-gray-400">~980 người</p>
@@ -851,13 +836,13 @@ export default function NotificationsPage() {
                     }
                     className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all ${
                       formData.targetRole === "owner"
-                        ? "border-violet-500 bg-white shadow-sm"
-                        : "border-transparent bg-white/50 hover:bg-white"
+                        ? "border-violet-500 bg-card shadow-sm"
+                        : "border-transparent bg-white/50 hover:bg-card"
                     }`}
                   >
                     <Shield className="w-5 h-5 text-violet-600" />
                     <div className="text-left">
-                      <p className="text-sm font-semibold text-gray-800">
+                      <p className="text-sm font-semibold text-foreground">
                         Chủ bãi (Owner)
                       </p>
                       <p className="text-[10px] text-gray-400">~45 người</p>
@@ -910,7 +895,7 @@ export default function NotificationsPage() {
                 </div>
 
                 {/* User list */}
-                <div className="max-h-48 overflow-y-auto space-y-1 rounded-lg bg-white border border-amber-100 p-1.5">
+                <div className="max-h-48 overflow-y-auto space-y-1 rounded-lg bg-card border border-amber-100 p-1.5">
                   {filteredUsers.map((user) => {
                     const selected = formData.selectedUsers.includes(user.id);
                     return (
@@ -921,14 +906,14 @@ export default function NotificationsPage() {
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                           selected
                             ? "bg-amber-100/80 text-amber-900"
-                            : "hover:bg-gray-50 text-gray-700"
+                            : "hover:bg-muted text-foreground/80"
                         }`}
                       >
                         <div
                           className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
                             selected
                               ? "bg-amber-500 text-white"
-                              : "bg-gray-100 text-gray-500"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           {user.name.charAt(0)}
@@ -1013,7 +998,7 @@ export default function NotificationsPage() {
                   {(typeConfig[selectedNotification.type] || typeConfig.SYSTEM).icon}
                 </span>
                 <div>
-                  <h3 className="font-bold text-gray-900 text-lg">
+                  <h3 className="font-bold text-foreground text-lg">
                     {selectedNotification.title}
                   </h3>
                   <div className="flex gap-2 mt-1">
@@ -1032,19 +1017,19 @@ export default function NotificationsPage() {
               </div>
 
               {/* Message */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-sm text-gray-700 leading-relaxed">
+              <div className="bg-muted rounded-xl p-4">
+                <p className="text-sm text-foreground/80 leading-relaxed">
                   {selectedNotification.content || "Không có nội dung"}
                 </p>
               </div>
 
               {/* Metadata */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 rounded-xl p-3">
+                <div className="bg-muted rounded-xl p-3">
                   <p className="text-[10px] uppercase font-semibold text-gray-400 mb-0.5">
                     Đối tượng
                   </p>
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="text-sm font-medium text-foreground">
                     {selectedNotification.targetRole === "ALL" ? "Tất cả người dùng" :
                       selectedNotification.targetRole === "USER" ? "Khách hàng" :
                         selectedNotification.targetRole === "OWNER" ? "Chủ bãi" :
@@ -1052,11 +1037,11 @@ export default function NotificationsPage() {
                             selectedNotification.targetRole || "Khách hàng cụ thể"}
                   </p>
                 </div>
-                <div className="bg-gray-50 rounded-xl p-3">
+                <div className="bg-muted rounded-xl p-3">
                   <p className="text-[10px] uppercase font-semibold text-gray-400 mb-0.5">
                     Tỷ lệ đọc
                   </p>
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="text-sm font-medium text-foreground">
                     {selectedNotification.readSummary || "0/0"}{" "}
                     ({selectedNotification.recipientCount > 0
                       ? Math.round(
@@ -1068,22 +1053,22 @@ export default function NotificationsPage() {
                     %)
                   </p>
                 </div>
-                <div className="bg-gray-50 rounded-xl p-3">
+                <div className="bg-muted rounded-xl p-3">
                   <p className="text-[10px] uppercase font-semibold text-gray-400 mb-0.5">
                     Thời gian gửi
                   </p>
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="text-sm font-medium text-foreground">
                     {formatDate(
                       selectedNotification.sentAt ||
                         selectedNotification.createdAt
                     )}
                   </p>
                 </div>
-                <div className="bg-gray-50 rounded-xl p-3">
+                <div className="bg-muted rounded-xl p-3">
                   <p className="text-[10px] uppercase font-semibold text-gray-400 mb-0.5">
                     Người tạo
                   </p>
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="text-sm font-medium text-foreground">
                     {selectedNotification.createdBy}
                   </p>
                 </div>

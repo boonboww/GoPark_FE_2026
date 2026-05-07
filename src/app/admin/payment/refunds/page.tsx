@@ -174,7 +174,7 @@ export default function Refunds() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-slate-900 via-emerald-950 to-teal-950 rounded-2xl px-8 py-6 shadow-lg">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl px-8 py-6 shadow-lg">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
             <Banknote className="w-6 h-6" />
@@ -210,7 +210,7 @@ export default function Refunds() {
             </div>
             <div>
               <p className="text-xs font-medium text-orange-700">Chờ xử lý</p>
-              <p className="text-3xl font-bold text-gray-900">{requests.filter(r => r.status === "PENDING").length}</p>
+              <p className="text-3xl font-bold text-foreground">{requests.filter(r => r.status === "PENDING").length}</p>
             </div>
           </CardContent>
         </Card>
@@ -221,7 +221,7 @@ export default function Refunds() {
             </div>
             <div>
               <p className="text-xs font-medium text-emerald-700">Đã duyệt hôm nay</p>
-              <p className="text-3xl font-bold text-gray-900">
+              <p className="text-3xl font-bold text-foreground">
                 {requests.filter(r => r.status === "SUCCESS" && new Date(r.created_at).toDateString() === new Date().toDateString()).length}
               </p>
             </div>
@@ -234,7 +234,7 @@ export default function Refunds() {
             </div>
             <div>
               <p className="text-xs font-medium text-blue-700">Tổng cần chuyển</p>
-              <p className="text-xl font-bold text-gray-900">
+              <p className="text-xl font-bold text-foreground">
                 {formatVND(requests.filter(r => r.status === "PENDING").reduce((s, r) => s + Math.abs(r.amount), 0))}
               </p>
             </div>
@@ -243,7 +243,7 @@ export default function Refunds() {
       </div>
 
       {/* Table */}
-      <Card className="shadow-sm border-gray-100">
+      <Card className="shadow-sm border-border">
         <CardHeader className="pb-4">
           <CardTitle className="text-lg">Danh sách yêu cầu rút tiền</CardTitle>
           <CardDescription>
@@ -256,7 +256,7 @@ export default function Refunds() {
               <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
             </div>
           ) : requests.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">
+            <div className="text-center py-16 text-muted-foreground">
               <CheckCircle2 className="w-12 h-12 mx-auto text-emerald-300 mb-3" />
               <p className="font-medium">Không có yêu cầu nào cần xử lý</p>
               <p className="text-sm text-gray-400 mt-1">Tất cả đã được giải quyết</p>
@@ -265,7 +265,7 @@ export default function Refunds() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-gray-50/80">
+                  <TableRow className="bg-muted/80">
                     <TableHead className="pl-6">Mã Giao Dịch</TableHead>
                     <TableHead>Người Yêu Cầu</TableHead>
                     <TableHead>Ngân Hàng / STK</TableHead>
@@ -290,21 +290,21 @@ export default function Refunds() {
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
                               <User className="w-4 h-4 text-white" />
                             </div>
-                            <span className="text-sm font-medium text-gray-900">{getUserName(req.wallet)}</span>
+                            <span className="text-sm font-medium text-foreground">{getUserName(req.wallet)}</span>
                           </div>
                         </TableCell>
                         <TableCell>
                           {info ? (
                             <div className="text-sm">
                               <p className="font-bold text-emerald-700">{info.bank}</p>
-                              <p className="font-mono text-gray-600">{info.account}</p>
+                              <p className="font-mono text-muted-foreground">{info.account}</p>
                             </div>
                           ) : (
                             <span className="text-gray-400 text-xs italic">{req.ref_id || "Không có thông tin"}</span>
                           )}
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-gray-600">{formatDateVN(req.created_at)}</span>
+                          <span className="text-sm text-muted-foreground">{formatDateVN(req.created_at)}</span>
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="font-bold text-emerald-600 text-sm">{formatVND(req.amount)}</span>
@@ -364,15 +364,15 @@ export default function Refunds() {
               <div className="space-y-4 mt-2">
                 {/* Transaction info */}
                 <div className="grid grid-cols-1 gap-3">
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
                     <Hash size={16} className="text-blue-500 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-gray-400 mb-0.5">Mã giao dịch (nội dung chuyển khoản)</p>
                       <div className="flex items-center gap-2">
-                        <p className="font-mono text-sm font-bold text-gray-900 break-all">{selectedReq.id}</p>
+                        <p className="font-mono text-sm font-bold text-foreground break-all">{selectedReq.id}</p>
                         <button
                           onClick={() => copyToClipboard(selectedReq.id, "mã giao dịch")}
-                          className="text-gray-400 hover:text-blue-600 transition-colors flex-shrink-0"
+                          className="text-gray-400 hover:text-primary transition-colors flex-shrink-0"
                           title="Sao chép"
                         >
                           <Copy size={14} />
@@ -389,11 +389,11 @@ export default function Refunds() {
                         <p className="font-bold text-emerald-600 text-lg">{formatVND(selectedReq.amount)}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Calendar size={16} className="text-gray-500" />
+                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                      <Calendar size={16} className="text-muted-foreground" />
                       <div>
                         <p className="text-xs text-gray-400">Thời gian yêu cầu</p>
-                        <p className="text-sm font-medium text-gray-900">{formatDateVN(selectedReq.created_at)}</p>
+                        <p className="text-sm font-medium text-foreground">{formatDateVN(selectedReq.created_at)}</p>
                       </div>
                     </div>
                   </div>
@@ -410,13 +410,13 @@ export default function Refunds() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <User size={16} className="text-gray-500" />
+                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                    <User size={16} className="text-muted-foreground" />
                     <div>
                       <p className="text-xs text-gray-400">Người yêu cầu</p>
-                      <p className="text-sm font-semibold text-gray-900">{getUserName(selectedReq.wallet)}</p>
+                      <p className="text-sm font-semibold text-foreground">{getUserName(selectedReq.wallet)}</p>
                       {selectedReq.wallet?.user?.email && (
-                        <p className="text-xs text-gray-500">{selectedReq.wallet.user.email}</p>
+                        <p className="text-xs text-muted-foreground">{selectedReq.wallet.user.email}</p>
                       )}
                     </div>
                   </div>
@@ -431,35 +431,35 @@ export default function Refunds() {
                     </div>
                     <div className="p-4 space-y-3">
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="bg-muted rounded-lg p-3">
                           <p className="text-xs text-gray-400 mb-1">Ngân hàng</p>
                           <p className="font-bold text-emerald-700 text-lg">{info.bank}</p>
                         </div>
-                        <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="bg-muted rounded-lg p-3">
                           <p className="text-xs text-gray-400 mb-1">Số tài khoản</p>
                           <div className="flex items-center gap-2">
-                            <p className="font-mono font-bold text-gray-900">{info.account}</p>
-                            <button onClick={() => copyToClipboard(info.account, "số tài khoản")} className="text-gray-400 hover:text-blue-600">
+                            <p className="font-mono font-bold text-foreground">{info.account}</p>
+                            <button onClick={() => copyToClipboard(info.account, "số tài khoản")} className="text-gray-400 hover:text-primary">
                               <Copy size={13} />
                             </button>
                           </div>
                         </div>
                       </div>
                       {info.holder && (
-                        <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="bg-muted rounded-lg p-3">
                           <p className="text-xs text-gray-400 mb-1">Chủ tài khoản</p>
-                          <p className="font-bold uppercase text-gray-900">{info.holder}</p>
+                          <p className="font-bold uppercase text-foreground">{info.holder}</p>
                         </div>
                       )}
 
                       {/* QR Code */}
                       {qrUrl && (
                         <div className="flex flex-col items-center gap-3 pt-3 border-t border-dashed border-emerald-200">
-                          <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-foreground/80">
                             <QrCode size={16} className="text-emerald-600" />
                             Quét QR để tự động điền thông tin chuyển khoản
                           </div>
-                          <div className="bg-white p-3 rounded-xl shadow-sm border-2 border-emerald-200">
+                          <div className="bg-card p-3 rounded-xl shadow-sm border-2 border-emerald-200">
                             {!qrError ? (
                               <img
                                 src={qrUrl}
@@ -468,19 +468,19 @@ export default function Refunds() {
                                 onError={() => setQrError(true)}
                               />
                             ) : (
-                              <div className="w-56 h-56 flex flex-col items-center justify-center gap-2 text-gray-400 bg-gray-50 rounded-lg">
+                              <div className="w-56 h-56 flex flex-col items-center justify-center gap-2 text-gray-400 bg-muted rounded-lg">
                                 <QrCode size={40} className="text-gray-300" />
                                 <p className="text-xs text-center">Không tải được QR.<br />Kiểm tra mã ngân hàng.</p>
                               </div>
                             )}
                           </div>
-                          <div className="text-xs text-center text-gray-500 bg-gray-50 rounded-lg p-3 w-full">
-                            <p className="font-medium text-gray-700 mb-1">Nội dung chuyển khoản:</p>
+                          <div className="text-xs text-center text-muted-foreground bg-muted rounded-lg p-3 w-full">
+                            <p className="font-medium text-foreground/80 mb-1">Nội dung chuyển khoản:</p>
                             <div className="flex items-center justify-center gap-2">
                               <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded break-all text-center">
                                 {selectedReq.id}
                               </span>
-                              <button onClick={() => copyToClipboard(selectedReq.id, "nội dung chuyển khoản")} className="text-gray-400 hover:text-blue-600 flex-shrink-0">
+                              <button onClick={() => copyToClipboard(selectedReq.id, "nội dung chuyển khoản")} className="text-gray-400 hover:text-primary flex-shrink-0">
                                 <Copy size={13} />
                               </button>
                             </div>

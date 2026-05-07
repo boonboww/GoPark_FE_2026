@@ -65,6 +65,7 @@ import {
 } from "@/services/admin.service";
 import { useAdminStore } from "@/stores";
 import { IconCash, IconMail, IconMoneybag } from "@tabler/icons-react";
+import { AdminStatCard } from "@/components/admin/AdminStatCard";
 
  
 
@@ -281,10 +282,10 @@ export default function ParkingLotsPage() {
   // ── Thẻ thống kê ───────────────────────────────────────────────────────────
 
   const statCards = [
-    { title: "Tổng bãi đỗ", value: parkingLotStats?.totalParkingLots.toString() || "0", icon: ParkingSquare, color: "bg-blue-600", light: "bg-blue-50" },
-    { title: "Đang hoạt động", value: parkingLotStats?.activeParkingLots.toString() || "0", icon: Activity, color: "bg-emerald-600", light: "bg-emerald-50" },
-    { title: "Chỗ trống / Tổng chỗ đỗ", value: parkingLotStats?.availableSpacesParkingSlot || "0/0", icon: ParkingCircle, color: "bg-violet-600", light: "bg-violet-50" },
-    { title: "Đánh giá TB", value: `${parkingLotStats?.averageRating || "0.0"}`, icon: Star, color: "bg-amber-500", light: "bg-amber-50" },
+    { title: "Tổng bãi đỗ", value: parkingLotStats?.totalParkingLots.toString() || "0", icon: ParkingSquare, color: "bg-blue-600", light: "bg-blue-50 dark:bg-blue-950/20" },
+    { title: "Đang hoạt động", value: parkingLotStats?.activeParkingLots.toString() || "0", icon: Activity, color: "bg-emerald-600", light: "bg-emerald-50 dark:bg-emerald-950/20" },
+    { title: "Chỗ trống / Tổng chỗ đỗ", value: parkingLotStats?.availableSpacesParkingSlot || "0/0", icon: ParkingCircle, color: "bg-violet-600", light: "bg-violet-50 dark:bg-violet-950/20" },
+    { title: "Đánh giá TB", value: `${parkingLotStats?.averageRating || "0.0"}`, icon: Star, color: "bg-amber-500", light: "bg-amber-50 dark:bg-amber-950/20" },
   ];
 
   // ── Loading ─────────────────────────────────────────────────────────────────
@@ -293,8 +294,8 @@ export default function ParkingLotsPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Đang tải danh sách bãi đỗ xe...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải danh sách bãi đỗ xe...</p>
         </div>
       </div>
     );
@@ -306,13 +307,13 @@ export default function ParkingLotsPage() {
     <div className="space-y-6">
 
       {/* ── Tiêu đề ───────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-2xl px-8 py-6 shadow-lg">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl px-8 py-6 shadow-lg">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
             <ParkingSquare className="w-6 h-6" />
             Tất cả Bãi đỗ xe
           </h1>
-          <p className="text-blue-200/70 mt-1 text-sm">
+          <p className="text-primary-foreground/70 mt-1 text-sm">
             Tìm thấy {filteredLots.length} bãi đỗ xe
             {usingMockData && <span className="ml-2 text-orange-300 text-xs">(Dữ liệu mẫu)</span>}
           </p>
@@ -335,25 +336,21 @@ export default function ParkingLotsPage() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <Card key={card.title} className={`hover:shadow-md transition-shadow border-0 shadow-sm ${card.light}`}>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm font-medium ${card.color.replace('bg-', 'text-').replace('600', '700')}`}>{card.title}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{card.value}</p>
-                  </div>
-                  <div className={`w-12 h-12 rounded-xl ${card.color} flex items-center justify-center shadow-lg shadow-${card.color.split('-')[1]}-200`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AdminStatCard
+              key={card.title}
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              iconGradient={`from-${card.color.split('-')[1]}-500 to-${card.color.split('-')[1]}-600`}
+              bgTint={card.light}
+              borderColor={`border-${card.color.split('-')[1]}-100 dark:border-${card.color.split('-')[1]}-900/50`}
+            />
           );
         })}
       </div>
 
       {/* ── Thanh tìm kiếm & lọc ──────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-5">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Ô tìm kiếm */}
           <div className="relative flex-1">
@@ -363,12 +360,12 @@ export default function ParkingLotsPage() {
               placeholder="Tìm theo tên bãi đỗ, địa chỉ, chủ bãi..."
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="pl-10 h-11 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
+              className="pl-10 h-11 bg-muted border-border focus:bg-card text-foreground"
             />
           </div>
           {/* Lọc trạng thái */}
           <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
-            <SelectTrigger className="h-11 min-w-[160px] border-gray-200 bg-slate-50 text-slate-900">
+            <SelectTrigger className="h-11 min-w-[160px] border-border bg-muted text-foreground">
               <SelectValue placeholder="Tất cả trạng thái" />
             </SelectTrigger>
             <SelectContent>
@@ -380,7 +377,7 @@ export default function ParkingLotsPage() {
 
           {/* Sắp xếp */}
           <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
-            <SelectTrigger className="h-11 min-w-[180px] border-gray-200 bg-slate-50 text-slate-900">
+            <SelectTrigger className="h-11 min-w-[180px] border-border bg-muted text-foreground">
               <SelectValue placeholder="Sắp xếp" />
             </SelectTrigger>
             <SelectContent>
@@ -392,7 +389,7 @@ export default function ParkingLotsPage() {
           </Select>
           {/* Xóa lọc */}
           {(filters.search || filters.status || filters.type || filters.sortBy !== "rating") && (
-            <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700 hover:bg-red-300 bg-red-100">
+            <Button variant="ghost" onClick={clearFilters} className="h-11 text-muted-foreground hover:text-foreground/80 hover:bg-red-300 bg-red-100">
               <X size={16} className="mr-1" />
               Xóa lọc
             </Button>
@@ -401,18 +398,18 @@ export default function ParkingLotsPage() {
       </div>
 
       {/* ── Bảng danh sách bãi đỗ ──────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Bãi đỗ xe</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Chủ bãi</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Công suất</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Giá / giờ</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Đánh giá</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-12" />
+              <tr className="bg-muted/80 border-b border-border">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bãi đỗ xe</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Chủ bãi</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Công suất</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Giá / giờ</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Đánh giá</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Trạng thái</th>
+                <th className="px-6 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -436,7 +433,7 @@ export default function ParkingLotsPage() {
                           <ParkingSquare className="w-5 h-5 text-blue-600" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate max-w-[220px]">{lot.name}</p>
+                          <p className="text-sm font-semibold text-foreground truncate max-w-[220px]">{lot.name}</p>
                           <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                             <MapPin size={10} className="flex-shrink-0" />
                             <span className="truncate max-w-[200px]">{lot.location}</span>
@@ -451,7 +448,7 @@ export default function ParkingLotsPage() {
                         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
                           <span className="text-white text-[10px] font-bold">{getInitials(lot.owner.name)}</span>
                         </div>
-                        <span className="text-sm text-gray-700 truncate max-w-[120px]">{lot.owner.name}</span>
+                        <span className="text-sm text-foreground/80 truncate max-w-[120px]">{lot.owner.name}</span>
                       </div>
                     </td>
 
@@ -459,11 +456,11 @@ export default function ParkingLotsPage() {
                     <td className="px-6 py-4">
                       <div className="w-32">
                         <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-gray-500">{lot.availableSpaces.totalSlots - lot.availableSpaces.availableSlots}/{lot.availableSpaces.totalSlots}</span>
-                          <span className="font-semibold text-gray-700">{occupancy}%</span>
+                          <span className="text-muted-foreground">{lot.availableSpaces.totalSlots - lot.availableSpaces.availableSlots}/{lot.availableSpaces.totalSlots}</span>
+                          <span className="font-semibold text-foreground/80">{occupancy}%</span>
                         </div>
                         {/* Thanh tiến trình công suất */}
-                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${occColor} transition-all`} style={{ width: `${occupancy}%` }} />
                         </div>
                       </div>
@@ -472,7 +469,7 @@ export default function ParkingLotsPage() {
                     <td className="px-6 py-4">
                       {lot.pricePerHour && lot.pricePerHour.length > 0 ? (
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">
+                          <p className="text-sm font-semibold text-foreground">
                             {formatCurrency(Math.min(...lot.pricePerHour.map(p => p.pricePerHour)))}
                           </p>
                           {lot.pricePerHour.length > 1 && (
@@ -531,9 +528,9 @@ export default function ParkingLotsPage() {
 
         {/* Phân trang */}
         {filteredLots.length > 0 && (
-          <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
-            <div className="text-sm text-gray-500">
-              Hiển thị <span className="font-medium text-gray-900">{Math.min(filteredLots.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredLots.length, currentPage * pageSize)}</span> trong <span className="font-medium text-gray-900">{filteredLots.length}</span> bãi đỗ
+          <div className="px-5 py-4 border-t border-border flex items-center justify-between bg-card">
+            <div className="text-sm text-muted-foreground">
+              Hiển thị <span className="font-medium text-foreground">{Math.min(filteredLots.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredLots.length, currentPage * pageSize)}</span> trong <span className="font-medium text-foreground">{filteredLots.length}</span> bãi đỗ
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -568,7 +565,7 @@ export default function ParkingLotsPage() {
                       variant={currentPage === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(page)}
-                      className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                      className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}
                     >
                       {page}
                     </Button>
@@ -594,11 +591,11 @@ export default function ParkingLotsPage() {
         {/* Trạng thái trống */}
         {filteredLots.length === 0 && (
           <div className="text-center py-16">
-            <div className="bg-gray-100 rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
+            <div className="bg-muted rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
               <ParkingSquare className="h-10 w-10 text-gray-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy bãi đỗ xe nào</h3>
-            <p className="text-gray-500 mb-6 max-w-md mx-auto">Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Không tìm thấy bãi đỗ xe nào</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm</p>
             <Button onClick={clearFilters} variant="outline">Xóa tất cả bộ lọc</Button>
           </div>
         )}
@@ -627,8 +624,8 @@ export default function ParkingLotsPage() {
                       <ParkingSquare className="w-7 h-7 text-blue-600" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900">{lot.name}</h3>
-                      <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                      <h3 className="text-xl font-bold text-foreground">{lot.name}</h3>
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                         <MapPin size={14} className="flex-shrink-0" />{lot.location}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
@@ -679,33 +676,33 @@ export default function ParkingLotsPage() {
                 </div>
 
                 {/* Thanh công suất lớn */}
-                <div className="p-4 bg-gray-50 rounded-xl">
+                <div className="p-4 bg-muted rounded-xl">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-semibold text-gray-700">Công suất sử dụng</h4>
-                    <span className="text-sm font-bold text-gray-900">{occupancy}%</span>
+                    <h4 className="text-sm font-semibold text-foreground/80">Công suất sử dụng</h4>
+                    <span className="text-sm font-bold text-foreground">{occupancy}%</span>
                   </div>
                   <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${occColor} transition-all`} style={{ width: `${occupancy}%` }} />
                   </div>
-                  <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                    <span>Đang dùng: <strong className="text-gray-700">{lot.occupiedSlots}</strong></span>
+                  <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                    <span>Đang dùng: <strong className="text-foreground/80">{lot.occupiedSlots}</strong></span>
                     <span>Còn trống: <strong className="text-green-600">{lot.availableSpaces.availableSlots}</strong></span>
-                    <span>Tổng: <strong className="text-gray-700">{lot.totalSpaces}</strong></span>
+                    <span>Tổng: <strong className="text-foreground/80">{lot.totalSpaces}</strong></span>
                   </div>
                 </div>
 
 
                 {/* Phân bổ theo khu vực */}
-                <div className="border border-gray-100 rounded-xl p-5">
+                <div className="border border-border rounded-xl p-5">
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Phân bổ theo khu vực ({lot.zones.length})</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {lot.zones.map((zone) => (
-                      <div key={zone.id} className="p-3 bg-white border border-gray-100 rounded-lg shadow-sm">
+                      <div key={zone.id} className="p-3 bg-card border border-border rounded-lg shadow-sm">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-semibold text-gray-800">{zone.name}</span>
+                          <span className="text-sm font-semibold text-foreground">{zone.name}</span>
                           <span className="text-xs font-bold text-blue-600">{zone.availableSlots}/{zone.totalSlots} chỗ</span>
                         </div>
-                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden mt-1">
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-1">
                           <div
                             className="h-full bg-blue-500 rounded-full"
                             style={{ width: `${getOccupancyPercent(zone.totalSlots - zone.availableSlots, zone.totalSlots)}%` }}
@@ -718,21 +715,21 @@ export default function ParkingLotsPage() {
 
 
                 {/* Bảng giá theo khu vực */}
-                <div className="border border-gray-100 rounded-xl p-5">
+                <div className="border border-border rounded-xl p-5">
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Bảng giá tham khảo ({lot.pricePerHour.length})</h4>
-                  <div className="overflow-hidden border border-gray-100 rounded-lg">
+                  <div className="overflow-hidden border border-border rounded-lg">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50">
+                      <thead className="bg-muted">
                         <tr>
-                          <th className="px-4 py-2 text-left font-semibold text-gray-600">Khu vực</th>
-                          <th className="px-4 py-2 text-right font-semibold text-gray-600">Theo giờ</th>
-                          <th className="px-4 py-2 text-right font-semibold text-gray-600">Theo ngày</th>
+                          <th className="px-4 py-2 text-left font-semibold text-muted-foreground">Khu vực</th>
+                          <th className="px-4 py-2 text-right font-semibold text-muted-foreground">Theo giờ</th>
+                          <th className="px-4 py-2 text-right font-semibold text-muted-foreground">Theo ngày</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {lot.pricePerHour.map((price, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50/50">
-                            <td className="px-4 py-2 text-gray-700 font-medium">{price.zonename}</td>
+                          <tr key={idx} className="hover:bg-muted/50">
+                            <td className="px-4 py-2 text-foreground/80 font-medium">{price.zonename}</td>
                             <td className="px-4 py-2 text-right text-blue-600 font-semibold">{formatCurrency(price.pricePerHour)}</td>
                             <td className="px-4 py-2 text-right text-indigo-600 font-semibold">{formatCurrency(price.pricePerDay)}</td>
                           </tr>
@@ -747,24 +744,24 @@ export default function ParkingLotsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-3">
                     <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Mô tả</h4>
-                    <p className="text-sm text-gray-600 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
+                    <p className="text-sm text-muted-foreground leading-relaxed bg-muted p-3 rounded-lg border border-border italic">
                       "{lot.description || "Không có mô tả"}"
                     </p>
                   </div>
                   <div className="space-y-3">
                     <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Thông tin vận hành</h4>
-                    <div className="bg-slate-50 p-3 rounded-lg border border-gray-100 space-y-2">
+                    <div className="bg-muted p-3 rounded-lg border border-border space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={12} /> Giờ mở cửa</span>
-                        <span className="text-sm font-semibold text-slate-700">{lot.openTime}</span>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> Giờ mở cửa</span>
+                        <span className="text-sm font-semibold text-foreground/80">{lot.openTime}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={12} /> Giờ đóng cửa</span>
-                        <span className="text-sm font-semibold text-slate-700">{lot.closeTime}</span>
+                        <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock size={12} /> Giờ đóng cửa</span>
+                        <span className="text-sm font-semibold text-foreground/80">{lot.closeTime}</span>
                       </div>
-                      <div className="pt-1 border-t border-slate-200 flex justify-between items-center">
-                        <span className="text-xs text-gray-500 flex items-center gap-1"><Navigation size={12} /> Loại hình</span>
-                        <span className="text-sm font-semibold text-slate-700">{lot.type}</span>
+                      <div className="pt-1 border-t border-border flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1"><Navigation size={12} /> Loại hình</span>
+                        <span className="text-sm font-semibold text-foreground/80">{lot.type}</span>
                       </div>
                     </div>
                   </div>
@@ -788,7 +785,7 @@ export default function ParkingLotsPage() {
                
 
                 {/* Thông tin chủ bãi */}
-                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="p-4 bg-muted rounded-xl border border-border">
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Chủ bãi đỗ</h4>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -796,8 +793,8 @@ export default function ParkingLotsPage() {
                         <span className="text-white text-sm font-semibold">{getInitials(lot.owner.name)}</span>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">{lot.owner.name}</p>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <p className="text-sm font-semibold text-foreground">{lot.owner.name}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <Phone size={12} /> {lot.owner.phone}
                         </p>
                       </div>
@@ -809,7 +806,7 @@ export default function ParkingLotsPage() {
                 </div>
 
                 {/* Nút hành động */}
-                <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+                <div className="flex justify-end gap-3 pt-2 border-t border-border">
                   <Button variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>
                   {lot.status === "ACTIVE" && (
                     <Button className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => handleToggleStatus(lot, "INACTIVE")}>

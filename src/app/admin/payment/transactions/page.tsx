@@ -58,6 +58,7 @@ import {
   PaymentMethod,
 } from "@/services/admin.service";
 import { useAdminStore } from "@/stores";
+import { AdminStatCard } from "@/components/admin/AdminStatCard";
 
 /** Bộ lọc */
 interface Filters {
@@ -114,7 +115,7 @@ const paymentMethodConfig: Record<PaymentMethod, { label: string; color: string 
   momo: { label: "MoMo", color: "text-pink-600" },
   vnpay: { label: "VNPay", color: "text-blue-600" },
   zalopay: { label: "ZaloPay", color: "text-blue-500" },
-  bank_transfer: { label: "Chuyển khoản", color: "text-gray-700" },
+  bank_transfer: { label: "Chuyển khoản", color: "text-foreground/80" },
   wallet: { label: "Ví GoPark", color: "text-teal-600" },
   cash: { label: "Tiền mặt", color: "text-green-600" },
   credit_card: { label: "Thẻ tín dụng", color: "text-indigo-600" },
@@ -455,10 +456,10 @@ export default function TransactionsPage() {
   // ── Thẻ thống kê ────────────────────────────────────────────────────────────
 
   const statCards = [
-    { title: "Tổng giao dịch", value: stats.total.toString(), icon: Receipt, color: "bg-blue-600", light: "bg-blue-50" },
-    { title: "Thành công", value: stats.success.toString(), icon: CheckCircle2, color: "bg-green-600", light: "bg-green-50" },
-    { title: "Thu vào", value: formatCompactCurrency(stats.totalAmount), icon: TrendingUp, color: "bg-emerald-600", light: "bg-emerald-50" },
-    { title: "Hoàn tiền", value: formatCompactCurrency(stats.refundedAmount), icon: TrendingDown, color: "bg-orange-600", light: "bg-orange-50" },
+    { title: "Tổng giao dịch", value: stats.total.toString(), icon: Receipt, color: "bg-blue-600", light: "bg-blue-50 dark:bg-blue-950/20" },
+    { title: "Thành công", value: stats.success.toString(), icon: CheckCircle2, color: "bg-green-600", light: "bg-green-50 dark:bg-green-950/20" },
+    { title: "Thu vào", value: formatCompactCurrency(stats.totalAmount), icon: TrendingUp, color: "bg-emerald-600", light: "bg-emerald-50 dark:bg-emerald-950/20" },
+    { title: "Hoàn tiền", value: formatCompactCurrency(stats.refundedAmount), icon: TrendingDown, color: "bg-orange-600", light: "bg-orange-50 dark:bg-orange-950/20" },
   ];
 
   // ── Loading ─────────────────────────────────────────────────────────────────
@@ -467,8 +468,8 @@ export default function TransactionsPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Đang tải lịch sử giao dịch...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải lịch sử giao dịch...</p>
         </div>
       </div>
     );
@@ -480,13 +481,13 @@ export default function TransactionsPage() {
     <div className="space-y-6">
 
       {/* ── Tiêu đề ───────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-2xl px-8 py-6 shadow-lg">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl px-8 py-6 shadow-lg">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
             <Receipt className="w-6 h-6" />
             Lịch sử Giao dịch
           </h1>
-          <p className="text-blue-200/70 mt-1 text-sm">
+          <p className="text-primary-foreground/70 mt-1 text-sm">
             Tìm thấy {filteredTxns.length} giao dịch
             {usingMockData && <span className="ml-2 text-orange-300 text-xs">(Dữ liệu mẫu)</span>}
           </p>
@@ -507,25 +508,21 @@ export default function TransactionsPage() {
         {statCards.map((card) => {
           const Icon = card.icon;
           return (
-            <Card key={card.title} className={`hover:shadow-md transition-shadow border-0 shadow-sm ${card.light}`}>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={`text-sm font-medium ${card.color.replace('bg-', 'text-').replace('600', '700')}`}>{card.title}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{card.value}</p>
-                  </div>
-                  <div className={`w-12 h-12 rounded-xl ${card.color} flex items-center justify-center shadow-lg shadow-${card.color.split('-')[1]}-200`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AdminStatCard
+              key={card.title}
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              iconGradient={`from-${card.color.split('-')[1]}-500 to-${card.color.split('-')[1]}-600`}
+              bgTint={card.light}
+              borderColor={`border-${card.color.split('-')[1]}-100 dark:border-${card.color.split('-')[1]}-900/50`}
+            />
           );
         })}
       </div>
 
       {/* ── Thanh tìm kiếm & bộ lọc ───────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-5 space-y-4">
         {/* Dòng 1: Tìm kiếm */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -534,7 +531,7 @@ export default function TransactionsPage() {
             placeholder="Tìm theo mã giao dịch, tên người dùng, bãi đỗ, email..."
             value={filters.search}
             onChange={(e) => handleFilterChange("search", e.target.value)}
-            className="pl-10 h-11 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
+            className="pl-10 h-11 bg-muted border-border focus:bg-card text-foreground"
           />
         </div>
         
@@ -543,7 +540,7 @@ export default function TransactionsPage() {
           {/* Trạng thái */}
           <div className="lg:col-span-2">
             <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
-              <SelectTrigger className="h-10 w-full border-gray-200 bg-slate-50 text-slate-900 text-sm">
+              <SelectTrigger className="h-10 w-full border-border bg-muted text-foreground text-sm">
                 <SelectValue placeholder="Trạng thái" />
               </SelectTrigger>
               <SelectContent>
@@ -559,7 +556,7 @@ export default function TransactionsPage() {
           {/* Loại giao dịch */}
           <div className="lg:col-span-2">
             <Select value={filters.type || "all"} onValueChange={(val) => handleFilterChange("type", val === "all" ? "" : val)}>
-              <SelectTrigger className="h-10 w-full border-gray-200 bg-slate-50 text-slate-900 text-sm">
+              <SelectTrigger className="h-10 w-full border-border bg-muted text-foreground text-sm">
                 <SelectValue placeholder="Loại GD" />
               </SelectTrigger>
               <SelectContent>
@@ -577,7 +574,7 @@ export default function TransactionsPage() {
           {/* Phương thức */}
           <div className="lg:col-span-2">
             <Select value={filters.paymentMethod || "all"} onValueChange={(val) => handleFilterChange("paymentMethod", val === "all" ? "" : val)}>
-              <SelectTrigger className="h-10 w-full border-gray-200 bg-slate-50 text-slate-900 text-sm">
+              <SelectTrigger className="h-10 w-full border-border bg-muted text-foreground text-sm">
                 <SelectValue placeholder="Phương thức" />
               </SelectTrigger>
               <SelectContent>
@@ -594,7 +591,7 @@ export default function TransactionsPage() {
           </div>
 
           {/* Khoảng ngày */}
-          <div className="lg:col-span-3 flex items-center gap-2 bg-slate-50 border border-gray-200 rounded-md px-2 h-10">
+          <div className="lg:col-span-3 flex items-center gap-2 bg-muted border border-border rounded-md px-2 h-10">
             <Input 
               type="date" 
               value={filters.dateFrom} 
@@ -613,7 +610,7 @@ export default function TransactionsPage() {
           {/* Sắp xếp */}
           <div className="lg:col-span-2">
             <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
-              <SelectTrigger className="h-10 w-full border-gray-200 bg-slate-50 text-slate-900 text-sm">
+              <SelectTrigger className="h-10 w-full border-border bg-muted text-foreground text-sm">
                 <SelectValue placeholder="Sắp xếp" />
               </SelectTrigger>
               <SelectContent>
@@ -637,19 +634,19 @@ export default function TransactionsPage() {
       </div>
 
       {/* ── Bảng giao dịch ─────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100">
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Mã GD</th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Người dùng</th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Loại</th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Số tiền</th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phương thức</th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Thời gian</th>
-                <th className="px-5 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-10" />
+              <tr className="bg-muted/80 border-b border-border">
+                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mã GD</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Người dùng</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Loại</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Số tiền</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Phương thức</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Trạng thái</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Thời gian</th>
+                <th className="px-5 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-10" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -662,7 +659,7 @@ export default function TransactionsPage() {
                 const isOutgoing = txn.type === "refund" || txn.type === "withdrawal";
 
                 return (
-                  <tr key={txn._id} className="hover:bg-blue-50/40 transition-colors cursor-pointer" onClick={() => openDetail(txn)}>
+                  <tr key={txn._id} className="hover:bg-primary/5 transition-colors cursor-pointer" onClick={() => openDetail(txn)}>
                     {/* Mã giao dịch */}
                     <td className="px-5 py-3.5">
                       <span className="text-xs font-mono font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded">
@@ -677,7 +674,7 @@ export default function TransactionsPage() {
                           <span className="text-white text-[10px] font-bold">{getInitials(txn.user.userName)}</span>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900 truncate max-w-[140px]">{txn.user.userName}</p>
+                          <p className="text-sm font-medium text-foreground truncate max-w-[140px]">{txn.user.userName}</p>
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{roleLabels[txn.user.role]}</Badge>
                         </div>
                       </div>
@@ -689,7 +686,7 @@ export default function TransactionsPage() {
                         <div className={`w-6 h-6 rounded ${tConf.bgColor} flex items-center justify-center`}>
                           <TIcon className={`w-3.5 h-3.5 ${tConf.color}`} />
                         </div>
-                        <span className="text-xs text-gray-600">{tConf.label}</span>
+                        <span className="text-xs text-muted-foreground">{tConf.label}</span>
                       </div>
                     </td>
 
@@ -715,7 +712,7 @@ export default function TransactionsPage() {
 
                     {/* Thời gian */}
                     <td className="px-5 py-3.5">
-                      <p className="text-xs text-gray-500">{timeAgo(txn.createdAt)}</p>
+                      <p className="text-xs text-muted-foreground">{timeAgo(txn.createdAt)}</p>
                     </td>
 
                     {/* Menu */}
@@ -739,11 +736,11 @@ export default function TransactionsPage() {
         {/* Trạng thái trống */}
         {filteredTxns.length === 0 && (
           <div className="text-center py-16">
-            <div className="bg-gray-100 rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
+            <div className="bg-muted rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
               <Receipt className="h-10 w-10 text-gray-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy giao dịch nào</h3>
-            <p className="text-gray-500 mb-6 max-w-md mx-auto">Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Không tìm thấy giao dịch nào</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm</p>
             <Button onClick={clearFilters} variant="outline">Xóa tất cả bộ lọc</Button>
           </div>
         )}
@@ -786,33 +783,33 @@ export default function TransactionsPage() {
 
                 {/* Thông tin giao dịch */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                     <Hash size={18} className="text-blue-500" />
                     <div>
                       <p className="text-xs text-gray-400">Mã giao dịch</p>
-                      <p className="text-sm font-mono font-semibold text-gray-900">{selectedTxn.transactionCode}</p>
+                      <p className="text-sm font-mono font-semibold text-foreground">{selectedTxn.transactionCode}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                     <Wallet size={18} className="text-indigo-500" />
                     <div>
                       <p className="text-xs text-gray-400">Phương thức</p>
                       <p className={`text-sm font-semibold ${pmConf.color}`}>{pmConf.label}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                     <Calendar size={18} className="text-green-500" />
                     <div>
                       <p className="text-xs text-gray-400">Thời gian tạo</p>
-                      <p className="text-sm font-medium text-gray-900">{formatDateTime(selectedTxn.createdAt)}</p>
+                      <p className="text-sm font-medium text-foreground">{formatDateTime(selectedTxn.createdAt)}</p>
                     </div>
                   </div>
                   {selectedTxn.completedAt && (
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                       <CheckCircle2 size={18} className="text-emerald-500" />
                       <div>
                         <p className="text-xs text-gray-400">Hoàn thành lúc</p>
-                        <p className="text-sm font-medium text-gray-900">{formatDateTime(selectedTxn.completedAt)}</p>
+                        <p className="text-sm font-medium text-foreground">{formatDateTime(selectedTxn.completedAt)}</p>
                       </div>
                     </div>
                   )}
@@ -821,13 +818,13 @@ export default function TransactionsPage() {
                 {/* Mô tả */}
                 <div>
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Mô tả</h4>
-                  <p className="text-sm text-gray-700 leading-relaxed bg-white border border-gray-100 rounded-lg p-4">
+                  <p className="text-sm text-foreground/80 leading-relaxed bg-card border border-border rounded-lg p-4">
                     {selectedTxn.description}
                   </p>
                 </div>
 
                 {/* Người dùng */}
-                <div className="p-4 bg-gray-50 rounded-xl">
+                <div className="p-4 bg-muted rounded-xl">
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Người thực hiện</h4>
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(selectedTxn.user._id)} flex items-center justify-center shadow-sm`}>
@@ -835,10 +832,10 @@ export default function TransactionsPage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-gray-900">{selectedTxn.user.userName}</p>
+                        <p className="text-sm font-semibold text-foreground">{selectedTxn.user.userName}</p>
                         <Badge variant="outline" className="text-xs">{roleLabels[selectedTxn.user.role]}</Badge>
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">{selectedTxn.user.email}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{selectedTxn.user.email}</p>
                     </div>
                   </div>
                 </div>
@@ -849,8 +846,8 @@ export default function TransactionsPage() {
                     <MapPin size={18} className="text-violet-500" />
                     <div>
                       <p className="text-xs text-violet-400">Bãi đỗ xe</p>
-                      <p className="text-sm font-medium text-gray-900">{selectedTxn.parkingLotName}</p>
-                      {selectedTxn.parkingLotAddress && <p className="text-xs text-gray-500">{selectedTxn.parkingLotAddress}</p>}
+                      <p className="text-sm font-medium text-foreground">{selectedTxn.parkingLotName}</p>
+                      {selectedTxn.parkingLotAddress && <p className="text-xs text-muted-foreground">{selectedTxn.parkingLotAddress}</p>}
                     </div>
                   </div>
                 )}
@@ -861,7 +858,7 @@ export default function TransactionsPage() {
                     <Receipt size={18} className="text-blue-500" />
                     <div>
                       <p className="text-xs text-blue-400">Mã đặt chỗ</p>
-                      <p className="text-sm font-mono font-semibold text-gray-900">{selectedTxn.bookingId}</p>
+                      <p className="text-sm font-mono font-semibold text-foreground">{selectedTxn.bookingId}</p>
                     </div>
                   </div>
                 )}
@@ -887,7 +884,7 @@ export default function TransactionsPage() {
                 )}
 
                 {/* Nút đóng */}
-                <div className="flex justify-end pt-2 border-t border-gray-100">
+                <div className="flex justify-end pt-2 border-t border-border">
                   <Button variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>
                 </div>
               </div>
