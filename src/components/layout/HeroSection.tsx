@@ -777,15 +777,15 @@ const HeroSection = () => {
           ) : displayNearbyParkings.length > 0 ? (
             <>
               {/* MAIN CONTENT */}
-              <div className="relative flex-1 w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10 z-10 mt-2 md:mt-12 animate-in fade-in slide-in-from-bottom-8">
+              <div className="relative flex-1 w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-10 z-10 mt-0 md:mt-2 animate-in fade-in slide-in-from-bottom-8">
 
-                {/* LEFT COLUMN: GREETING & FLOATING CONTROLS */}
-                <div className="lg:col-span-4 xl:col-span-3 flex flex-col justify-center z-20 text-center md:text-left relative overflow-hidden">
-                  <div className="relative w-full h-40 sm:h-50 md:h-62.5">
+                {/* LEFT COLUMN: GREETING & FLOATING CONTROLS (tên bãi, nút đặt chỗ ngay) */}
+                <div className="lg:col-span-4 xl:col-span-3 flex flex-col justify-center z-20 text-center md:text-left relative mb-6">
+                  <div className="relative w-full h-80 sm:h-90 md:h-100 flex flex-col justify-center overflow-visible">
                     {displayNearbyParkings.map((parking, index) => (
                       <div
                         key={`info-${index}`}
-                        className={`absolute inset-0 flex flex-col transition-all duration-700 ease-in-out ${index === currentIndex
+                        className={`absolute inset-0 flex flex-col justify-center transition-all duration-700 ease-in-out ${index === currentIndex
                             ? "opacity-100 translate-x-0"
                             : slideDirection === "left"
                               ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
@@ -796,23 +796,28 @@ const HeroSection = () => {
                                 : "opacity-0 -translate-x-full"
                           }`}
                       >
-                        <h2
-                          className={`text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-white leading-tight wrap-break-word transition-all duration-300 ${!isNameExpanded ? 'line-clamp-2 md:line-clamp-3' : ''}`}
-                          title={parking.name}
-                        >
-                          {parking.name}
-                        </h2>
-
-                        {parking.name.length > 20 && (
-                          <button
-                            onClick={() => setIsNameExpanded(!isNameExpanded)}
-                            className="flex justify-center md:justify-start gap-1.5 text-[11px] font-bold mt-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-all items-center bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-full w-fit mx-auto md:mx-0"
+                        <div className="flex flex-col mb-4">
+                          <h2
+                            className={`text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-white leading-tight wrap-break-word transition-all duration-300 ${!isNameExpanded ? 'line-clamp-1' : ''}`}
+                            title={parking.name}
                           >
-                            {isNameExpanded ? "(^ Thu gọn)" : "(V Xem thêm)"}
-                          </button>
-                        )}
+                            {parking.name}
+                          </h2>
 
-                        <div className="mt-4 flex flex-col gap-3">
+                          {parking.name.length > 10 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsNameExpanded(!isNameExpanded);
+                              }}
+                              className="flex justify-center md:justify-start gap-1.5 text-[11px] font-bold mt-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-all items-center bg-blue-50 dark:bg-blue-900/20 px-3 py-1 rounded-full w-fit mx-auto md:mx-0 z-30"
+                            >
+                              {isNameExpanded ? "(^ Thu gọn)" : "(... Xem thêm)"}
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="mt-0 flex flex-col gap-3">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base bg-white/40 dark:bg-black/40 backdrop-blur-md inline-flex px-4 py-2 rounded-full shadow-sm">
                               {parking.status} • Trống {parking.availableSpots}/{parking.totalSpots} chỗ

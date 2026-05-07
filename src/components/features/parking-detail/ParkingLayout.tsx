@@ -39,6 +39,7 @@ export function ParkingLayout() {
       ) : (
         <motion.div
           key="parking-layout"
+          id="parking-layout-container"
           variants={containerVariants}
           initial="hidden"
           animate="visible"

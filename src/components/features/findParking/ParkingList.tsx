@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { X, Maximize2, Minimize2, ChevronRight, ChevronLeft, Loader2, Route, Clock, ArrowLeft, LocateFixed, Search } from "lucide-react"
+import { X, Maximize2, Minimize2, ChevronRight, ChevronLeft, Loader2, Route, Clock, ArrowLeft, LocateFixed, Search, MapPin, Ticket, Info, ShoppingCart } from "lucide-react"
+import Link from "next/link"
 
 import { useConfigStore } from "@/stores/config.store"
 import { toast } from "sonner"
@@ -13,6 +14,7 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
   const [isOpen, setIsOpen] = useState(true);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showQuickView, setShowQuickView] = useState<any | null>(null);
   
   // States for directions
   const [directionLot, setDirectionLot] = useState<any | null>(null);
@@ -20,7 +22,7 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
   const [isRouting, setIsRouting] = useState(false);
 
   const viewMode = isFullScreen ? "grid" : "list";
-  const itemsPerPage = isFullScreen ? 8 : 4; // 8 items for 2x4 grid
+  const itemsPerPage = isFullScreen ? 12 : 4; // 12 items for 3x4 grid
   const totalPages = Math.ceil(parkingLots.length / itemsPerPage);
 
   const displayedLots = parkingLots.slice(
@@ -184,7 +186,7 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
         </div>
       </div>
 
-      <div className={`flex-1 overflow-y-auto p-4 ${!directionLot && viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-max" : "space-y-4"}`}>
+      <div className={`flex-1 overflow-y-auto p-4 ${!directionLot && viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 grid-rows-3 gap-6 auto-rows-max" : "space-y-4"}`}>
         {directionLot ? (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             <Card className="dark:bg-[#064e3b]/30 dark:border-white/20">
@@ -279,11 +281,14 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
           </div>
         ) : (
           displayedLots.map((lot) => (
-            <div key={lot.id} className="flex justify-center w-full">
+            <div key={lot.id} className="flex justify-center w-full" id={`parking-card-${lot.id}`}>
               <Card 
                 className={`overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 group flex flex-row h-40 w-full min-w-0 ${selectedLotId === lot.id ? "border-green-600 bg-green-50/5" : "border-green-900/30 dark:border-white/10 dark:bg-stone-900/40"}`}
                 style={{ border: '2px solid #14532d', borderRadius: '1.25rem' }}
-                onClick={() => onSelectLot?.(lot)}
+                onClick={() => {
+                  if (onSelectLot) onSelectLot(lot);
+                  if (isFullScreen) setShowQuickView(lot);
+                }}
               >
                 {/* Image Section - Smaller width */}
                 <div className="relative w-28 sm:w-32 h-full shrink-0 overflow-hidden border-r dark:border-white/10">
@@ -302,9 +307,22 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
                 {/* Content Section - More space for text */}
                 <CardContent className="p-3 flex-1 flex flex-col justify-between min-w-0 bg-white dark:bg-transparent">
                   <div className="space-y-0.5">
-                    <h3 className="font-black text-sm text-black dark:text-white truncate" title={lot.name}>
-                      {lot.name}
-                    </h3>
+                    <div className="flex items-center gap-1 min-w-0">
+                      <h3 className="font-black text-sm text-black dark:text-white truncate" title={lot.name}>
+                        {lot.name}
+                      </h3>
+                      {lot.name && lot.name.length > 20 && (
+                        <button 
+                          className="text-[10px] text-blue-500 hover:underline shrink-0 font-bold"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            alert(lot.name);
+                          }}
+                        >
+                          Xem thêm
+                        </button>
+                      )}
+                    </div>
                     <p className="text-[9px] font-medium text-gray-500 dark:text-stone-400 line-clamp-2 leading-tight" title={lot.address}>
                       {lot.address}
                     </p>
@@ -342,7 +360,7 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
       </div>
       
       {!directionLot && totalPages > 1 && (
-        <div className="p-3 border-t dark:border-white/10 flex items-center justify-between bg-muted/20 dark:bg-black/50">
+        <div className={`p-3 border-t dark:border-white/10 flex items-center bg-muted/20 dark:bg-black/50 ${isFullScreen ? "justify-center gap-8" : "justify-between"}`}>
           <Button
             variant="outline"
             size="sm"
@@ -364,6 +382,106 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
           >
             Sau <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
+        </div>
+      )}
+
+      {/* Quick View Modal for Full Screen Card Click */}
+      {showQuickView && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            onClick={() => setShowQuickView(null)}
+          />
+          <Card className="relative w-full max-w-sm bg-white dark:bg-stone-900 border-2 border-green-900/50 shadow-2xl rounded-[1.5rem] overflow-hidden animate-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => setShowQuickView(null)}
+              className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center hover:bg-black/20 dark:hover:bg-white/20 transition"
+            >
+              <X className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+            </button>
+
+            <div className="relative h-36">
+              <img
+                src={showQuickView.imageUrl || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=800&h=400&q=80"}
+                alt={showQuickView.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute top-3 left-3">
+                <Badge className={`${showQuickView.available_slots > 0 ? "bg-green-600" : "bg-red-600"} text-white text-[10px] uppercase font-black py-0.5 px-2.5 border-none rounded-full shadow-lg`}>
+                  {showQuickView.available_slots > 0 ? "Còn chỗ" : "Hết chỗ"}
+                </Badge>
+              </div>
+            </div>
+
+            <CardContent className="p-5">
+              <div className="space-y-3">
+                <div>
+                  <h2 className="text-lg font-black text-black dark:text-white mb-1 leading-tight line-clamp-1">
+                    {showQuickView.name}
+                  </h2>
+                  <div className="flex items-start gap-1.5 text-gray-500 dark:text-gray-400">
+                    <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-red-500" />
+                    <p className="text-[11px] font-medium line-clamp-1">{showQuickView.address}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 py-3 border-y border-gray-100 dark:border-white/10">
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] text-gray-400 uppercase font-black tracking-widest block">Trống</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-black text-2xl text-green-600 leading-none">
+                        {showQuickView.available_slots || 0}
+                      </span>
+                      <span className="text-gray-400 font-bold text-xs">/ {showQuickView.total_slots || 0}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-0.5 text-right">
+                    <span className="text-[9px] text-gray-400 uppercase font-black tracking-widest block">Giá vé</span>
+                    <div className="flex flex-col items-end">
+                      <span className="font-black text-lg text-black dark:text-white leading-none">
+                        {new Intl.NumberFormat('vi-VN').format(showQuickView.minprice || 15000)}đ
+                      </span>
+                      <span className="text-[9px] text-gray-400 font-bold">/ mỗi giờ</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <Link 
+                    href={`/users/detailParking/${showQuickView.id}`}
+                    className="flex-1"
+                  >
+                    <Button size="sm" className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90 font-bold h-10 rounded-xl shadow-lg flex items-center justify-center gap-1.5 text-xs">
+                      <ShoppingCart className="w-4 h-4" />
+                      Đặt ngay
+                    </Button>
+                  </Link>
+                  <Link 
+                    href={`/users/detailParking/${showQuickView.id}`}
+                    className="flex-1"
+                  >
+                    <Button size="sm" variant="outline" className="w-full border-2 border-gray-100 dark:border-white/10 font-bold h-10 rounded-xl flex items-center justify-center gap-1.5 text-xs">
+                      <Info className="w-4 h-4" />
+                      Chi tiết
+                    </Button>
+                  </Link>
+                </div>
+                
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-black dark:text-white font-bold h-10 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs"
+                  onClick={() => {
+                    handleGetDirections(showQuickView);
+                    setShowQuickView(null);
+                  }}
+                >
+                  <Route className="w-4 h-4" />
+                  Chỉ đường
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
