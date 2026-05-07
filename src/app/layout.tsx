@@ -6,7 +6,7 @@ import { QueryProvider } from "@/components/query-provider";
 import { GuardProvider } from "@/components/GuardProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
-import Chatbot from "@/components/layout/chatbot";
+import Chatbot from "@/components/chatbot/Chatbot";
 import { TourOverlay } from "@/components/layout/TourOverlay";
 
 const roboto = Roboto({
