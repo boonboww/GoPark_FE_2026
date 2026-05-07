@@ -40,6 +40,14 @@ const formSchema = z.object({
   open_time: z.string().min(1, "Giờ mở cửa là bắt buộc"),
   close_time: z.string().min(1, "Giờ đóng cửa là bắt buộc"),
   operating_days: z.array(z.string()).min(1, "Chọn ít nhất 1 ngày hoạt động"),
+}).refine((data) => {
+  if (!data.open_time || !data.close_time) return true;
+  const [openH, openM] = data.open_time.split(":").map(Number);
+  const [closeH, closeM] = data.close_time.split(":").map(Number);
+  return (closeH * 60 + closeM) > (openH * 60 + openM);
+}, {
+  message: "Giờ đóng cửa phải sau giờ mở cửa",
+  path: ["close_time"],
 });
 
 type FormValues = z.infer<typeof formSchema>;

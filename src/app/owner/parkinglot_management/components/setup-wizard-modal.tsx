@@ -102,7 +102,40 @@ export function SetupWizardTab({ onClose }: any) {
     }
   }, [floors, activeGateFloorId]);
 
-  const handleNext = () => setStep((s) => Math.min(s + 1, 4));
+  const validateStep = (currentStep: number) => {
+    if (currentStep === 1) {
+      // Validate Floors
+      if (floors.some((f) => !f.name.trim())) {
+        toast.error("Tên tầng không được để trống");
+        return false;
+      }
+      // Check duplicate floor names
+      const floorNames = floors.map((f) => f.name.trim().toLowerCase());
+      const hasDuplicates = floorNames.some((name, index) => floorNames.indexOf(name) !== index);
+      if (hasDuplicates) {
+        toast.error("Tên các tầng không được trùng nhau");
+        return false;
+      }
+    } else if (currentStep === 2) {
+      // Validate Zones
+      if (zones.some((z) => !z.name.trim())) {
+        toast.error("Tên khu vực không được để trống");
+        return false;
+      }
+      // Validate Slot Counts (1-100)
+      if (zones.some((z) => z.count < 1 || z.count > 100)) {
+        toast.error("Số lượng chỗ đỗ (Slot) phải nằm trong khoảng từ 1 đến 100");
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (validateStep(step)) {
+      setStep((s) => Math.min(s + 1, 4));
+    }
+  };
   const handlePrev = () => setStep((s) => Math.max(s - 1, 1));
 
   const addFloor = () =>
@@ -275,6 +308,7 @@ export function SetupWizardTab({ onClose }: any) {
       toast.error("Vui lòng chọn bãi đỗ xe trước khi thiết lập");
       return;
     }
+    if (!validateStep(1) || !validateStep(2)) return;
     setupMutation.mutate();
   };
 
