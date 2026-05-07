@@ -21,6 +21,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { ExtendBookingModal } from "@/components/features/parking-detail/ExtendBookingModal";
 import dayjs from "dayjs";
 import { useTourStore } from "@/store/tourStore";
+import { motion } from "framer-motion";
 
 
 interface UserProfile {
@@ -192,6 +193,7 @@ export default function ProfilePage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingVehicle, setIsSavingVehicle] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
@@ -213,6 +215,7 @@ export default function ProfilePage() {
   }, [vehicleDocPreview]);
 
   const fetchProfile = async () => {
+    setIsInitialLoading(true);
     try {
       const res = await apiClient<any>("/users/me", { method: "GET" });
       if (res.data) {
@@ -233,6 +236,8 @@ export default function ProfilePage() {
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsInitialLoading(false);
     }
   };
 
@@ -289,6 +294,20 @@ export default function ProfilePage() {
   };
 
   const handleProfileSave = async () => {
+    // Kiểm tra bỏ trống thông tin
+    if (!pForm.name.trim()) {
+      toast.error("Vui lòng nhập họ và tên.");
+      return;
+    }
+    if (!pForm.phone.trim()) {
+      toast.error("Vui lòng nhập số điện thoại.");
+      return;
+    }
+    if (!pForm.gender) {
+      toast.error("Vui lòng chọn giới tính.");
+      return;
+    }
+
     if (pForm.phone && pForm.phone.length !== 10) {
       toast.error("Số điện thoại phải có đúng 10 số.");
       return;
@@ -459,6 +478,18 @@ export default function ProfilePage() {
   };
 
   const handleDeleteVehicle = (vehicle: Vehicle) => {
+    // Kiểm tra xem xe này có đơn đặt chỗ nào chưa hoàn thành (chưa thanh toán hoặc đã xác nhận nhưng chưa kết thúc)
+    const activeBooking = bookings.find(
+      (b) => 
+        normalizePlate(b.vehicle.plate_number) === normalizePlate(vehicle.plate_number) && 
+        ["pending", "confirmed", "ongoing"].includes(b.status.toLowerCase())
+    );
+
+    if (activeBooking) {
+      toast.error(`Không thể xóa phương tiện ${vehicle.plate_number} vì đang có đơn đặt chỗ chưa hoàn tất!`);
+      return;
+    }
+
     openConfirmDialog({
       title: "Xác nhận xóa phương tiện",
       description: `Bạn có chắc muốn xóa phương tiện ${vehicle.plate_number}? Hành động này không thể hoàn tác.`,
@@ -508,12 +539,25 @@ export default function ProfilePage() {
   };
 
   const handleSaveVehicle = () => {
-    const formattedPlate = formatVietnamesePlate(vForm.plate_number);
-
+    // Kiểm tra bỏ trống các trường thông tin xe
     if (!vForm.plate_number.trim()) {
       toast.error("Vui lòng nhập biển số xe.");
       return;
     }
+    if (!vForm.owner_name.trim()) {
+      toast.error("Vui lòng nhập tên chủ xe.");
+      return;
+    }
+    if (!vForm.brand.trim()) {
+      toast.error("Vui lòng nhập hãng xe.");
+      return;
+    }
+    if (!vForm.type) {
+      toast.error("Vui lòng chọn loại phương tiện.");
+      return;
+    }
+
+    const formattedPlate = formatVietnamesePlate(vForm.plate_number);
 
     if (!formattedPlate) {
       toast.error("Biển số xe không đúng định dạng. Ví dụ hợp lệ: 59A-123.45 hoặc 29T2-191.89.");
@@ -607,6 +651,30 @@ export default function ProfilePage() {
 
 
   if (!isMounted) return null;
+
+  if (isInitialLoading) {
+    return (
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white dark:bg-stone-950">
+        <div className="relative flex flex-col items-center">
+          {/* Logo Animation */}
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="mb-8"
+          >
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-[2rem] flex items-center justify-center shadow-lg border border-green-200 dark:border-green-800">
+              <User className="w-10 h-10 text-green-600 dark:text-green-400" />
+            </div>
+          </motion.div>
+          
+          <Loader2 className="h-10 w-10 animate-spin text-green-600 mb-4" />
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white animate-pulse">Đang tải hồ sơ...</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">Vui lòng đợi trong giây lát</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 lg:p-8 max-w-7xl">

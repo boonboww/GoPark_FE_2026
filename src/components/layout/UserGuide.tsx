@@ -28,7 +28,7 @@ export function UserGuide() {
       {
         targetId: "header-avatar-btn",
         title: "Tài khoản cá nhân",
-        content: "Bấm vào ảnh đại diện để mở menu tài khoản.",
+        content: "Bấm nút Tiếp theo để mở menu tài khoản.",
         placement: "bottom" as const
       },
       {
@@ -46,7 +46,7 @@ export function UserGuide() {
       {
         targetId: "add-vehicle-btn",
         title: "Đăng ký phương tiện",
-        content: "Bấm vào nút này để mở khung đăng ký xe ô tô của bạn. (Vui lòng bấm để bước sau hiện ra trên khung)",
+        content: "Bấm nút Tiếp theo để mở khung đăng ký xe và xem bước hướng dẫn mới.",
         placement: "left" as const
       },
       {
@@ -93,14 +93,10 @@ export function UserGuide() {
   const handleStartBookingTour = () => {
     setShowOptions(false);
     
-    // Nếu đang ở trang chủ, hướng dẫn người dùng bấm vào Find Parking trước
+    // Nếu đã ở trang tìm kiếm thì bắt đầu từ bước tìm kiếm luôn, bỏ qua bước click nav
+    const isFindParkingPage = pathname === "/users/findParking";
+    
     const steps = [
-      {
-        targetId: "find-parking-nav-link",
-        title: "Tìm bãi đỗ xe",
-        content: "Bấm vào đây để đến trang bản đồ và bắt đầu khám phá bãi đỗ xe quanh bạn!",
-        placement: "bottom" as const
-      },
       {
         targetId: "top-search-input",
         title: "Tìm kiếm",
@@ -110,19 +106,25 @@ export function UserGuide() {
       {
         targetId: "near-me-btn",
         title: "Gần tôi",
-        content: "Hoặc bấm vào đây để hệ thống tự động tìm bãi đỗ quanh vị trí của bạn.",
+        content: "HÃY CLICK VÀO NÚT NÀY để hệ thống tự động tìm bãi đỗ quanh vị trí của bạn trước khi tiếp tục.",
         placement: "bottom" as const
       },
       {
         targetId: "near-me-radius-select",
         title: "Phạm vi tìm kiếm",
-        content: "Chọn bán kính (km) để mở rộng hoặc thu hẹp vùng tìm kiếm.",
+        content: "HÃY CHỌN BÁN KÍNH (KM) tại đây để mở rộng hoặc thu hẹp vùng tìm kiếm.",
         placement: "bottom" as const
+      },
+      {
+        targetId: "[id^='parking-card-']",
+        title: "Danh sách bãi đỗ",
+        content: "Bãi đỗ bạn chọn sẽ được làm nổi bật trong danh sách bên trái để bạn dễ dàng theo dõi.",
+        placement: "right" as const
       },
       {
         targetId: "[id^='parking-marker-']",
         title: "Chọn bãi đỗ",
-        content: "Bấm vào một biểu tượng bãi đỗ trên bản đồ để xem nhanh thông tin.",
+        content: "HÃY CLICK VÀO BIỂU TƯỢNG BÃI ĐỖ trên bản đồ để xem thông tin.",
         placement: "top" as const
       },
       {
@@ -180,12 +182,21 @@ export function UserGuide() {
         placement: "top" as const
       },
       {
-        targetId: "confirm-booking-btn",
+        targetId: "summit-booking-btn",
         title: "Xác nhận đặt chỗ",
         content: "Cuối cùng, nhấn 'Xác nhận' để hoàn tất quy trình giữ chỗ.",
         placement: "top" as const
       }
     ];
+
+    if (!isFindParkingPage) {
+      steps.unshift({
+        targetId: "find-parking-nav-link",
+        title: "Tìm bãi đỗ xe",
+        content: "Bấm nút Tiếp theo để đến trang bản đồ và bắt đầu khám phá bãi đỗ xe quanh bạn!",
+        placement: "bottom" as const
+      });
+    }
 
     startTour("booking", steps);
   };

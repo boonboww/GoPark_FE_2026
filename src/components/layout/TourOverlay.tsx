@@ -25,6 +25,14 @@ export function TourOverlay() {
     width: number;
     height: number;
   } | null>(null);
+
+  const [secondaryCoords, setSecondaryCoords] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
   const step = steps[currentStep];
   const pathname = usePathname();
   const router = useRouter();
@@ -41,33 +49,149 @@ export function TourOverlay() {
     }
   }, [pathname, isTourActive, tourType, stopTour, initialPathname]);
 
+  const handlePrev = () => {
+    // TỰ ĐỘNG QUAY LẠI TRANG TRƯỚC NẾU CẦN
+    const prevStepIndex = currentStep - 1;
+    const previousStepData = steps[prevStepIndex];
+
+    if (previousStepData) {
+      // 1. quay lại trang TÌM KIẾM (Find Parking)
+      const isSearchTarget = 
+        previousStepData.targetId === "top-search-input" || 
+        previousStepData.targetId === "near-me-btn" ||
+        previousStepData.targetId.includes("parking-marker") ||
+        previousStepData.targetId.includes("parking-card");
+
+      if (isSearchTarget && pathname !== "/users/findParking") {
+        router.push("/users/findParking");
+        setTimeout(() => prevStep(), 600);
+        return;
+      }
+
+      // 2. Quay lại trang CHỦ
+      if (previousStepData.targetId === "header-avatar-btn" && pathname !== "/") {
+        router.push("/");
+        setTimeout(() => prevStep(), 500);
+        return;
+      }
+      
+      // 3. Quay lại trang CHI TIẾT (từ trang SƠ ĐỒ hoặc trang khác)
+      const isDetailTarget = 
+        previousStepData.targetId === "parking-gallery-main" || 
+        previousStepData.targetId === "detail-book-now-btn" ||
+        previousStepData.targetId === "parking-price-selector" ||
+        previousStepData.targetId === "parking-detail-btn";
+
+      if (isDetailTarget) {
+        // Nếu đang ở trang sơ đồ (có container sơ đồ)
+        const isLayoutView = !!document.querySelector("#parking-layout-container");
+        if (isLayoutView) {
+          window.history.back();
+          setTimeout(() => prevStep(), 800);
+          return;
+        }
+      }
+    }
+    
+    prevStep();
+  };
+
   const handleNext = () => {
-    // Nếu đây là bước chuyển sang trang chi tiết bãi đỗ
-    if (step?.targetId === "parking-detail-btn") {
-      const detailBtn = document.querySelector("#parking-detail-btn");
-      if (detailBtn) {
-        // Giả lập click vào nút chi tiết để router xử lý chuyển trang
-        (detailBtn as HTMLElement).click();
-        setTimeout(() => {
-          nextStep();
-        }, 1000);
+    // Tự động thực hiện hành động dựa trên targetId của bước HIỆN TẠI trước khi chuyển sang bước tiếp theo
+    
+    // 1. Mở menu Avatar nếu đang ở bước hướng dẫn Avatar
+    if (step?.targetId === "header-avatar-btn") {
+      const avatarBtn = document.getElementById("header-avatar-btn") || document.querySelector("#header-avatar-btn");
+      if (avatarBtn) {
+        (avatarBtn as HTMLElement).click();
+        // Đợi menu mở ra rồi mới chuyển bước
+        setTimeout(() => nextStep(), 300);
         return;
       }
     }
 
-    // Nếu đây là bước chuyển sang trang sơ đồ đặt chỗ
+    // 2. Chuyển sang trang Profile nếu đang ở bước hướng dẫn link Profile
+    if (step?.targetId === "header-profile-link") {
+      const profileLink = document.getElementById("header-profile-link") || document.querySelector("#header-profile-link");
+      if (profileLink) {
+        (profileLink as HTMLElement).click();
+        // Chờ trang Profile tải xong rồi mới chuyển sang bước tiếp theo
+        setTimeout(() => nextStep(), 1200);
+        return;
+      }
+      
+      // Dự phòng nếu không tìm thấy link (ví dụ menu đóng), thay thế bằng router navigate
+      if (pathname !== "/users/profile") {
+        router.push("/users/profile");
+        setTimeout(() => nextStep(), 1200);
+        return;
+      }
+    }
+
+    // 3. Mở modal đăng ký xe nếu đang ở bước hướng dẫn nút Add Vehicle
+    if (step?.targetId === "add-vehicle-btn") {
+      const addVehicleBtn = document.getElementById("add-vehicle-btn") || document.querySelector("#add-vehicle-btn") || document.querySelector('[id="add-vehicle-btn"]');
+      if (addVehicleBtn) {
+        (addVehicleBtn as HTMLElement).click();
+        setTimeout(() => nextStep(), 300);
+        return;
+      }
+    }
+
+    // 4. Các hành động chuyển trang khác (đã có sẵn)
+    if (step?.targetId === "parking-detail-btn" || step?.targetId === "get-directions-btn") {
+      const btnSelector = step.targetId.startsWith("#") ? step.targetId : `#${step.targetId}`;
+      const btn = document.querySelector(btnSelector);
+      if (btn) {
+        (btn as HTMLElement).click();
+        setTimeout(() => nextStep(), 1500);
+        return;
+      }
+    }
+
     if (step?.targetId === "detail-book-now-btn") {
       const bookNowBtn = document.querySelector("#detail-book-now-btn");
       if (bookNowBtn) {
         (bookNowBtn as HTMLElement).click();
-        setTimeout(() => {
-          nextStep();
-        }, 1000);
+        setTimeout(() => nextStep(), 1500);
         return;
       }
     }
 
-    // Nếu đây là bước yêu cầu chuyển sang trang tìm kiếm trong tour "full" hoặc "booking"
+    // TỰ ĐỘNG THỰC HIỆN CÁC HÀNH ĐỘNG CẦN THIẾT NẾU CHƯA LÀM
+    // Bước 9: Sơ đồ bãi đỗ (Yêu cầu trang đã tải xong container)
+    if (step?.targetId === "parking-layout-container") {
+      // Nếu chưa ở đúng trang hoặc container chưa có, có thể cần đợi hoặc click lại nút đặt
+      const container = document.querySelector("#parking-layout-container");
+      if (!container) {
+        const bookNowBtn = document.querySelector("#detail-book-now-btn");
+        if (bookNowBtn) {
+          (bookNowBtn as HTMLElement).click();
+          setTimeout(() => nextStep(), 2000); // Đợi lâu hơn một chút cho trang layout tải
+          return;
+        }
+      }
+    }
+
+    // Kiểm tra xem target hiện tại có tồn tại trên DOM không
+    const currentSelector = step.targetId.startsWith("#") || step.targetId.startsWith(".") || step.targetId.startsWith("[")
+      ? step.targetId
+      : `#${step.targetId}`;
+    const currentEl = document.querySelector(currentSelector);
+
+    // Nếu target không tồn tại (người dùng chưa thực hiện hành động cần thiết)
+    // Thực hiện nhấp nháy vùng bao quanh để cảnh báo thay vì chuyển bước
+    if (!currentEl || (currentEl instanceof HTMLElement && (currentEl as HTMLElement).offsetParent === null)) {
+      const borderEl = document.querySelector(".tour-highlight-border");
+      if (borderEl) {
+        borderEl.classList.add("animate-bounce", "border-red-600", "border-4", "shadow-[0_0_20px_rgba(220,38,38,0.7)]");
+        setTimeout(() => {
+          borderEl.classList.remove("animate-bounce", "border-red-600", "border-4", "shadow-[0_0_20px_rgba(220,38,38,0.7)]");
+        }, 1000);
+      }
+      return; 
+    }
+
     if (
       (tourType === "full" || tourType === "booking") &&
       step?.targetId === "find-parking-nav-link" &&
@@ -76,20 +200,30 @@ export function TourOverlay() {
       const navLink = document.querySelector("#find-parking-nav-link");
       if (navLink) {
         (navLink as HTMLElement).click();
-        setTimeout(() => {
-          nextStep();
-        }, 800);
+        setTimeout(() => nextStep(), 800);
         return;
       }
     }
 
-    // Nếu đây là bước yêu cầu quay về trang chủ
     if (step?.targetId === "header-logo-link" && pathname !== "/") {
       router.push("/");
-      setTimeout(() => {
-        nextStep();
-      }, 500);
+      setTimeout(() => nextStep(), 500);
       return;
+    }
+
+  // Danh sách các ID yêu cầu người dùng phải click vào trước khi có thể bấm "Tiếp theo"
+  const manualActionTargets = ["near-me-btn", "near-me-radius-select", "parking-marker", "parking-card"];
+  const needsManualAction = manualActionTargets.some(id => step.targetId.includes(id)) && !clickedTargets.has(step.targetId);
+
+    if (needsManualAction) {
+      const borderEl = document.querySelector(".tour-highlight-border");
+      if (borderEl) {
+        borderEl.classList.add("animate-bounce", "border-red-600", "border-4", "shadow-[0_0_20px_rgba(220,38,38,0.7)]");
+        setTimeout(() => {
+          borderEl.classList.remove("animate-bounce", "border-red-600", "border-4", "shadow-[0_0_20px_rgba(220,38,38,0.7)]");
+        }, 1000);
+      }
+      return; // CHẶN LẠI: Yêu cầu người dùng tự click vào mục tiêu trước
     }
 
     nextStep();
@@ -133,8 +267,30 @@ export function TourOverlay() {
           width: rect.width,
           height: rect.height,
         });
+
+        // Xử lý làm sáng song song (Secondary Target)
+        // Nếu đang hướng dẫn marker trên bản đồ, tìm card tương ứng ở bên trái để làm sáng cùng lúc
+        if (step.targetId.includes("parking-marker")) {
+          const lotId = (el as HTMLElement).id?.replace("parking-marker-", "");
+          const cardEl = document.querySelector(`[id^='parking-card-']`); // Ở bản FE bạn, card có thể được highlight chung
+          
+          if (cardEl) {
+            const cardRect = cardEl.getBoundingClientRect();
+            setSecondaryCoords({
+              top: cardRect.top,
+              left: cardRect.left,
+              width: cardRect.width,
+              height: cardRect.height,
+            });
+          } else {
+            setSecondaryCoords(null);
+          }
+        } else {
+          setSecondaryCoords(null);
+        }
       } else {
         setCoords(null);
+        setSecondaryCoords(null);
 
         // Auto-trigger logic: if target is missing/hidden and triggerId exists, try to click it
         if (isTourActive && step.triggerId) {
@@ -167,11 +323,48 @@ export function TourOverlay() {
     };
   }, [isTourActive, step, currentStep, pathname]);
 
+  const [clickedTargets, setClickedTargets] = React.useState<Set<string>>(new Set());
+
+  // Reset clicks when tour starts or ends
+  useEffect(() => {
+    if (!isTourActive) setClickedTargets(new Set());
+  }, [isTourActive]);
+
+  // Global click listener to track interactions
+  useEffect(() => {
+    if (!isTourActive) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const currentTargetId = step?.targetId;
+      if (!currentTargetId) return;
+
+      // Hỗ trợ cả selector ID thông thường và attribute selector như [id^='parking-marker-']
+      const selector = currentTargetId.startsWith("#") || currentTargetId.startsWith(".") || currentTargetId.startsWith("[")
+        ? currentTargetId
+        : `#${currentTargetId}`;
+      
+      const el = document.querySelector(selector);
+      
+      // Kiểm tra nếu click vào chính phần tử đó hoặc con của nó
+      // Hoặc nếu là parking-marker thì kiểm tra xem click có chứa class của marker không
+      const isParkingMarkerClick = (currentTargetId.includes("parking-marker") || currentTargetId.includes("parking-card")) && 
+        (target.closest("[id^='parking-marker-']") || target.id?.startsWith("parking-marker-") || 
+         target.closest("[id^='parking-card-']") || target.id?.startsWith("parking-card-"));
+
+      if ((el && (el === target || el.contains(target))) || isParkingMarkerClick) {
+        setClickedTargets(prev => new Set(prev).add(currentTargetId));
+      }
+    };
+
+    window.addEventListener("click", handleClick, true);
+    return () => window.removeEventListener("click", handleClick, true);
+  }, [isTourActive, step]);
+
   if (!isTourActive || !step) return null;
 
   // Quyết định xem có làm mờ màn hình hay không
-  // Tắt làm mờ nếu không có tọa độ HOẶC đang ở bước chọn bãi đỗ xe (marker)
-  const shouldDim = coords && !step.targetId.includes("parking-marker");
+  const shouldDim = !!coords;
 
   return (
     <div className="fixed inset-0 z-[99999] pointer-events-none overflow-hidden">
@@ -184,16 +377,36 @@ export function TourOverlay() {
         style={{
           clipPath:
             shouldDim && coords
-              ? `polygon(0% 0%, 0% 100%, ${coords.left - 8}px 100%, ${coords.left - 8}px ${coords.top - 8}px, ${coords.left + coords.width + 8}px ${coords.top - 8}px, ${coords.left + coords.width + 8}px ${coords.top + coords.height + 8}px, ${coords.left - 8}px ${coords.top + coords.height + 8}px, ${coords.left - 8}px 100%, 100% 100%, 100% 0%)`
+              ? secondaryCoords
+                ? `polygon(
+                    0% 0%, 
+                    0% 100%, 
+                    ${coords.left - 8}px 100%, 
+                    ${coords.left - 8}px ${coords.top - 8}px, 
+                    ${coords.left + coords.width + 8}px ${coords.top - 8}px, 
+                    ${coords.left + coords.width + 8}px ${coords.top + coords.height + 8}px, 
+                    ${coords.left - 8}px ${coords.top + coords.height + 8}px, 
+                    ${coords.left - 8}px 100%, 
+                    ${secondaryCoords.left - 8}px 100%,
+                    ${secondaryCoords.left - 8}px ${secondaryCoords.top - 8}px,
+                    ${secondaryCoords.left + secondaryCoords.width + 8}px ${secondaryCoords.top - 8}px,
+                    ${secondaryCoords.left + secondaryCoords.width + 8}px ${secondaryCoords.top + secondaryCoords.height + 8}px,
+                    ${secondaryCoords.left - 8}px ${secondaryCoords.top + secondaryCoords.height + 8}px,
+                    ${secondaryCoords.left - 8}px 100%,
+                    100% 100%, 
+                    100% 0%
+                  )`
+                : `polygon(0% 0%, 0% 100%, ${coords.left - 8}px 100%, ${coords.left - 8}px ${coords.top - 8}px, ${coords.left + coords.width + 8}px ${coords.top - 8}px, ${coords.left + coords.width + 8}px ${coords.top + coords.height + 8}px, ${coords.left - 8}px ${coords.top + coords.height + 8}px, ${coords.left - 8}px 100%, 100% 100%, 100% 0%)`
               : "none",
         }}
         transition={{ duration: 0.3 }}
       />
 
       {/* Viền bao quanh vùng sáng - Chỉ hiện khi có tọa độ */}
-      <AnimatePresence>
+      <AnimatePresence mode="popLayout">
         {coords && (
           <motion.div
+            key={`highlight-primary-${currentStep}`}
             initial={{ opacity: 0 }}
             animate={{
               opacity: 1,
@@ -201,6 +414,22 @@ export function TourOverlay() {
               left: coords.left - 10,
               width: coords.width + 20,
               height: coords.height + 20,
+            }}
+            exit={{ opacity: 0 }}
+            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+            className="absolute border-2 border-green-500 rounded-xl shadow-lg z-[100000] tour-highlight-border"
+          />
+        )}
+        {secondaryCoords && (
+          <motion.div
+            key={`highlight-secondary-${currentStep}`}
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: 1,
+              top: secondaryCoords.top - 10,
+              left: secondaryCoords.left - 10,
+              width: secondaryCoords.width + 20,
+              height: secondaryCoords.height + 20,
             }}
             exit={{ opacity: 0 }}
             transition={{ type: "spring", bounce: 0, duration: 0.4 }}
@@ -299,7 +528,7 @@ export function TourOverlay() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={prevStep}
+                onClick={handlePrev}
                 className="rounded-lg h-8 w-8"
               >
                 <ChevronLeft className="w-4 h-4" />

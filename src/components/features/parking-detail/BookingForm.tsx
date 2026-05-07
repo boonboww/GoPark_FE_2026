@@ -435,7 +435,7 @@ export function BookingForm({
             Đặt chỗ đỗ xe
           </motion.h2>
 
-          <form className="space-y-6">
+          <form className="space-y-6" id="booking-form-container">
             {/* Vehicle */}
             <motion.div variants={itemVariants}>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
@@ -445,6 +445,7 @@ export function BookingForm({
 
               <div className="relative">
                 <select
+                  id="booking-vehicle-select"
                   value={selectedPlate}
                   onChange={(e) => setSelectedPlate(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-600 rounded-lg"
@@ -468,6 +469,7 @@ export function BookingForm({
 
             {/* Time */}
             <motion.div
+              id="booking-time-select"
               variants={itemVariants}
               className="grid grid-cols-2 gap-4"
             >
@@ -530,7 +532,7 @@ export function BookingForm({
             </motion.div>
 
             {/* Payment */}
-            <motion.div variants={itemVariants}>
+            <motion.div variants={itemVariants} id="booking-payment-method">
               <label className="block text-sm font-medium mb-2 flex items-center gap-1">
                 <CreditCard className="w-4 h-4" />
                 Hình thức thanh toán
@@ -558,7 +560,7 @@ export function BookingForm({
                 </span>
               </div>
 
-              <div className="flex justify-between items-end mb-6">
+              <div className="flex justify-between items-end mb-6" id="booking-total-price">
                 <span className="font-bold">Tổng tạm tính</span>
 
                 <span className="text-2xl font-black text-green-600">
@@ -566,8 +568,9 @@ export function BookingForm({
                 </span>
               </div>
 
-              <button
+                <button
                 type="button"
+                id="summit-booking-btn"
                 onClick={handBooking}
                 className="w-full bg-green-800 hover:bg-green-700 text-white font-bold py-3.5 rounded-lg"
               >
