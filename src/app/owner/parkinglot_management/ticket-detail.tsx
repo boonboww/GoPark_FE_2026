@@ -374,12 +374,15 @@ export function TicketDetail({
                         <Input
                           id="booking-plate-input"
                           value={bookingForm.plate}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const val = e.target.value
+                              .toUpperCase()
+                              .replace(/[^A-Z0-9.-]/g, ""); // Chỉ cho phép chữ, số, dấu chấm và dấu gạch ngang
                             setBookingForm((prev) => ({
                               ...prev,
-                              plate: e.target.value.toUpperCase(),
-                            }))
-                          }
+                              plate: val,
+                            }));
+                          }}
                           placeholder="51A-123.45"
                           className="pl-10 h-10 bg-slate-50 border-slate-200 rounded-lg text-sm font-bold uppercase tracking-wide placeholder:text-slate-300 placeholder:normal-case placeholder:font-medium"
                           disabled={isOcrLoading}
