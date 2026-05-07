@@ -37,12 +37,12 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Bãi đỗ của tôi",
+      title: "Quản lý bãi đỗ",
       url: "/owner/my-parking-lots",
       icon: IconList,
     },
     {
-      title: "Quản lý bãi đỗ",
+      title: "Quản lý hoạt động bãi đỗ",
       url: "/owner/parkinglot_management",
       icon: IconLayoutGrid,
     },

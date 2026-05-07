@@ -67,6 +67,7 @@ export function SetupWizardTab({ onClose }: any) {
       }));
       setFloors(mappedFloors);
 
+      const mappedZones: any[] = [];
       floorsData.data.forEach((f: any) => {
         const rawZones = f.parkingZone || f.parkingZones || f.zones || f.parking_zones || [];
         if (Array.isArray(rawZones)) {
