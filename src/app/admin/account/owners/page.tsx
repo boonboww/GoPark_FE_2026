@@ -90,6 +90,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 /** Cấu hình màu sắc & nhãn cho trạng thái tài khoản */
 import { statusConfig } from "@/app/admin/account/customers/page"
+import { AdminStatCard } from "@/components/admin/AdminStatCard";
 
 /** Cấu hình màu sắc cho trạng thái bãi đỗ */
 const parkingLotStatusConfig: Record<string, { label: string; className: string }> = {
@@ -346,32 +347,32 @@ export default function OwnersPage() {
       value: stats.total,
       icon: Users,
       gradient: "from-blue-500 to-indigo-600",
-      bgTint: "from-blue-50 to-indigo-50",
-      border: "border-blue-100",
+      bgTint: "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
+      border: "border-blue-100 dark:border-blue-900/50",
     },
     {
       title: "Đang hoạt động",
       value: stats.active,
       icon: UserCheck,
       gradient: "from-emerald-500 to-teal-600",
-      bgTint: "from-emerald-50 to-teal-50",
-      border: "border-emerald-100",
+      bgTint: "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
+      border: "border-emerald-100 dark:border-emerald-900/50",
     },
     {
       title: "Chủ bãi mới (tháng)",
       value: stats.newLastMonth,
       icon: UserPlus,
       gradient: "from-violet-500 to-purple-600",
-      bgTint: "from-violet-50 to-purple-50",
-      border: "border-violet-100",
+      bgTint: "from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20",
+      border: "border-violet-100 dark:border-violet-900/50",
     },
     {
       title: "Đã bị khóa",
       value: stats.blocked,
       icon: ShieldBan,
       gradient: "from-red-500 to-rose-600",
-      bgTint: "from-red-50 to-rose-50",
-      border: "border-red-100",
+      bgTint: "from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20",
+      border: "border-red-100 dark:border-red-900/50",
     },
   ];
 
@@ -381,8 +382,8 @@ export default function OwnersPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Đang tải dữ liệu chủ bãi đỗ...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải dữ liệu chủ bãi đỗ...</p>
         </div>
       </div>
     );
@@ -394,13 +395,13 @@ export default function OwnersPage() {
     <div className="space-y-6">
 
       {/* ── Tiêu đề trang & nút hành động ──────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-2xl px-8 py-6 shadow-lg">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl px-8 py-6 shadow-lg">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
             <Users className="w-6 h-6" />
             Quản lý Chủ bãi đỗ
           </h1>
-          <p className="text-blue-200/70 mt-1 text-sm">
+          <p className="text-primary-foreground/70 mt-1 text-sm">
             Tìm thấy {filteredOwners.length} chủ bãi đỗ 
           </p>
           {error && <p className="text-red-300 text-xs mt-1">Lỗi kết nối: {error}</p>}
@@ -422,37 +423,22 @@ export default function OwnersPage() {
         {statCards.map((card, i) => {
           const Icon = card.icon;
           return (
-            <Card
-              key={i}
-              className={`bg-gradient-to-br ${card.bgTint} ${card.border} border hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden relative shadow-sm`}
-            >
-              <div
-                className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${card.gradient} opacity-[0.04] rounded-full -translate-y-10 translate-x-10`}
-              />
-              <CardContent className="p-5 relative">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                      {card.title}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {card.value}
-                    </p>
-                  </div>
-                  <div
-                    className={`w-11 h-11 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-lg shadow-black/10`}
-                  >
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AdminStatCard
+              key={i || card.title}
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              description={card.subtitle || card.desc}
+              iconGradient={card.gradient || card.color}
+              bgTint={card.bgTint}
+              borderColor={card.border}
+            />
           );
         })}
       </div>
 
       {/* ── Thanh tìm kiếm & bộ lọc ───────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-5">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Ô tìm kiếm */}
           <div className="relative flex-1">
@@ -462,12 +448,12 @@ export default function OwnersPage() {
               placeholder="Tìm theo tên, email, SĐT hoặc tên doanh nghiệp..."
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
-              className="pl-10 h-11 bg-slate-50 border-gray-200 focus:bg-white text-slate-900"
+              className="pl-10 h-11 bg-muted border-border focus:bg-card text-foreground"
             />
           </div>
           {/* Lọc trạng thái */}
           <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
-            <SelectTrigger className="h-11 min-w-[160px] border-gray-200 bg-slate-50 text-slate-900">
+            <SelectTrigger className="h-11 min-w-[160px] border-border bg-muted text-foreground">
               <SelectValue placeholder="Tất cả trạng thái" />
             </SelectTrigger>
             <SelectContent>
@@ -478,7 +464,7 @@ export default function OwnersPage() {
           </Select>
           {/* Sắp xếp */}
           <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
-            <SelectTrigger className="h-11 min-w-[180px] border-gray-200 bg-slate-50 text-slate-900">
+            <SelectTrigger className="h-11 min-w-[180px] border-border bg-muted text-foreground">
               <SelectValue placeholder="Sắp xếp" />
             </SelectTrigger>
             <SelectContent>
@@ -490,7 +476,7 @@ export default function OwnersPage() {
           </Select>
           {/* Nút xóa bộ lọc (chỉ hiện khi có lọc) */}
           {(filters.search || filters.status || filters.sortBy !== "newest") && (
-            <Button variant="ghost" onClick={clearFilters} className="h-11 text-gray-500 hover:text-gray-700 hover:bg-red-300 bg-red-100">
+            <Button variant="ghost" onClick={clearFilters} className="h-11 text-muted-foreground hover:text-foreground/80 hover:bg-red-300 bg-red-100">
               <X size={16} className="mr-1" />
               Xóa lọc
             </Button>
@@ -499,31 +485,31 @@ export default function OwnersPage() {
       </div>
 
       {/* ── Bảng danh sách chủ bãi đỗ ──────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             {/* Tiêu đề bảng */}
             <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <tr className="bg-muted/80 border-b border-border">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Chủ bãi đỗ
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Liên hệ
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Bãi đỗ
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Doanh thu
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Booking
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Trạng thái
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-12" />
+                <th className="px-6 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12" />
               </tr>
             </thead>
 
@@ -550,7 +536,7 @@ export default function OwnersPage() {
                           </span>
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">{owner.name}</p>
+                          <p className="text-sm font-semibold text-foreground">{owner.name}</p>
                           {/* Tên doanh nghiệp (nếu có) */}
                           {owner.businessName && (
                             <p className="text-xs text-gray-400 flex items-center gap-1">
@@ -565,11 +551,11 @@ export default function OwnersPage() {
                     {/* Thông tin liên hệ */}
                     <td className="px-6 py-4">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Mail size={14} className="text-gray-400 flex-shrink-0" />
                           <span className="truncate max-w-[180px]">{owner.email}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Phone size={14} className="text-gray-400 flex-shrink-0" />
                           {owner.phone}
                         </div>
@@ -588,7 +574,7 @@ export default function OwnersPage() {
 
                     {/* Doanh thu */}
                     <td className="px-6 py-4">
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-foreground">
                         {owner.totalRevenue}
                       </p>
                     </td>
@@ -616,7 +602,7 @@ export default function OwnersPage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical size={16} className="text-slate-600" />
+                            <MoreVertical size={16} className="text-muted-foreground" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
@@ -651,9 +637,9 @@ export default function OwnersPage() {
 
         {/* Phân trang */}
         {filteredOwners.length > 0 && (
-          <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
-            <div className="text-sm text-gray-500">
-              Hiển thị <span className="font-medium text-gray-900">{Math.min(filteredOwners.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredOwners.length, currentPage * pageSize)}</span> trong <span className="font-medium text-gray-900">{filteredOwners.length}</span> chủ bãi
+          <div className="px-5 py-4 border-t border-border flex items-center justify-between bg-card">
+            <div className="text-sm text-muted-foreground">
+              Hiển thị <span className="font-medium text-foreground">{Math.min(filteredOwners.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredOwners.length, currentPage * pageSize)}</span> trong <span className="font-medium text-foreground">{filteredOwners.length}</span> chủ bãi
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -688,7 +674,7 @@ export default function OwnersPage() {
                       variant={currentPage === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(page)}
-                      className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                      className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}
                     >
                       {page}
                     </Button>
@@ -714,11 +700,11 @@ export default function OwnersPage() {
         {/* Trạng thái trống — khi không có kết quả nào */}
         {filteredOwners.length === 0 && (
           <div className="text-center py-16">
-            <div className="bg-gray-100 rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
+            <div className="bg-muted rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
               <Users className="h-10 w-10 text-gray-400" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Không tìm thấy chủ bãi đỗ</h3>
-            <p className="text-gray-500 mb-6 max-w-md mx-auto">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Không tìm thấy chủ bãi đỗ</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
               Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm để có kết quả phù hợp hơn
             </p>
             <Button onClick={clearFilters} variant="outline">
@@ -748,9 +734,9 @@ export default function OwnersPage() {
                   </span>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900">{selectedOwner.name}</h3>
+                  <h3 className="text-xl font-bold text-foreground">{selectedOwner.name}</h3>
                   {selectedOwner.businessName && (
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Building2 size={14} />
                       {selectedOwner.businessName}
                     </p>
@@ -767,26 +753,26 @@ export default function OwnersPage() {
 
               {/* Thông tin liên hệ */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                   <Mail size={18} className="text-blue-500" />
                   <div>
                     <p className="text-xs text-gray-400">Email</p>
-                    <p className="text-sm font-medium text-gray-900">{selectedOwner.email}</p>
+                    <p className="text-sm font-medium text-foreground">{selectedOwner.email}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                   <Phone size={18} className="text-green-500" />
                   <div>
                     <p className="text-xs text-gray-400">Số điện thoại</p>
-                    <p className="text-sm font-medium text-gray-900">{selectedOwner.phone}</p>
+                    <p className="text-sm font-medium text-foreground">{selectedOwner.phone}</p>
                   </div>
                 </div>
                 {selectedOwner.address && (
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg sm:col-span-2">
+                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg sm:col-span-2">
                     <MapPin size={18} className="text-orange-500" />
                     <div>
                       <p className="text-xs text-gray-400">Địa chỉ</p>
-                      <p className="text-sm font-medium text-gray-900">{selectedOwner.address}</p>
+                      <p className="text-sm font-medium text-foreground">{selectedOwner.address}</p>
                     </div>
                   </div>
                 )}
@@ -814,16 +800,16 @@ export default function OwnersPage() {
               {/* Danh sách bãi đỗ xe của chủ bãi */}
               {selectedOwner.parkingLots && selectedOwner.parkingLots.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+                  <h4 className="text-sm font-semibold text-foreground/80 uppercase tracking-wider mb-3">
                     Danh sách bãi đỗ xe
                   </h4>
                   <div className="space-y-2">
                     {selectedOwner.parkingLots.map((lot) => {
-                      const lotStatus = parkingLotStatusConfig[lot.status] || { label: lot.status, className: "bg-gray-100 text-gray-700" };
+                      const lotStatus = parkingLotStatusConfig[lot.status] || { label: lot.status, className: "bg-muted text-foreground/80" };
                       return (
                         <div
                           key={lot.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                          className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-muted transition-colors"
                         >
                           <div className="flex items-center gap-3">
                             {/* Icon bãi đỗ */}
@@ -831,7 +817,7 @@ export default function OwnersPage() {
                               <MapPin size={14} className="text-violet-600" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-900">{lot.name}</p>
+                              <p className="text-sm font-medium text-foreground">{lot.name}</p>
                               <p className="text-xs text-gray-400 flex items-center gap-1">
                                 <MapPin size={10} />
                                 {lot.address}
@@ -840,7 +826,7 @@ export default function OwnersPage() {
                           </div>
                           <div className="flex items-center gap-3">
                             {/* Số chỗ đỗ */}
-                            <span className="text-xs text-gray-500">{lot.totalSlots} chỗ</span>
+                            <span className="text-xs text-muted-foreground">{lot.totalSlots} chỗ</span>
                             {/* Đánh giá sao (chỉ hiện khi > 0) */}
                             {lot.rating > 0 && (
                               <span className="text-xs text-amber-600 flex items-center gap-0.5">
@@ -867,7 +853,7 @@ export default function OwnersPage() {
               </div>
 
               {/* Nút hành động */}
-              <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-2 border-t border-border">
                 <Button variant="outline" onClick={() => setDetailOpen(false)}>
                   Đóng
                 </Button>
