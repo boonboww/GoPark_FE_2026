@@ -467,48 +467,74 @@ export function BookingForm({
               </div>
             </motion.div>
 
-            {/* Time */}
+            {/* Time Selection */}
             <motion.div
               id="booking-time-select"
               variants={itemVariants}
-              className="grid grid-cols-2 gap-4"
+              className="space-y-4"
             >
-              {/* START DATE */}
-              <div>
-                <label className="text-xs font-bold">NGÀY VÀO</label>
-
-                <input
-                  type="date"
-                  min={today}
-                  value={startTime ? startTime.split("T")[0] : ""}
-                  onChange={(e) => {
-                    const date = e.target.value;
-
-                    const time = startTime.split("T")[1] || "00:00";
-
-                    setStartTime(`${date}T${time}`);
-                  }}
-                  className="w-full h-14 px-4 border rounded-2xl"
-                />
+              {/* ENTRY TIME */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Thời gian vào</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative">
+                    <input
+                      type="date"
+                      min={today}
+                      value={startTime ? startTime.split("T")[0] : ""}
+                      onChange={(e) => {
+                        const date = e.target.value;
+                        const time = startTime.split("T")[1] || "00:00";
+                        setStartTime(`${date}T${time}`);
+                      }}
+                      className="w-full h-12 px-4 border border-gray-200 rounded-xl bg-gray-50 font-medium focus:ring-2 focus:ring-green-500/20 focus:border-green-600 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="time"
+                      value={startTime ? startTime.split("T")[1] : ""}
+                      onChange={(e) => {
+                        const date = startTime.split("T")[0] || today;
+                        const time = e.target.value;
+                        setStartTime(`${date}T${time}`);
+                      }}
+                      className="w-full h-12 px-4 border border-gray-200 rounded-xl bg-gray-50 font-medium focus:ring-2 focus:ring-green-500/20 focus:border-green-600 outline-none transition-all"
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* END DATE */}
-              <div>
-                <label className="text-xs font-bold">NGÀY RA</label>
-
-                <input
-                  type="date"
-                  min={today}
-                  value={endTime ? endTime.split("T")[0] : ""}
-                  onChange={(e) => {
-                    const date = e.target.value;
-
-                    const time = endTime.split("T")[1] || "00:00";
-
-                    setEndTime(`${date}T${time}`);
-                  }}
-                  className="w-full h-14 px-4 border rounded-2xl"
-                />
+              {/* EXIT TIME */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Thời gian ra dự kiến</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="relative">
+                    <input
+                      type="date"
+                      min={startTime ? startTime.split("T")[0] : today}
+                      value={endTime ? endTime.split("T")[0] : ""}
+                      onChange={(e) => {
+                        const date = e.target.value;
+                        const time = endTime.split("T")[1] || "00:00";
+                        setEndTime(`${date}T${time}`);
+                      }}
+                      className="w-full h-12 px-4 border border-gray-200 rounded-xl bg-gray-50 font-medium focus:ring-2 focus:ring-green-500/20 focus:border-green-600 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="time"
+                      value={endTime ? endTime.split("T")[1] : ""}
+                      onChange={(e) => {
+                        const date = endTime.split("T")[0] || today;
+                        const time = e.target.value;
+                        setEndTime(`${date}T${time}`);
+                      }}
+                      className="w-full h-12 px-4 border border-gray-200 rounded-xl bg-gray-50 font-medium focus:ring-2 focus:ring-green-500/20 focus:border-green-600 outline-none transition-all"
+                    />
+                  </div>
+                </div>
               </div>
             </motion.div>
 
