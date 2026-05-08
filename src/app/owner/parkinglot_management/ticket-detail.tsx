@@ -52,67 +52,6 @@ interface TicketDetailProps {
   zoneName?: string;
 }
 
-function SlotTimeline({ bookings }: { bookings: any[] }) {
-  const hours = Array.from({ length: 24 }, (_, i) => i);
-  const now = new Date();
-  const currentHour = now.getHours() + now.getMinutes() / 60;
-
-  return (
-    <div className="space-y-4 py-4 border-t border-slate-100 mt-4">
-      <div className="flex items-center justify-between">
-        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-          Lịch trình trong ngày
-        </h4>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-             <div className="w-2 h-2 rounded-full bg-slate-100 border border-slate-200" />
-             <span className="text-[9px] font-bold text-slate-400">Trống</span>
-          </div>
-          <div className="flex items-center gap-1">
-             <div className="w-2 h-2 rounded-full bg-slate-800" />
-             <span className="text-[9px] font-bold text-slate-400">Có khách</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="relative pt-6 pb-2">
-        {/* Timeline Bar */}
-        <div className="h-6 w-full bg-slate-100 rounded-lg relative overflow-hidden border border-slate-200">
-          {bookings.map((b, idx) => {
-            const start = new Date(b.startTime);
-            const end = new Date(b.endTime);
-            const startPos = (start.getHours() + start.getMinutes() / 60) * (100 / 24);
-            const endPos = (end.getHours() + end.getMinutes() / 60) * (100 / 24);
-            const width = endPos - startPos;
-
-            return (
-              <div
-                key={idx}
-                className="absolute top-0 h-full bg-slate-800 border-x border-slate-900/20"
-                style={{ left: `${startPos}%`, width: `${width}%` }}
-              />
-            );
-          })}
-          
-          {/* Current Time Indicator */}
-          <div 
-            className="absolute top-0 h-full w-0.5 bg-red-500 z-10 shadow-[0_0_8px_rgba(239,68,68,0.5)]"
-            style={{ left: `${currentHour * (100 / 24)}%` }}
-          />
-        </div>
-
-        {/* Labels */}
-        <div className="flex justify-between mt-2 px-1">
-          {[0, 6, 12, 18, 24].map((h) => (
-            <span key={h} className="text-[9px] font-black text-slate-300">
-              {h}h
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function TicketDetail({
   isOpen,
@@ -127,17 +66,6 @@ export function TicketDetail({
   const queryClient = useQueryClient();
   const { lotId } = useCustomerStore();
 
-  const { data: slotBookings = [] } = useQuery({
-    queryKey: ["slotBookings", lotId, slotId],
-    queryFn: () =>
-      bookingService.getBookingsByParkingLot({
-        lotId: lotId!,
-        startDate: format(new Date(), "yyyy-MM-dd") + "T00:00:00Z",
-        endDate: format(new Date(), "yyyy-MM-dd") + "T23:59:59Z",
-      }),
-    enabled: !!lotId && !!slotId && isOpen,
-    select: (list) => list.filter((b) => b.slotId === slotId?.toString()),
-  });
   const [progress, setProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState("");
 
@@ -601,8 +529,6 @@ export function TicketDetail({
             </div>
           )}
 
-          {/* SLOT TIMELINE */}
-          <SlotTimeline bookings={slotBookings} />
         </div>
 
         {/* Footer */}

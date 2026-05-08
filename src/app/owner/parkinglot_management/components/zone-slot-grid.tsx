@@ -253,12 +253,7 @@ export function ZoneSlotGrid({
 
           {/* Last updated + refresh */}
           <div className="flex items-center gap-1.5">
-            {isPreviewMode ? (
-              <span className="text-[10px] text-amber-600 font-bold bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
-                MÔ PHỎNG
-              </span>
-            ) : lastUpdated ? (
+            {!isPreviewMode && lastUpdated ? (
               <span className="text-[10px] text-slate-400 font-mono hidden lg:inline bg-slate-100 px-1.5 py-0.5 rounded-md">
                 {lastUpdated}
               </span>

@@ -11,6 +11,7 @@ import {
   IconReport,
   IconTicket,
   IconUsers,
+  IconStar,
   IconWallet,
 } from "@tabler/icons-react";
 
@@ -66,11 +67,11 @@ const data = {
       url: "/owner/customer_management",
       icon: IconUsers,
     },
-    {
-      title: "Báo cáo",
-      url: "/owner/reports",
-      icon: IconReport,
-    },
+    // {
+    //   title: "Báo cáo",
+    //   url: "/owner/reports",
+    //   icon: IconReport,
+    // },
     {
       title: "Quản lý nhân viên",
       url: "/owner/staff-management",
@@ -79,7 +80,7 @@ const data = {
     {
       title: "Đánh giá khách hàng",
       url: "/owner/reviews",
-      icon: IconMessageCircle,
+      icon: IconStar,
     },
   ],
 };

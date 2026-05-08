@@ -62,7 +62,6 @@ export default function ParkingLotManagementPage() {
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [isFetchingAvailable, setIsFetchingAvailable] = React.useState(false);
   const [availableMapData, setAvailableMapData] = React.useState<any>(null);
-  const [previewTime, setPreviewTime] = React.useState<number | null>(null);
   
   const isTourActive = useTourStore((state) => state.isTourActive);
 
@@ -175,32 +174,6 @@ export default function ParkingLotManagementPage() {
     zoneName?: string;
   }>({ data: null, status: "available" });
 
-  const handleSliderChange = async (hour: number) => {
-    if (!lotId || !date) return;
-    setPreviewTime(hour);
-    setIsFetchingAvailable(true);
-
-    try {
-      const targetDate = new Date(date);
-      targetDate.setHours(hour, 0, 0, 0);
-      const startTimeISO = targetDate.toISOString();
-
-      const endOfHour = new Date(targetDate);
-      endOfHour.setMinutes(59, 59, 999);
-      const endTimeISO = endOfHour.toISOString();
-
-      const response = await parkingService.getAvailableMap(
-        lotId,
-        startTimeISO,
-        endTimeISO,
-      );
-      setAvailableMapData(response?.data || response);
-    } catch (error: any) {
-      toast.error("Lỗi khi tải dự báo sơ đồ");
-    } finally {
-      setIsFetchingAvailable(false);
-    }
-  };
 
   const currentFloor = floorsData.find((f) => f.id === selectedFloor);
   const activeZones = React.useMemo(() => {
@@ -560,97 +533,6 @@ export default function ParkingLotManagementPage() {
               </div>
             </div>
 
-            {/* INTEGRATED TIMELINE CONTROL - NOW INSIDE THE MAIN CARD */}
-            <div className="px-6 py-4 border-t border-slate-50 bg-slate-50/30">
-              <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-                {/* Status Indicator */}
-                <div className="flex items-center gap-4 shrink-0 lg:border-r lg:border-slate-200 lg:pr-6">
-                  <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-2.5 h-2.5 rounded-full ${previewTime === null ? "bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-slate-300"}`}
-                      />
-                      <span className="text-[11px] font-black uppercase tracking-widest text-slate-900">
-                        {previewTime === null ? "Trực tiếp" : "Mô phỏng"}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 font-bold mt-0.5 whitespace-nowrap">
-                      {previewTime === null
-                        ? "Live data"
-                        : `${previewTime}:00 | ${format(date, "dd/MM")}`}
-                    </p>
-                  </div>
-
-                  {previewTime !== null && (
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      onClick={() => {
-                        setPreviewTime(null);
-                        setAvailableMapData(null);
-                      }}
-                      className="h-8 w-8 rounded-full bg-white hover:bg-slate-900 hover:text-white text-slate-500 transition-all shadow-sm border border-slate-100"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                    </Button>
-                  )}
-                </div>
-
-                {/* Larger Timeline Slider */}
-                <div className="flex-1 flex flex-col gap-4">
-                  <div className="relative h-4 flex items-center">
-                    <div className="absolute left-0 right-0 h-1.5 bg-slate-200/50 rounded-full overflow-hidden">
-                      <div
-                        className="absolute h-full bg-slate-900 rounded-full transition-all duration-300"
-                        style={{
-                          width: `${((previewTime ?? new Date().getHours()) / 23) * 100}%`,
-                        }}
-                      />
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="23"
-                      step="1"
-                      value={previewTime ?? new Date().getHours()}
-                      onChange={(e) =>
-                        handleSliderChange(parseInt(e.target.value))
-                      }
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                    />
-                    <div
-                      className="absolute w-5 h-5 bg-white border-2 border-slate-900 rounded-full shadow-lg transition-all duration-300 pointer-events-none z-10 flex items-center justify-center"
-                      style={{
-                        left: `calc(${((previewTime ?? new Date().getHours()) / 23) * 100}% - 10px)`,
-                      }}
-                    >
-                      <div className="w-1.5 h-1.5 bg-slate-900 rounded-full" />
-                    </div>
-                  </div>
-
-                  {/* High Visibility Hour Labels */}
-                  <div className="flex justify-between px-0.5">
-                    {[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 23].map(
-                      (h) => (
-                        <div
-                          key={h}
-                          className="flex flex-col items-center gap-1.5"
-                        >
-                          <div
-                            className={`w-0.5 rounded-full ${h % 6 === 0 ? "h-2 bg-slate-400" : "h-1 bg-slate-200"}`}
-                          />
-                          <span
-                            className={`text-[12px] font-black transition-colors ${(previewTime ?? new Date().getHours()) === h ? "text-slate-900 scale-110" : "text-slate-300"}`}
-                          >
-                            {h}h
-                          </span>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Zone pills row */}
             <div className="flex items-center px-4 py-2.5 gap-2 overflow-x-auto">
