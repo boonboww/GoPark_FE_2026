@@ -521,8 +521,7 @@ export default function ApprovalsPage() {
               title={card.title}
               value={card.value}
               icon={card.icon}
-              description={card.subtitle || card.desc}
-              iconGradient={card.gradient || card.color}
+              iconGradient={card.gradient}
               bgTint={card.bgTint}
               borderColor={card.border}
             />
