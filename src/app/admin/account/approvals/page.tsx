@@ -16,13 +16,18 @@ import {
   Clock,
   X,
   FileText,
+  UserPlus,
+  Trash2,
   Edit3,
   AlertTriangle,
+  Filter,
   ArrowUpCircle,
   Building2,
   ShieldCheck,
   ClipboardList,
+  MessageSquare,
   Send,
+  Delete,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -492,7 +497,6 @@ export default function ApprovalsPage() {
       title: "Tổng đơn",
       value: stats.total,
       icon: ClipboardList,
-      description: "Tất cả yêu cầu",
       gradient: "from-blue-500 to-indigo-600",
       bgTint:
         "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
@@ -502,7 +506,6 @@ export default function ApprovalsPage() {
       title: "Chờ xử lý",
       value: stats.pending,
       icon: Clock,
-      description: "Đang chờ admin duyệt",
       gradient: "from-yellow-500 to-orange-500",
       bgTint:
         "from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20",
@@ -512,7 +515,6 @@ export default function ApprovalsPage() {
       title: "Từ chối",
       value: stats.rejected,
       icon: X,
-      description: "Yêu cầu bị bác bỏ",
       gradient: "from-red-500 to-rose-600",
       bgTint: "from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20",
       border: "border-red-100 dark:border-red-900/50",
@@ -521,7 +523,6 @@ export default function ApprovalsPage() {
       title: "Đã duyệt",
       value: stats.approved,
       icon: CheckCircle,
-      description: "Đã hoàn tất xử lý",
       gradient: "from-emerald-500 to-teal-600",
       bgTint:
         "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
@@ -586,7 +587,6 @@ export default function ApprovalsPage() {
               title={card.title}
               value={card.value}
               icon={card.icon}
-              description={card.description}
               iconGradient={card.gradient}
               bgTint={card.bgTint}
               borderColor={card.border}
