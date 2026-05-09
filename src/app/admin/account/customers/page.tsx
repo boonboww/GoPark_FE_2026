@@ -349,6 +349,7 @@ const formatNumber = (num: number) => {
       title: "Tổng khách hàng",
       value: formatNumber(stats.total),
       icon: Users,
+      description: "Tổng số người dùng",
       gradient: "from-blue-500 to-indigo-600",
       bgTint: "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
       border: "border-blue-100 dark:border-blue-900/50",
@@ -356,7 +357,7 @@ const formatNumber = (num: number) => {
     {
       title: "Khách hàng mới",
       value: formatNumber(stats.thisMonth),
-      subtitle: apiStats ? "Trong 7 ngày qua" : "Trong tháng này",
+      description: apiStats ? "Trong 7 ngày qua" : "Trong tháng này",
       icon: UserPlus,
       gradient: "from-emerald-500 to-teal-600",
       bgTint: "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
@@ -366,6 +367,7 @@ const formatNumber = (num: number) => {
       title: "Đang hoạt động",
       value: formatNumber(stats.active),
       icon: UserCheck,
+      description: "Tài khoản khả dụng",
       gradient: "from-violet-500 to-purple-600",
       bgTint: "from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20",
       border: "border-violet-100 dark:border-violet-900/50",
@@ -431,6 +433,7 @@ const formatNumber = (num: number) => {
               title={card.title}
               value={card.value}
               icon={card.icon}
+              description={card.description}
               iconGradient={card.gradient}
               bgTint={card.bgTint}
               borderColor={card.border}

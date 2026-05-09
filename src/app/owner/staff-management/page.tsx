@@ -82,9 +82,7 @@ const formSchema = z.object({
     message: "Họ và tên không được để trống.",
   }),
   phoneNumber: z.string().optional().or(z.literal("")),
-  parkingLotId: z.string({
-    required_error: "Vui lòng chọn bãi đỗ xe.",
-  }),
+  parkingLotId: z.string().min(1, "Vui lòng chọn bãi đỗ xe."),
 });
 
 export default function StaffManagementPage() {

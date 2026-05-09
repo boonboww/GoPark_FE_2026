@@ -15,10 +15,10 @@ const MyBooking = () => {
   const params = useParams();
   const id = params.id;
   const searchParams = useSearchParams();
-  const startTime = searchParams.get("start");
-  const endTime = searchParams.get("end");
-  const vehicleId = searchParams.get("vehicle");
-  const paymentMethod = searchParams.get("payment");
+  const startTime = searchParams.get("start") ?? undefined;
+  const endTime = searchParams.get("end") ?? undefined;
+  const vehicleId = searchParams.get("vehicle") ?? undefined;
+  const paymentMethod = searchParams.get("payment") ?? undefined;
 
   return (
     <>

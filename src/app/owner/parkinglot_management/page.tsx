@@ -52,6 +52,22 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useTourStore } from "@/store/tourStore";
 import { Slot } from "./components/slot";
 
+interface ZoneData {
+  id: string;
+  zoneId: number;
+  floorId: number;
+  name: string;
+  totalSlots: number;
+  slots: any[];
+}
+
+interface FloorData {
+  id: string;
+  floorId: number;
+  name: string;
+  zones: ZoneData[];
+}
+
 export default function ParkingLotManagementPage() {
   const { user: authUser } = useAuthStore();
   const role = authUser?.role?.toLowerCase() || "user";
@@ -107,12 +123,12 @@ export default function ParkingLotManagementPage() {
     enabled: !!lotId,
   });
 
-  const floorsData = React.useMemo(() => {
+  const floorsData = React.useMemo<FloorData[]>(() => {
     const rawFloors = Array.isArray(floorsResponse)
       ? floorsResponse
       : (floorsResponse?.data ?? []);
 
-    return rawFloors.map((floor: any) => {
+    return rawFloors.map((floor: any): FloorData => {
       // Tìm mảng zones từ các tên trường phổ biến
       const rawZones =
         floor.parkingZone ||
@@ -175,7 +191,7 @@ export default function ParkingLotManagementPage() {
   }>({ data: null, status: "available" });
 
 
-  const currentFloor = floorsData.find((f) => f.id === selectedFloor);
+  const currentFloor = floorsData.find((f: FloorData) => f.id === selectedFloor);
   const activeZones = React.useMemo(() => {
     if (!currentFloor) return [];
     if (selectedZone === "all") return currentFloor.zones;
@@ -207,7 +223,7 @@ export default function ParkingLotManagementPage() {
     const isValidActive = isMock || validActiveSlotIds.has(slot.id.toString());
     const effectiveStatus = isValidActive ? slot.status : "AVAILABLE";
 
-    if (effectiveStatus === "OCCUPIED" || effectiveStatus === "RESERVED" || effectiveStatus === "occupied") {
+    if (effectiveStatus === "OCCUPIED" || effectiveStatus === "RESERVED") {
       // Tìm booking tương ứng trong danh sách đã load sẵn
       let activeBooking = lotBookings.find(
         (b) =>

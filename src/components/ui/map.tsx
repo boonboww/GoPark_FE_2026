@@ -227,7 +227,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
       attributionControl: {
         compact: true,
       },
-      zoomControl: false,
+
       ...props,
       ...viewport,
     });

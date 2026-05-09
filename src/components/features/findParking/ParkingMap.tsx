@@ -376,7 +376,7 @@ export function ParkingMap({
         center={initialCenter}
         zoom={compact ? 16 : 14}
         className="w-full h-full"
-        attributionControl={!compact}
+        attributionControl={compact ? false : undefined}
         styles={selectedStyleUrl ? { light: selectedStyleUrl, dark: selectedStyleUrl } : undefined}
       >
         {!compact && (

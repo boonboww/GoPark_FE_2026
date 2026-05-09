@@ -22,7 +22,7 @@ import {
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
-import { apiClient } from "@/lib/api";
+import { apiClient, patch } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -357,7 +357,7 @@ export default function MyRequestsPage() {
                           onClick={async () => {
                             try {
                               // Gọi API xác nhận để Backend chuyển role sang Owner
-                              await apiClient.patch(`/request/${request.id}/confirm`);
+                               await patch(`/request/${request.id}/confirm`);
                               
                               // Sau đó mới đăng xuất và chuyển trang login
                               localStorage.removeItem("auth-storage");

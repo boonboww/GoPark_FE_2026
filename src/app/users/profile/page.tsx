@@ -369,7 +369,7 @@ export default function ProfilePage() {
     setVehicleDocPreview("");
     setEditingVehicleId(null);
     setIsVehicleDialogOpen(true);
-  });
+  }, [isVehicleDialogOpen, vehicles]);
 
   const openEditVehicle = (vehicle: Vehicle) => {
     setVForm({

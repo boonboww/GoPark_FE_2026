@@ -32,8 +32,8 @@ import { motion, AnimatePresence } from "framer-motion";
 const formSchema = z.object({
   name: z.string().min(1, "Tên bãi đỗ là bắt buộc"),
   address: z.string().min(1, "Địa chỉ là bắt buộc"),
-  lat: z.preprocess((v) => Number(v), z.number()),
-  lng: z.preprocess((v) => Number(v), z.number()),
+  lat: z.coerce.number(),
+  lng: z.coerce.number(),
   description: z.string().optional(),
   open_time: z.string().min(1, "Giờ mở cửa là bắt buộc"),
   close_time: z.string().min(1, "Giờ đóng cửa là bắt buộc"),
@@ -48,7 +48,16 @@ const formSchema = z.object({
   path: ["close_time"],
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = {
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  description?: string;
+  open_time: string;
+  close_time: string;
+  operating_days: string[];
+};
 
 interface CreateLotModalProps {
   isOpen: boolean;
@@ -62,7 +71,7 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
   const [previews, setPreviews] = useState<string[]>([]);
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       name: "",
       address: "",
