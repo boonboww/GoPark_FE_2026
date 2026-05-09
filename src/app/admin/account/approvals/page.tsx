@@ -16,18 +16,13 @@ import {
   Clock,
   X,
   FileText,
-  UserPlus,
-  Trash2,
   Edit3,
   AlertTriangle,
-  Filter,
   ArrowUpCircle,
   Building2,
   ShieldCheck,
   ClipboardList,
-  MessageSquare,
   Send,
-  Delete,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -66,8 +61,6 @@ import { useAdminStore, useAuthStore } from "@/stores";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { AdminStatCard } from "@/components/admin/AdminStatCard";
-
- 
 
 /** Bộ lọc hiển thị */
 interface Filters {
@@ -127,7 +120,10 @@ const requestTypeConfig: Record<
 };
 
 /** Cấu hình trạng thái đơn */
-const statusConfig: Record<RequestStatus, { label: string; className: string; dot: string }> = {
+const statusConfig: Record<
+  RequestStatus,
+  { label: string; className: string; dot: string }
+> = {
   PENDING: {
     label: "Chờ xử lý",
     className: "bg-yellow-100 text-yellow-800 border-yellow-200",
@@ -178,12 +174,15 @@ const formatDateTime = (dateString: string) =>
 
 /** Định dạng tiền tệ VND */
 const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+    amount,
+  );
 
 /** Lấy chữ cái đầu cho avatar */
 const getInitials = (name: string) => {
   const parts = name.split(" ");
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (parts.length >= 2)
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
 };
 
@@ -240,7 +239,8 @@ export default function ApprovalsPage() {
   });
 
   /** Đơn đang xem chi tiết */
-  const [selectedRequest, setSelectedRequest] = useState<ApprovalRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] =
+    useState<ApprovalRequest | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   /** Ghi chú admin khi duyệt/từ chối */
@@ -263,16 +263,17 @@ export default function ApprovalsPage() {
     try {
       setApprovalsLoading(true);
 
-      const [statsRequest , requests] = await Promise.all([
+      const [statsRequest, requests] = await Promise.all([
         adminService.getStatsApprovalRequests(),
-        adminService.getApprovalRequests()
-      ])
+        adminService.getApprovalRequests(),
+      ]);
 
-      
-        setRequests(requests);
+      setRequests(requests);
     } catch (err) {
       console.error("Lỗi khi tải danh sách đơn:", err);
-      setApprovalsError(err instanceof Error ? err.message : "Lỗi không xác định");
+      setApprovalsError(
+        err instanceof Error ? err.message : "Lỗi không xác định",
+      );
     } finally {
       setApprovalsLoading(false);
     }
@@ -299,13 +300,15 @@ export default function ApprovalsPage() {
           (r.requester?.name || "").toLowerCase().includes(term) ||
           (r.title || "").toLowerCase().includes(term) ||
           (r.description || "").toLowerCase().includes(term) ||
-          (r.requester?.email || "").toLowerCase().includes(term)
+          (r.requester?.email || "").toLowerCase().includes(term),
       );
     }
 
     // Lọc theo trạng thái
     if (filters.status) {
-      result = result.filter((r: ApprovalRequest) => r.status === filters.status);
+      result = result.filter(
+        (r: ApprovalRequest) => r.status === filters.status,
+      );
     }
 
     // Lọc theo loại đơn
@@ -316,10 +319,16 @@ export default function ApprovalsPage() {
     // Sắp xếp
     switch (filters.sortBy) {
       case "newest":
-        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        result.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
         break;
       case "oldest":
-        result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        result.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
         break;
     }
 
@@ -328,16 +337,25 @@ export default function ApprovalsPage() {
 
   // Paginated requests
   const paginatedRequests = useMemo(() => {
-    return filteredRequests.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    return filteredRequests.slice(
+      (currentPage - 1) * pageSize,
+      currentPage * pageSize,
+    );
   }, [filteredRequests, currentPage]);
 
   // ── Thống kê ────────────────────────────────────────────────────────────────
 
   const stats = useMemo(() => {
     const total = requests.length;
-    const pending = requests.filter((r: ApprovalRequest) => r.status === "PENDING").length;
-    const approved = requests.filter((r: ApprovalRequest) => r.status === "APPROVED").length;
-    const rejected = requests.filter((r: ApprovalRequest) => r.status === "REJECTED").length;
+    const pending = requests.filter(
+      (r: ApprovalRequest) => r.status === "PENDING",
+    ).length;
+    const approved = requests.filter(
+      (r: ApprovalRequest) => r.status === "APPROVED",
+    ).length;
+    const rejected = requests.filter(
+      (r: ApprovalRequest) => r.status === "REJECTED",
+    ).length;
     return { total, pending, approved, rejected };
   }, [requests]);
 
@@ -365,21 +383,33 @@ export default function ApprovalsPage() {
   /** Duyệt đơn yêu cầu */
   const handleApprove = async (request: ApprovalRequest) => {
     if (actingRequestId) return;
-    
+
     setActingRequestId(request.id);
     try {
       console.log(`Duyệt đơn ${request.id} với ghi chú: ${adminNote}`);
-      
+
       // Gọi API duyệt đơn
       await adminService.approveRequest(request.id, adminId, adminNote);
-      
+
       const updatedRequests = requests.map((r: ApprovalRequest) =>
-        r.id === request.id ? { ...r, status: "APPROVED" as RequestStatus, adminNote, updatedAt: new Date().toISOString() } : r
+        r.id === request.id
+          ? {
+              ...r,
+              status: "APPROVED" as RequestStatus,
+              adminNote,
+              updatedAt: new Date().toISOString(),
+            }
+          : r,
       );
       setRequests(updatedRequests);
-      
+
       if (selectedRequest && selectedRequest.id === request.id) {
-        setSelectedRequest({ ...selectedRequest, status: "APPROVED", adminNote, updatedAt: new Date().toISOString() });
+        setSelectedRequest({
+          ...selectedRequest,
+          status: "APPROVED",
+          adminNote,
+          updatedAt: new Date().toISOString(),
+        });
       }
 
       toast.success("Duyệt đơn yêu cầu thành công");
@@ -398,17 +428,29 @@ export default function ApprovalsPage() {
     setActingRequestId(request.id);
     try {
       console.log(`Từ chối đơn ${request.id} với ghi chú: ${adminNote}`);
-      
+
       // Gọi API từ chối đơn
       await adminService.rejectRequest(request.id, adminId, adminNote);
-      
+
       const updatedRequests = requests.map((r: ApprovalRequest) =>
-        r.id === request.id ? { ...r, status: "REJECTED" as RequestStatus, adminNote, updatedAt: new Date().toISOString() } : r
+        r.id === request.id
+          ? {
+              ...r,
+              status: "REJECTED" as RequestStatus,
+              adminNote,
+              updatedAt: new Date().toISOString(),
+            }
+          : r,
       );
       setRequests(updatedRequests);
-      
+
       if (selectedRequest && selectedRequest.id === request.id) {
-        setSelectedRequest({ ...selectedRequest, status: "REJECTED", adminNote, updatedAt: new Date().toISOString() });
+        setSelectedRequest({
+          ...selectedRequest,
+          status: "REJECTED",
+          adminNote,
+          updatedAt: new Date().toISOString(),
+        });
       }
 
       toast.success("Đã từ chối đơn yêu cầu");
@@ -425,11 +467,21 @@ export default function ApprovalsPage() {
     console.log(`Chuyển đơn ${request.id} sang đang xử lý`);
     // TODO: Gọi API cập nhật trạng thái
     const updatedRequests = requests.map((r: ApprovalRequest) =>
-      r.id === request.id ? { ...r, status: "PROCESSING" as RequestStatus, updatedAt: new Date().toISOString() } : r
+      r.id === request.id
+        ? {
+            ...r,
+            status: "PROCESSING" as RequestStatus,
+            updatedAt: new Date().toISOString(),
+          }
+        : r,
     );
     setRequests(updatedRequests);
     if (selectedRequest && selectedRequest.id === request.id) {
-      setSelectedRequest({ ...selectedRequest, status: "PROCESSING", updatedAt: new Date().toISOString() });
+      setSelectedRequest({
+        ...selectedRequest,
+        status: "PROCESSING",
+        updatedAt: new Date().toISOString(),
+      });
     }
   };
 
@@ -440,22 +492,27 @@ export default function ApprovalsPage() {
       title: "Tổng đơn",
       value: stats.total,
       icon: ClipboardList,
+      description: "Tất cả yêu cầu",
       gradient: "from-blue-500 to-indigo-600",
-      bgTint: "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
+      bgTint:
+        "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
       border: "border-blue-100 dark:border-blue-900/50",
     },
     {
       title: "Chờ xử lý",
       value: stats.pending,
       icon: Clock,
+      description: "Đang chờ admin duyệt",
       gradient: "from-yellow-500 to-orange-500",
-      bgTint: "from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20",
+      bgTint:
+        "from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20",
       border: "border-yellow-100 dark:border-yellow-900/50",
     },
     {
       title: "Từ chối",
       value: stats.rejected,
       icon: X,
+      description: "Yêu cầu bị bác bỏ",
       gradient: "from-red-500 to-rose-600",
       bgTint: "from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20",
       border: "border-red-100 dark:border-red-900/50",
@@ -464,8 +521,10 @@ export default function ApprovalsPage() {
       title: "Đã duyệt",
       value: stats.approved,
       icon: CheckCircle,
+      description: "Đã hoàn tất xử lý",
       gradient: "from-emerald-500 to-teal-600",
-      bgTint: "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
+      bgTint:
+        "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
       border: "border-emerald-100 dark:border-emerald-900/50",
     },
   ];
@@ -477,7 +536,9 @@ export default function ApprovalsPage() {
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Đang tải danh sách đơn yêu cầu...</p>
+          <p className="text-muted-foreground">
+            Đang tải danh sách đơn yêu cầu...
+          </p>
         </div>
       </div>
     );
@@ -487,7 +548,6 @@ export default function ApprovalsPage() {
 
   return (
     <div className="space-y-6">
-
       {/* ── Tiêu đề trang ──────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl px-8 py-6 shadow-lg">
         <div>
@@ -498,10 +558,15 @@ export default function ApprovalsPage() {
           <p className="text-primary-foreground/70 mt-1 text-sm">
             Tiếp nhận và xử lý đơn từ người dùng & chủ bãi đỗ
           </p>
-          {error && <p className="text-red-300 text-xs mt-1">Lỗi kết nối: {error}</p>}
+          {error && (
+            <p className="text-red-300 text-xs mt-1">Lỗi kết nối: {error}</p>
+          )}
         </div>
         <div className="flex gap-3 mt-4 sm:mt-0">
-          <Button onClick={fetchRequests} className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2">
+          <Button
+            onClick={fetchRequests}
+            className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2"
+          >
             <RefreshCw size={16} />
             Làm mới
           </Button>
@@ -521,8 +586,8 @@ export default function ApprovalsPage() {
               title={card.title}
               value={card.value}
               icon={card.icon}
-              description={card.subtitle || card.desc}
-              iconGradient={card.gradient || card.color}
+              description={card.description}
+              iconGradient={card.gradient}
               bgTint={card.bgTint}
               borderColor={card.border}
             />
@@ -535,7 +600,10 @@ export default function ApprovalsPage() {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Ô tìm kiếm */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={18}
+            />
             <Input
               type="text"
               placeholder="Tìm theo tên người gửi, tiêu đề, email..."
@@ -545,7 +613,12 @@ export default function ApprovalsPage() {
             />
           </div>
           {/* Lọc trạng thái */}
-          <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
+          <Select
+            value={filters.status || "all"}
+            onValueChange={(val) =>
+              handleFilterChange("status", val === "all" ? "" : val)
+            }
+          >
             <SelectTrigger className="h-11 min-w-[160px] border-border bg-muted text-foreground">
               <SelectValue placeholder="Tất cả trạng thái" />
             </SelectTrigger>
@@ -559,13 +632,20 @@ export default function ApprovalsPage() {
           </Select>
 
           {/* Lọc loại đơn */}
-          <Select value={filters.type || "all"} onValueChange={(val) => handleFilterChange("type", val === "all" ? "" : val)}>
+          <Select
+            value={filters.type || "all"}
+            onValueChange={(val) =>
+              handleFilterChange("type", val === "all" ? "" : val)
+            }
+          >
             <SelectTrigger className="h-11 min-w-[180px] border-border bg-muted text-foreground">
               <SelectValue placeholder="Tất cả loại đơn" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả loại đơn</SelectItem>
-              <SelectItem value="UPDATE_PARKING_LOT">Cập nhật bãi đỗ</SelectItem>
+              <SelectItem value="UPDATE_PARKING_LOT">
+                Cập nhật bãi đỗ
+              </SelectItem>
               <SelectItem value="PAYMENT">Thanh toán</SelectItem>
               <SelectItem value="BECOME_OWNER">Nâng cấp tài khoản</SelectItem>
               <SelectItem value="WITHDRAW_FUND">Rút tiền</SelectItem>
@@ -576,7 +656,10 @@ export default function ApprovalsPage() {
           </Select>
 
           {/* Sắp xếp */}
-          <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
+          <Select
+            value={filters.sortBy}
+            onValueChange={(val) => handleFilterChange("sortBy", val)}
+          >
             <SelectTrigger className="h-11 min-w-[140px] border-border bg-muted text-foreground">
               <SelectValue placeholder="Sắp xếp" />
             </SelectTrigger>
@@ -586,8 +669,15 @@ export default function ApprovalsPage() {
             </SelectContent>
           </Select>
           {/* Nút xóa bộ lọc */}
-          {(filters.search || filters.status || filters.type || filters.sortBy !== "newest") && (
-            <Button variant="default" onClick={clearFilters} className="h-11 text-muted-foreground hover:text-foreground/80 hover:bg-red-300 bg-red-100">
+          {(filters.search ||
+            filters.status ||
+            filters.type ||
+            filters.sortBy !== "newest") && (
+            <Button
+              variant="default"
+              onClick={clearFilters}
+              className="h-11 text-muted-foreground hover:text-foreground/80 hover:bg-red-300 bg-red-100"
+            >
               <X size={16} className="mr-1" />
               Xóa lọc
             </Button>
@@ -609,9 +699,10 @@ export default function ApprovalsPage() {
               className="bg-card rounded-xl shadow-sm border border-border p-5 hover:shadow-md hover:bg-gray-200/50 transition-all cursor-pointer group"
             >
               <div className="flex flex-col sm:flex-row gap-4">
-
                 {/* Icon loại đơn */}
-                <div className={`w-12 h-12 rounded-xl ${typeConf.bgColor} flex items-center justify-center flex-shrink-0`}>
+                <div
+                  className={`w-12 h-12 rounded-xl ${typeConf.bgColor} flex items-center justify-center flex-shrink-0`}
+                >
                   <TypeIcon className={`w-6 h-6 ${typeConf.color}`} />
                 </div>
 
@@ -624,30 +715,53 @@ export default function ApprovalsPage() {
                     </h3>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {/* Badge loại đơn */}
-                      <Badge variant="outline" className={`text-xs ${typeConf.bgColor} ${typeConf.color} border-0`}>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${typeConf.bgColor} ${typeConf.color} border-0`}
+                      >
                         {typeConf.label}
                       </Badge>
                       {/* Badge trạng thái */}
-                      <Badge variant="outline" className={`text-xs font-medium ${statusConf.className}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusConf.dot} mr-1.5 inline-block`} />
+                      <Badge
+                        variant="outline"
+                        className={`text-xs font-medium ${statusConf.className}`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${statusConf.dot} mr-1.5 inline-block`}
+                        />
                         {statusConf.label}
                       </Badge>
                     </div>
                   </div>
 
                   {/* Dòng 2: Mô tả ngắn */}
-                  <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{request.description}</p>
+                  <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
+                    {request.description}
+                  </p>
 
                   {/* Dòng 3: Thông tin meta */}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
                     {/* Người gửi */}
                     <span className="flex items-center gap-1">
-                      <div className={`w-5 h-5 rounded-full bg-gradient-to-br ${getAvatarColor(request.requester.id)} flex items-center justify-center`}>
-                        <span className="text-white text-[8px] font-bold">{getInitials(request.requester.name || request.requester.email)}</span>
+                      <div
+                        className={`w-5 h-5 rounded-full bg-gradient-to-br ${getAvatarColor(request.requester.id)} flex items-center justify-center`}
+                      >
+                        <span className="text-white text-[8px] font-bold">
+                          {getInitials(
+                            request.requester.name || request.requester.email,
+                          )}
+                        </span>
                       </div>
-                      <span className="font-medium text-muted-foreground truncate max-w-[120px]">{request.requester.name || request.requester.email}</span>
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0">
-                        {request.requester.role ? roleLabels[request.requester.role] : "Người dùng"}
+                      <span className="font-medium text-muted-foreground truncate max-w-[120px]">
+                        {request.requester.name || request.requester.email}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] px-1.5 py-0 h-4 flex-shrink-0"
+                      >
+                        {request.requester.role
+                          ? roleLabels[request.requester.role]
+                          : "Người dùng"}
                       </Badge>
                     </span>
 
@@ -675,7 +789,10 @@ export default function ApprovalsPage() {
                 </div>
 
                 {/* Menu hành động */}
-                <div className="flex items-start flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="flex items-start flex-shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -687,35 +804,49 @@ export default function ApprovalsPage() {
                         <Eye size={16} className="mr-2" />
                         Xem chi tiết
                       </DropdownMenuItem>
-                       {/* Chỉ hiện các nút hành động khi đơn chưa xử lý xong */}
-                      {(request.status === "PENDING" || request.status === "PROCESSING") && (
+                      {/* Chỉ hiện các nút hành động khi đơn chưa xử lý xong */}
+                      {(request.status === "PENDING" ||
+                        request.status === "PROCESSING") && (
                         <>
                           <DropdownMenuSeparator />
                           {request.status === "PENDING" && (
-                            <DropdownMenuItem onClick={() => handleMarkProcessing(request)} className="text-blue-600">
+                            <DropdownMenuItem
+                              onClick={() => handleMarkProcessing(request)}
+                              className="text-blue-600"
+                            >
                               <RefreshCw size={16} className="mr-2" />
                               Đánh dấu đang xử lý
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem 
-                            onClick={() => { handleApprove(request); }} 
+                          <DropdownMenuItem
+                            onClick={() => {
+                              handleApprove(request);
+                            }}
                             className="text-green-600"
                             disabled={actingRequestId === request.id}
                           >
                             {actingRequestId === request.id ? (
-                              <Loader2 size={16} className="mr-2 animate-spin" />
+                              <Loader2
+                                size={16}
+                                className="mr-2 animate-spin"
+                              />
                             ) : (
                               <CheckCircle size={16} className="mr-2" />
                             )}
                             Duyệt đơn
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => { handleReject(request); }} 
+                          <DropdownMenuItem
+                            onClick={() => {
+                              handleReject(request);
+                            }}
                             className="text-red-600"
                             disabled={actingRequestId === request.id}
                           >
                             {actingRequestId === request.id ? (
-                              <Loader2 size={16} className="mr-2 animate-spin" />
+                              <Loader2
+                                size={16}
+                                className="mr-2 animate-spin"
+                              />
                             ) : (
                               <XCircle size={16} className="mr-2" />
                             )}
@@ -736,7 +867,19 @@ export default function ApprovalsPage() {
       {filteredRequests.length > 0 && (
         <div className="px-5 py-4 bg-card rounded-xl border border-border flex items-center justify-between shadow-sm">
           <div className="text-sm text-muted-foreground">
-            Hiển thị <span className="font-medium text-foreground">{Math.min(filteredRequests.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredRequests.length, currentPage * pageSize)}</span> trong <span className="font-medium text-foreground">{filteredRequests.length}</span> đơn yêu cầu
+            Hiển thị{" "}
+            <span className="font-medium text-foreground">
+              {Math.min(
+                filteredRequests.length,
+                (currentPage - 1) * pageSize + 1,
+              )}
+              -{Math.min(filteredRequests.length, currentPage * pageSize)}
+            </span>{" "}
+            trong{" "}
+            <span className="font-medium text-foreground">
+              {filteredRequests.length}
+            </span>{" "}
+            đơn yêu cầu
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -748,7 +891,7 @@ export default function ApprovalsPage() {
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            
+
             {(() => {
               const totalPages = Math.ceil(filteredRequests.length / pageSize);
               const pages = [];
@@ -763,29 +906,42 @@ export default function ApprovalsPage() {
                   pages.push("...");
                 }
               }
-              
-              return pages.filter((p, idx, arr) => p !== "..." || arr[idx - 1] !== "...").map((page, idx) => (
-                typeof page === "number" ? (
-                  <Button
-                    key={idx}
-                    variant={currentPage === page ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(page)}
-                    className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}
-                  >
-                    {page}
-                  </Button>
-                ) : (
-                  <span key={idx} className="text-gray-400 px-1">...</span>
-                )
-              ));
+
+              return pages
+                .filter((p, idx, arr) => p !== "..." || arr[idx - 1] !== "...")
+                .map((page, idx) =>
+                  typeof page === "number" ? (
+                    <Button
+                      key={idx}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}
+                    >
+                      {page}
+                    </Button>
+                  ) : (
+                    <span key={idx} className="text-gray-400 px-1">
+                      ...
+                    </span>
+                  ),
+                );
             })()}
 
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(filteredRequests.length / pageSize), prev + 1))}
-              disabled={currentPage >= Math.ceil(filteredRequests.length / pageSize)}
+              onClick={() =>
+                setCurrentPage((prev) =>
+                  Math.min(
+                    Math.ceil(filteredRequests.length / pageSize),
+                    prev + 1,
+                  ),
+                )
+              }
+              disabled={
+                currentPage >= Math.ceil(filteredRequests.length / pageSize)
+              }
               className="h-8 w-8 p-0"
             >
               <ChevronRight className="w-4 h-4" />
@@ -800,7 +956,9 @@ export default function ApprovalsPage() {
           <div className="bg-muted rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
             <ClipboardList className="h-10 w-10 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">Không tìm thấy đơn yêu cầu nào</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            Không tìm thấy đơn yêu cầu nào
+          </h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm
           </p>
@@ -817,201 +975,271 @@ export default function ApprovalsPage() {
             <DialogTitle className="text-xl">Chi tiết đơn yêu cầu</DialogTitle>
           </DialogHeader>
 
-          {selectedRequest && (() => {
-            const typeConf = requestTypeConfig[selectedRequest.type];
-            const statusConf = statusConfig[selectedRequest.status];
-            const TypeIcon = typeConf.icon;
-            const canAction = selectedRequest.status === "PENDING" || selectedRequest.status === "PROCESSING";
+          {selectedRequest &&
+            (() => {
+              const typeConf = requestTypeConfig[selectedRequest.type];
+              const statusConf = statusConfig[selectedRequest.status];
+              const TypeIcon = typeConf.icon;
+              const canAction =
+                selectedRequest.status === "PENDING" ||
+                selectedRequest.status === "PROCESSING";
 
-            return (
-              <div className="space-y-5 mt-2">
-
-                {/* Phần đầu — Loại đơn + trạng thái */}
-                <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl">
-                  <div className={`w-14 h-14 rounded-xl ${typeConf.bgColor} flex items-center justify-center`}>
-                    <TypeIcon className={`w-7 h-7 ${typeConf.color}`} />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-foreground">{selectedRequest.title}</h3>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <Badge variant="outline" className={`text-xs ${typeConf.bgColor} ${typeConf.color} border-0`}>
-                        {typeConf.label}
-                      </Badge>
-                      <Badge variant="outline" className={`text-xs font-medium ${statusConf.className}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${statusConf.dot} mr-1.5 inline-block`} />
-                        {statusConf.label}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                 <div className="p-4 bg-muted rounded-xl">
-                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Người gửi đơn</h4>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(selectedRequest.requester.id)} flex items-center justify-center shadow-sm`}>
-                      <span className="text-white text-sm font-semibold">{getInitials(selectedRequest.requester.name || selectedRequest.requester.email)}</span>
+              return (
+                <div className="space-y-5 mt-2">
+                  {/* Phần đầu — Loại đơn + trạng thái */}
+                  <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl">
+                    <div
+                      className={`w-14 h-14 rounded-xl ${typeConf.bgColor} flex items-center justify-center`}
+                    >
+                      <TypeIcon className={`w-7 h-7 ${typeConf.color}`} />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">{selectedRequest.requester.name || selectedRequest.requester.email}</p>
-                        <Badge variant="outline" className="text-xs">{selectedRequest.requester.role ? roleLabels[selectedRequest.requester.role] : "Người dùng"}</Badge>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><Mail size={12} />{selectedRequest.requester.email}</span>
-                        {selectedRequest.requester.phone && <span className="flex items-center gap-1"><Phone size={12} />{selectedRequest.requester.phone}</span>}
+                      <h3 className="text-lg font-bold text-foreground">
+                        {selectedRequest.title}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${typeConf.bgColor} ${typeConf.color} border-0`}
+                        >
+                          {typeConf.label}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs font-medium ${statusConf.className}`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${statusConf.dot} mr-1.5 inline-block`}
+                          />
+                          {statusConf.label}
+                        </Badge>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Nội dung đơn */}
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Nội dung yêu cầu</h4>
-                  <p className="text-sm text-foreground/80 leading-relaxed bg-card border border-border rounded-lg p-4">
-                    {selectedRequest.description}
-                  </p>
-                </div>
-
-                {/* Thông tin bổ sung (bãi đỗ, giá trị thay đổi, số tiền) */}
-                {(selectedRequest.relatedParkingLot || selectedRequest.oldValue || selectedRequest.amount) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Bãi đỗ liên quan */}
-                    {selectedRequest.relatedParkingLot && (
-                      <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-lg">
-                        <MapPin size={18} className="text-violet-500" />
-                        <div>
-                          <p className="text-xs text-violet-400">Bãi đỗ liên quan</p>
-                          <p className="text-sm font-medium text-foreground">{selectedRequest.relatedParkingLot.name}</p>
-                          <p className="text-xs text-muted-foreground">{selectedRequest.relatedParkingLot.address}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Số tiền hoàn */}
-                    {selectedRequest.amount && (
-                      <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
-                        <AlertTriangle size={18} className="text-amber-500" />
-                        <div>
-                          <p className="text-xs text-amber-400">Số tiền yêu cầu</p>
-                          <p className="text-lg font-bold text-amber-700">{formatCurrency(selectedRequest.amount)}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Giá trị thay đổi — cũ → mới */}
-                    {selectedRequest.oldValue && selectedRequest.newValue && (
-                      <div className="sm:col-span-2 p-3 bg-orange-50 rounded-lg">
-                        <p className="text-xs text-orange-400 mb-2">Thay đổi</p>
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 p-2 bg-card rounded border border-orange-200">
-                            <p className="text-xs text-gray-400 mb-0.5">Hiện tại</p>
-                            <p className="text-sm font-medium text-foreground line-through opacity-60">{selectedRequest.oldValue}</p>
-                          </div>
-                          <span className="text-orange-400 font-bold">→</span>
-                          <div className="flex-1 p-2 bg-card rounded border border-green-200">
-                            <p className="text-xs text-gray-400 mb-0.5">Mới</p>
-                            <p className="text-sm font-medium text-green-700">{selectedRequest.newValue}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Ghi chú admin (nếu đã có) */}
-                {selectedRequest.adminNote && !canAction && (
-                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                    <h4 className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                      <ShieldCheck size={14} />
-                      Phản hồi từ Admin
+                  <div className="p-4 bg-muted rounded-xl">
+                    <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                      Người gửi đơn
                     </h4>
-                    <p className="text-sm text-foreground/80">{selectedRequest.adminNote}</p>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(selectedRequest.requester.id)} flex items-center justify-center shadow-sm`}
+                      >
+                        <span className="text-white text-sm font-semibold">
+                          {getInitials(
+                            selectedRequest.requester.name ||
+                              selectedRequest.requester.email,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground">
+                            {selectedRequest.requester.name ||
+                              selectedRequest.requester.email}
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            {selectedRequest.requester.role
+                              ? roleLabels[selectedRequest.requester.role]
+                              : "Người dùng"}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Mail size={12} />
+                            {selectedRequest.requester.email}
+                          </span>
+                          {selectedRequest.requester.phone && (
+                            <span className="flex items-center gap-1">
+                              <Phone size={12} />
+                              {selectedRequest.requester.phone}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
 
-                {/* Ô nhập ghi chú admin (khi đơn đang chờ xử lý) */}
-                {canAction && (
+                  {/* Nội dung đơn */}
                   <div>
                     <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                      Ghi chú xử lý (tuỳ chọn)
+                      Nội dung yêu cầu
                     </h4>
-                    <textarea
-                      value={adminNote}
-                      onChange={(e) => setAdminNote(e.target.value)}
-                      placeholder="Nhập ghi chú hoặc lý do xử lý đơn..."
-                      rows={3}
-                      className="w-full px-4 py-3 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-card text-sm resize-none"
-                    />
+                    <p className="text-sm text-foreground/80 leading-relaxed bg-card border border-border rounded-lg p-4">
+                      {selectedRequest.description}
+                    </p>
                   </div>
-                )}
 
-                {/* Thời gian */}
-                <div className="flex items-center justify-between text-xs text-gray-400 px-1">
-                  <span className="flex items-center gap-1">
-                    <Calendar size={12} />
-                    Gửi lúc: {formatDateTime(selectedRequest.createdAt)}
-                  </span>
-                  {selectedRequest.updatedAt !== selectedRequest.createdAt && (
-                    <span className="flex items-center gap-1">
-                      <Clock size={12} />
-                      Cập nhật: {formatDateTime(selectedRequest.updatedAt)}
-                    </span>
-                  )}
-                </div>
-
-                {/* Nút hành động */}
-                <div className="flex justify-end gap-3 pt-2 border-t border-border">
-                  <Button variant="outline" onClick={() => setDetailOpen(false)}>
-                    Đóng
-                  </Button>
-
-                  {canAction && (
-                    <>
-                      {/* Nút đánh dấu đang xử lý */}
-                      {selectedRequest.status === "PENDING" && (
-                        <Button
-                          variant="outline"
-                          className="border-blue-200 text-primary hover:bg-primary/10"
-                          onClick={() => handleMarkProcessing(selectedRequest)}
-                        >
-                          <RefreshCw size={16} className="mr-2" />
-                          Đang xử lý
-                        </Button>
+                  {/* Thông tin bổ sung (bãi đỗ, giá trị thay đổi, số tiền) */}
+                  {(selectedRequest.relatedParkingLot ||
+                    selectedRequest.oldValue ||
+                    selectedRequest.amount) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Bãi đỗ liên quan */}
+                      {selectedRequest.relatedParkingLot && (
+                        <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-lg">
+                          <MapPin size={18} className="text-violet-500" />
+                          <div>
+                            <p className="text-xs text-violet-400">
+                              Bãi đỗ liên quan
+                            </p>
+                            <p className="text-sm font-medium text-foreground">
+                              {selectedRequest.relatedParkingLot.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {selectedRequest.relatedParkingLot.address}
+                            </p>
+                          </div>
+                        </div>
                       )}
 
-                      {/* Nút từ chối */}
-                      <Button
-                        className="bg-red-600 hover:bg-red-700 text-white"
-                        onClick={() => handleReject(selectedRequest)}
-                        disabled={actingRequestId === selectedRequest.id}
-                      >
-                        {actingRequestId === selectedRequest.id ? (
-                          <Loader2 size={16} className="mr-2 animate-spin" />
-                        ) : (
-                          <XCircle size={16} className="mr-2" />
-                        )}
-                        Từ chối
-                      </Button>
+                      {/* Số tiền hoàn */}
+                      {selectedRequest.amount && (
+                        <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg">
+                          <AlertTriangle size={18} className="text-amber-500" />
+                          <div>
+                            <p className="text-xs text-amber-400">
+                              Số tiền yêu cầu
+                            </p>
+                            <p className="text-lg font-bold text-amber-700">
+                              {formatCurrency(selectedRequest.amount)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
-                      {/* Nút duyệt */}
-                      <Button
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleApprove(selectedRequest)}
-                        disabled={actingRequestId === selectedRequest.id}
-                      >
-                        {actingRequestId === selectedRequest.id ? (
-                          <Loader2 size={16} className="mr-2 animate-spin" />
-                        ) : (
-                          <CheckCircle size={16} className="mr-2" />
-                        )}
-                        Duyệt đơn
-                      </Button>
-                    </>
+                      {/* Giá trị thay đổi — cũ → mới */}
+                      {selectedRequest.oldValue && selectedRequest.newValue && (
+                        <div className="sm:col-span-2 p-3 bg-orange-50 rounded-lg">
+                          <p className="text-xs text-orange-400 mb-2">
+                            Thay đổi
+                          </p>
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 p-2 bg-card rounded border border-orange-200">
+                              <p className="text-xs text-gray-400 mb-0.5">
+                                Hiện tại
+                              </p>
+                              <p className="text-sm font-medium text-foreground line-through opacity-60">
+                                {selectedRequest.oldValue}
+                              </p>
+                            </div>
+                            <span className="text-orange-400 font-bold">→</span>
+                            <div className="flex-1 p-2 bg-card rounded border border-green-200">
+                              <p className="text-xs text-gray-400 mb-0.5">
+                                Mới
+                              </p>
+                              <p className="text-sm font-medium text-green-700">
+                                {selectedRequest.newValue}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
+
+                  {/* Ghi chú admin (nếu đã có) */}
+                  {selectedRequest.adminNote && !canAction && (
+                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                      <h4 className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <ShieldCheck size={14} />
+                        Phản hồi từ Admin
+                      </h4>
+                      <p className="text-sm text-foreground/80">
+                        {selectedRequest.adminNote}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Ô nhập ghi chú admin (khi đơn đang chờ xử lý) */}
+                  {canAction && (
+                    <div>
+                      <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                        Ghi chú xử lý (tuỳ chọn)
+                      </h4>
+                      <textarea
+                        value={adminNote}
+                        onChange={(e) => setAdminNote(e.target.value)}
+                        placeholder="Nhập ghi chú hoặc lý do xử lý đơn..."
+                        rows={3}
+                        className="w-full px-4 py-3 border border-border rounded-lg bg-muted focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-card text-sm resize-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Thời gian */}
+                  <div className="flex items-center justify-between text-xs text-gray-400 px-1">
+                    <span className="flex items-center gap-1">
+                      <Calendar size={12} />
+                      Gửi lúc: {formatDateTime(selectedRequest.createdAt)}
+                    </span>
+                    {selectedRequest.updatedAt !==
+                      selectedRequest.createdAt && (
+                      <span className="flex items-center gap-1">
+                        <Clock size={12} />
+                        Cập nhật: {formatDateTime(selectedRequest.updatedAt)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Nút hành động */}
+                  <div className="flex justify-end gap-3 pt-2 border-t border-border">
+                    <Button
+                      variant="outline"
+                      onClick={() => setDetailOpen(false)}
+                    >
+                      Đóng
+                    </Button>
+
+                    {canAction && (
+                      <>
+                        {/* Nút đánh dấu đang xử lý */}
+                        {selectedRequest.status === "PENDING" && (
+                          <Button
+                            variant="outline"
+                            className="border-blue-200 text-primary hover:bg-primary/10"
+                            onClick={() =>
+                              handleMarkProcessing(selectedRequest)
+                            }
+                          >
+                            <RefreshCw size={16} className="mr-2" />
+                            Đang xử lý
+                          </Button>
+                        )}
+
+                        {/* Nút từ chối */}
+                        <Button
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          onClick={() => handleReject(selectedRequest)}
+                          disabled={actingRequestId === selectedRequest.id}
+                        >
+                          {actingRequestId === selectedRequest.id ? (
+                            <Loader2 size={16} className="mr-2 animate-spin" />
+                          ) : (
+                            <XCircle size={16} className="mr-2" />
+                          )}
+                          Từ chối
+                        </Button>
+
+                        {/* Nút duyệt */}
+                        <Button
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => handleApprove(selectedRequest)}
+                          disabled={actingRequestId === selectedRequest.id}
+                        >
+                          {actingRequestId === selectedRequest.id ? (
+                            <Loader2 size={16} className="mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle size={16} className="mr-2" />
+                          )}
+                          Duyệt đơn
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
         </DialogContent>
       </Dialog>
     </div>
