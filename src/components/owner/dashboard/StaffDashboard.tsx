@@ -1,5 +1,6 @@
 "use client";
 import { useAuthStore } from "@/stores";
+import { API_BASE_URL } from "@/lib/api";
 import { Html5Qrcode } from "html5-qrcode";
 import { useEffect, useState, useRef, useCallback } from "react";
 import Webcam from "react-webcam";
@@ -101,7 +102,7 @@ export function StaffDashboard() {
     } else {
       const fetchFirstLot = async () => {
         try {
-          const res = await fetch("http://localhost:8000/api/v1/parking-lots/all");
+          const res = await fetch(`${API_BASE_URL}/parking-lots/all`);
           if (res.ok) {
             const result = await res.json();
             const lotsData = result.data || [];
@@ -122,7 +123,7 @@ export function StaffDashboard() {
       if (!selectedParkingLotId) return;
       setGatesLoading(true);
       try {
-        const res = await fetch(`http://localhost:8000/api/v1/parking-lots/${selectedParkingLotId}/gates`, {
+        const res = await fetch(`${API_BASE_URL}/parking-lots/${selectedParkingLotId}/gates`, {
           headers: {
             "Authorization": `Bearer ${accessToken}`,
           },
@@ -153,7 +154,7 @@ export function StaffDashboard() {
     if (!selectedParkingLotId || !accessToken) return;
     setHistoryLoading(true);
     try {
-      const url = `http://localhost:8000/api/v1/booking/live-history/${selectedParkingLotId}?page=${currentPage}&limit=${pageSize}&range=${timeRange}`;
+      const url = `${API_BASE_URL}/booking/live-history/${selectedParkingLotId}?page=${currentPage}&limit=${pageSize}&range=${timeRange}`;
       const res = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${accessToken}`,
@@ -367,7 +368,7 @@ export function StaffDashboard() {
     formData.append("gateId", selectedGateId);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/booking/scan", {
+      const res = await fetch(`${API_BASE_URL}/booking/scan`, {
         method: "POST",
         body: formData,
         headers: {
@@ -802,10 +803,13 @@ export function StaffDashboard() {
                               variant="ghost"
                               size="sm"
                               className="group/thumb p-1 h-11 w-16 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white hover:bg-zinc-50"
-                              onClick={() => setSelectedSnapshot(`http://localhost:8000${log.image_url}`)}
+                              onClick={() => {
+                                const origin = new URL(API_BASE_URL).origin;
+                                setSelectedSnapshot(`${origin}${log.image_url}`);
+                              }}
                             >
                               <img 
-                                src={`http://localhost:8000${log.image_url}`} 
+                                src={`${new URL(API_BASE_URL).origin}${log.image_url}`} 
                                 className="w-full h-full object-cover rounded-lg group-hover/thumb:scale-110 transition-transform" 
                                 alt="snapshot"
                               />

@@ -55,6 +55,7 @@ import {
 import { adminService, OwnerList, OwnerStats } from "@/services/admin.service";
 import { useAdminStore } from "@/stores";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/api";
 
 // ─── Kiểu dữ liệu ───────────────────────────────────────────────────────────
 
@@ -86,7 +87,7 @@ interface Filters {
 
 // ─── Hằng số cấu hình ────────────────────────────────────────────────────────
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+// const API_BASE_URL = ... (already imported from "@/lib/api")
 
 /** Cấu hình màu sắc & nhãn cho trạng thái tài khoản */
 import { statusConfig } from "@/app/admin/account/customers/page"

@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useAuthStore } from "@/stores/auth.store";
+import { API_BASE_URL } from "@/lib/api";
 
 type Message = {
   role: "user" | "assistant";
@@ -12,7 +13,7 @@ type Status = "unknown" | "connected" | "disconnected";
 
 const OWNER_API_URL =
   process.env.NEXT_PUBLIC_OWNER_CHATBOT_API ||
-  "http://localhost:8000/api/v1/chatbot/owner/chat";
+  `${API_BASE_URL}/chatbot/owner/chat`;
 
 const QUICK_CHIPS = [
   "📊 Doanh thu tuần này",
@@ -58,7 +59,7 @@ export default function OwnerChatbot() {
 
   const checkStatus = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/chatbot/status");
+      const res = await fetch(`${API_BASE_URL}/chatbot/status`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setStatus(data?.data?.running || data?.data?.models?.groq?.ok ? "connected" : "disconnected");

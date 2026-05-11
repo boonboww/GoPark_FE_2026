@@ -1,6 +1,7 @@
-﻿"use client";
+"use client";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useAuthStore } from "@/stores/auth.store";
+import { API_BASE_URL } from "@/lib/api";
 
 type Message = {
   role: "user" | "assistant";
@@ -12,10 +13,10 @@ type Status = "unknown" | "connected" | "disconnected";
 
 const API_URL =
   process.env.NEXT_PUBLIC_CHATBOT_API ||
-  "http://localhost:8000/api/v1/chatbot/chat";
+  `${API_BASE_URL}/chatbot/chat`;
 const STATUS_URL =
   process.env.NEXT_PUBLIC_CHATBOT_STATUS ||
-  "http://localhost:8000/api/v1/chatbot/status";
+  `${API_BASE_URL}/chatbot/status`;
 
 const QUICK_CHIPS = [
   "🔍 Tìm bãi gần tôi",
@@ -75,7 +76,7 @@ export default function UserChatbot() {
 
   const checkStatus = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/chatbot/status");
+      const res = await fetch(STATUS_URL);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setStatus(data?.data?.running || data?.data?.models?.groq?.ok ? "connected" : "disconnected");
