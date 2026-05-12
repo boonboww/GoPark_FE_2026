@@ -51,7 +51,7 @@ function LoginFormParams({
   useEffect(() => {
     if (searchParams.get("success") === "1") {
       setMessage(
-        "✅ Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản.",
+        " Đăng ký thành công! Vui lòng kiểm tra email để kích hoạt tài khoản.",
       );
     }
   }, [searchParams, setMessage]);
@@ -127,7 +127,7 @@ function LoginPageContent() {
     const { email, password } = formData;
 
     if (!email.trim() || !password.trim()) {
-      setMessage("❌ Vui lòng nhập đầy đủ email và mật khẩu");
+      setMessage(" Vui lòng nhập đầy đủ email và mật khẩu");
       setLoading(false);
       return;
     }
@@ -150,17 +150,19 @@ function LoginPageContent() {
         status: user.status || "ACTIVE",
         roles: user.roles || [user.role || "USER"],
         role: (user.role || user.roles?.[0] || "USER").toUpperCase(),
-        profile: user.profile ? {
-          id: user.profile.id,
-          name: user.profile.name || "N/A",
-          phone: user.profile.phone || null,
-          gender: user.profile.gender || null,
-          image: user.profile.image || null
-        } : null
+        profile: user.profile
+          ? {
+              id: user.profile.id,
+              name: user.profile.name || "N/A",
+              phone: user.profile.phone || null,
+              gender: user.profile.gender || null,
+              image: user.profile.image || null,
+            }
+          : null,
       };
 
       login(frontendUser, accessToken, refreshToken);
-      setMessage("✅ Đăng nhập thành công!");
+      setMessage(" Đăng nhập thành công!");
       setShowSuccessDialog(true);
 
       if (isRememberEnabled) {
@@ -183,7 +185,7 @@ function LoginPageContent() {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      setMessage(`❌ ${error.message || "Có lỗi xảy ra khi đăng nhập"}`);
+      setMessage(` ${error.message || "Có lỗi xảy ra khi đăng nhập"}`);
       console.error("Login error:", error);
     }
 
@@ -359,26 +361,18 @@ function LoginPageContent() {
                   <motion.div
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                  >
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full h-10 rounded-lg border-slate-200 dark:border-stone-700 text-slate-600 dark:text-stone-300 hover:bg-slate-50 dark:bg-stone-800 hover:text-slate-900 dark:text-white font-medium text-sm"
-                    >
-                      <Globe className="w-3.5 h-3.5 mr-2 text-rose-500" />
-                      Đăng nhập bằng Google
-                    </Button>
-                  </motion.div>
+                  ></motion.div>
                 </motion.div>
 
                 {message && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
-                    className={`p-2.5 rounded-lg text-xs text-center font-medium ${message.includes("✅")
-                      ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                      : "bg-rose-50 text-rose-600 border border-rose-100"
-                      }`}
+                    className={`p-2.5 rounded-lg text-xs text-center font-medium ${
+                      message.includes("✅")
+                        ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                        : "bg-rose-50 text-rose-600 border border-rose-100"
+                    }`}
                   >
                     {message}
                   </motion.div>
@@ -388,7 +382,9 @@ function LoginPageContent() {
                   variants={itemVariants}
                   className="mt-4 text-center text-xs"
                 >
-                  <span className="text-slate-500 dark:text-stone-400">Chưa có tài khoản? </span>
+                  <span className="text-slate-500 dark:text-stone-400">
+                    Chưa có tài khoản?{" "}
+                  </span>
                   <Link
                     href="/auth/register"
                     className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"

@@ -68,17 +68,24 @@ const Header = () => {
         "header-requests-link",
         "header-chat-link",
         "header-report-link",
-        "header-logout-btn"
+        "header-logout-btn",
+        "header-history-link",
+        "find-parking-nav-link",
+        "home-nav-link",
+        "header-promotions-link"
       ];
       
-      // Kiểm tra xem bước hiện tại có nằm trong dropdown không
       const isInDropdown = dropdownItems.includes(targetId);
       
       if (isInDropdown) {
-        setIsDropdownOpen(true);
+        if (window.innerWidth < 1024) { // Mobile breakpoint
+          setIsMobileMenuOpen(true);
+        } else {
+          setIsDropdownOpen(true);
+        }
       } else {
-        // Đóng dropdown nếu bước tiếp theo không thuộc dropdown (ví dụ: tìm bãi đỗ, logo home)
         setIsDropdownOpen(false);
+        setIsMobileMenuOpen(false);
       }
     }
   }, [isTourActive, currentStep, steps]);
@@ -173,19 +180,19 @@ const Header = () => {
     }
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, className: string = "h-4 w-4") => {
     switch (type) {
       case "PROMOTIONAL":
       case "PROMOTION":
-        return <Megaphone className="h-4 w-4 text-purple-500" />;
+        return <Megaphone className={`${className} text-purple-500`} />;
       case "ALERT":
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className={`${className} text-red-500`} />;
       case "REMINDER":
-        return <Clock className="h-4 w-4 text-amber-500" />;
+        return <Clock className={`${className} text-amber-500`} />;
       case "SYSTEM":
-        return <Settings className="h-4 w-4 text-blue-500" />;
+        return <Settings className={`${className} text-blue-500`} />;
       default:
-        return <Info className="h-4 w-4 text-gray-500" />;
+        return <Info className={`${className} text-gray-500`} />;
     }
   };
 
@@ -578,7 +585,7 @@ const Header = () => {
                             className={`w-full text-left px-4 py-2.5 border-b border-gray-50 dark:border-stone-800/50 hover:bg-gray-50 dark:hover:bg-stone-800/50 transition-colors flex gap-2 ${!notif.isRead ? "bg-blue-50/20 dark:bg-blue-900/10" : ""}`}
                           >
                             <div className={`mt-0.5 h-6 w-6 rounded-full flex-shrink-0 flex items-center justify-center ${getNotificationColor(notif.type)}`}>
-                              {React.cloneElement(getNotificationIcon(notif.type) as React.ReactElement, { className: "h-3 w-3" })}
+                              {getNotificationIcon(notif.type, "h-3 w-3")}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className={`text-[11px] truncate ${!notif.isRead ? "font-bold text-black dark:text-white" : "text-gray-600 dark:text-gray-400"}`}>
@@ -641,11 +648,15 @@ const Header = () => {
             <div className="absolute right-0 top-0 h-svh w-full sm:w-[320px] bg-white dark:bg-stone-950 shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col z-[2001] overflow-hidden">
               {/* Drawer Header - Non-sticky to avoid clipping */}
               <div className="p-5 border-b flex items-center justify-between dark:border-stone-800 bg-white dark:bg-stone-950">
-                <Link href="/" className="flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
-                  <div className="bg-green-600 p-1.5 rounded-lg shadow-sm">
-                    <img src="/logo.png" alt="Logo" className="h-5 w-5 invert brightness-0" />
-                  </div>
-                  <span className="font-bold text-lg dark:text-white tracking-tight">Go<span className="text-green-600">Park</span></span>
+                <Link
+                  href="/"
+                  className="flex items-center gap-2 text-primary font-bold text-2xl hover:opacity-90 transition-opacity"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <img src="/logo.png" alt="GoPark Logo" className="h-8 w-8" />
+                  <span className=" bg-clip-text text-black dark:text-white">
+                    Go <span className="text-green-600">Park</span>
+                  </span>
                 </Link>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -689,17 +700,17 @@ const Header = () => {
                 {/* Primary Nav Section */}
                 <div className="space-y-1">
                   <p className="px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 opacity-50">Điều hướng chính</p>
-                  <MobileNavItem href="/" icon={Home} label="Trang chủ" onClick={() => setIsMobileMenuOpen(false)} />
-                  <MobileNavItem href="/users/findParking" icon={Search} label="Tìm bãi đỗ" onClick={() => setIsMobileMenuOpen(false)} />
-                  <MobileNavItem href="/users/promotions" icon={Ticket} label="Ưu đãi & Khuyến mãi" onClick={() => setIsMobileMenuOpen(false)} />
-                  <MobileNavItem href="/users/historyBooking" icon={History} label="Lịch sử đặt chỗ" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem id="home-nav-link" href="/" icon={Home} label="Trang chủ" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem id="find-parking-nav-link" href="/users/findParking" icon={Search} label="Tìm bãi đỗ" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem id="header-promotions-link" href="/users/promotions" icon={Ticket} label="Ưu đãi & Khuyến mãi" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem id="header-history-link" href="/users/historyBooking" icon={History} label="Lịch sử đặt chỗ" onClick={() => setIsMobileMenuOpen(false)} />
                 </div>
 
                 {/* Support Section */}
                 <div className="space-y-1">
                   <p className="px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 opacity-50">Tài khoản & Hỗ trợ</p>
-                  <MobileNavItem href="/users/chat" icon={MessageCircle} label="Tin nhắn" onClick={() => setIsMobileMenuOpen(false)} />
-                  <MobileNavItem href="/users/profile" icon={User} label="Hồ sơ cá nhân" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem id="header-chat-link" href="/users/chat" icon={MessageCircle} label="Tin nhắn" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem id="header-profile-link" href="/users/profile" icon={User} label="Hồ sơ cá nhân" onClick={() => setIsMobileMenuOpen(false)} />
                   <MobileNavItem href="/users/setting" icon={Settings} label="Cài đặt hệ thống" onClick={() => setIsMobileMenuOpen(false)} />
                   <MobileNavItem href="/users/about" icon={Info} label="Về GoPark" onClick={() => setIsMobileMenuOpen(false)} />
                   <MobileNavItem href="/users/contact" icon={Contact} label="Trung tâm trợ giúp" onClick={() => setIsMobileMenuOpen(false)} />
@@ -809,8 +820,9 @@ const Header = () => {
   );
 };
 
-const MobileNavItem = ({ href, icon: Icon, label, onClick }: { href: string; icon: any; label: string; onClick: () => void }) => (
+const MobileNavItem = ({ id, href, icon: Icon, label, onClick }: { id?: string; href: string; icon: any; label: string; onClick: () => void }) => (
   <Link
+    id={id}
     href={href}
     onClick={onClick}
     className="group flex items-center gap-4 px-4 py-4 rounded-2xl text-[15px] font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-stone-800/80 transition-all active:scale-[0.98]"

@@ -18,6 +18,9 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: "GoPark",
   description: "Parking Management System",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -27,10 +30,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${roboto.variable} font-sans antialiased`}
-      >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <body className={`${roboto.variable} font-sans antialiased`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <QueryProvider>
             <GuardProvider>{children}</GuardProvider>
           </QueryProvider>

@@ -249,18 +249,18 @@ export default function RevenueReportPage() {
     <div className="space-y-6">
 
       {/* ── Tiêu đề + chọn khoảng thời gian ──────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-primary via-primary/90 to-primary/80 rounded-2xl px-8 py-6 shadow-lg">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gradient-to-r from-primary via-primary/90 to-primary/80 rounded-2xl p-6 md:px-8 md:py-6 shadow-lg gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
-            <BarChart3 className="w-6 h-6" />
+          <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+            <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />
             Báo cáo Doanh thu
           </h1>
-          <p className="text-primary-foreground/70 mt-1 text-sm">Thống kê tổng quan doanh thu hệ thống GoPark</p>
+          <p className="text-primary-foreground/70 mt-1 text-xs md:text-sm">Thống kê tổng quan doanh thu hệ thống GoPark</p>
         </div>
-        <div className="flex items-center gap-3 mt-4 sm:mt-0">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
           {/* Bộ chọn khoảng thời gian */}
           <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="h-10 border-white/30 rounded-lg bg-white/20 text-white text-sm focus:ring-white/40 backdrop-blur-sm shadow-none">
+            <SelectTrigger className="h-8 md:h-10 border-white/30 rounded-lg bg-white/20 text-white text-[10px] md:text-sm focus:ring-white/40 backdrop-blur-sm shadow-none min-w-[100px] md:min-w-[130px]">
               <SelectValue placeholder="Chọn khoảng thời gian" />
             </SelectTrigger>
             <SelectContent className="bg-white/95 backdrop-blur-md">
@@ -269,11 +269,13 @@ export default function RevenueReportPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={fetchData} className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2">
-            <RefreshCw size={16} />Làm mới
+          <Button onClick={fetchData} size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+            <RefreshCw size={14} className="md:w-4 md:h-4" />
+            Làm mới
           </Button>
-          <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2">
-            <Download size={16} />Xuất báo cáo
+          <Button size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+            <Download size={14} className="md:w-4 md:h-4" />
+            Xuất báo cáo
           </Button>
         </div>
       </div>

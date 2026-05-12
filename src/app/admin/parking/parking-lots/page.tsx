@@ -307,25 +307,25 @@ export default function ParkingLotsPage() {
     <div className="space-y-6">
 
       {/* ── Tiêu đề ───────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl px-8 py-6 shadow-lg">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl p-6 md:px-8 md:py-6 shadow-lg gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
-            <ParkingSquare className="w-6 h-6" />
+          <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+            <ParkingSquare className="w-5 h-5 md:w-6 md:h-6" />
             Tất cả Bãi đỗ xe
           </h1>
-          <p className="text-primary-foreground/70 mt-1 text-sm">
+          <p className="text-primary-foreground/70 mt-1 text-xs md:text-sm">
             Tìm thấy {filteredLots.length} bãi đỗ xe
-            {usingMockData && <span className="ml-2 text-orange-300 text-xs">(Dữ liệu mẫu)</span>}
+            {usingMockData && <span className="ml-2 text-orange-300 text-[10px] md:text-xs">(Dữ liệu mẫu)</span>}
           </p>
-          {error && <p className="text-red-300 text-xs mt-1">Lỗi kết nối: {error}</p>}
+          {error && <p className="text-red-300 text-[10px] md:text-xs mt-1">Lỗi kết nối: {error}</p>}
         </div>
-        <div className="flex gap-3 mt-4 sm:mt-0">
-          <Button onClick={fetchParkingLots} className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2">
-            <RefreshCw size={16} />
+        <div className="flex flex-wrap gap-2 md:gap-3">
+          <Button onClick={fetchParkingLots} size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+            <RefreshCw size={14} className="md:w-4 md:h-4" />
             Làm mới
           </Button>
-          <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2">
-            <Download size={16} />
+          <Button size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+            <Download size={14} className="md:w-4 md:h-4" />
             Xuất Excel
           </Button>
         </div>
