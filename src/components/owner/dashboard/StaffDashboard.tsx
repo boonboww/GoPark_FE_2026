@@ -3,16 +3,15 @@ import { useAuthStore } from "@/stores";
 import { API_BASE_URL } from "@/lib/api";
 import { Html5Qrcode } from "html5-qrcode";
 import { useEffect, useState, useRef, useCallback } from "react";
-import Webcam from "react-webcam";
 import Tesseract from "tesseract.js";
-import { 
-  IconQrcode, 
-  IconCamera, 
-  IconBuildingStore, 
-  IconCalendarEvent, 
-  IconClock, 
-  IconMapPin, 
-  IconCircleCheck, 
+import {
+  IconQrcode,
+  IconCamera,
+  IconBuildingStore,
+  IconCalendarEvent,
+  IconClock,
+  IconMapPin,
+  IconCircleCheck,
   IconHistory,
   IconArrowRight,
   IconArrowLeft,
@@ -22,12 +21,12 @@ import {
   IconLoader2
 } from "@tabler/icons-react";
 
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription 
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +72,7 @@ export function StaffDashboard() {
   const [scanHistory, setScanHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedSnapshot, setSelectedSnapshot] = useState<string | null>(null);
+  const [lastPenaltyScan, setLastPenaltyScan] = useState<any>(null);
 
   // Filtering & Pagination states
   const [timeRange, setTimeRange] = useState<'24H' | '7D' | 'MONTH' | 'CUSTOM' | 'ALL'>('24H');
@@ -86,14 +86,17 @@ export function StaffDashboard() {
   }, []);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const webcamRef = useRef<Webcam>(null);
+  const plateVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tesseractWorkerRef = useRef<Tesseract.Worker | null>(null);
   const isInitializing = useRef(false);
   const { accessToken, user } = useAuthStore();
 
-  const isProcessing = useRef(false);
+  const isOcrRunning = useRef(false);
+  const isVerifying = useRef(false);
   const isMounted = useRef(true);
+  const lastDetectedPlateRef = useRef<string>("");
+  const detectionConsistencyRef = useRef<number>(0);
 
   useEffect(() => {
     const parts = user?.email?.split('.');
@@ -179,6 +182,7 @@ export function StaffDashboard() {
   const startCamera = async () => {
     if (isInitializing.current) return;
     isInitializing.current = true;
+    console.log("[Camera] Khởi tạo camera duy nhất...");
 
     try {
       if (!scannerRef.current) {
@@ -192,52 +196,72 @@ export function StaffDashboard() {
       await scannerRef.current.start(
         { facingMode: "environment" },
         {
-          fps: 10,
-          qrbox: { width: 220, height: 220 },
-          aspectRatio: 1.0,
+          fps: 20,
+          qrbox: { width: 280, height: 280 },
+          // Remove aspectRatio to prevent image distortion
         },
         (text) => {
-          setQrContent((prev) => {
-            if (prev) return prev;
-            return text;
-          });
+          console.log("[QR] Success:", text);
+          toast.success("Đã quét được mã QR!", { duration: 2000 });
+          setQrContent(text);
         },
-        (err) => { }
+        () => { }
       );
+
+      // Mirror the stream to the plate scanner video to avoid hardware conflict
+      setTimeout(() => {
+        const qrVideo = document.querySelector("#qr-reader video") as HTMLVideoElement;
+        if (qrVideo && plateVideoRef.current) {
+          plateVideoRef.current.srcObject = qrVideo.srcObject;
+          plateVideoRef.current.play().catch(console.warn);
+        }
+      }, 1500);
     } catch (err) {
-      console.error("Camera error:", err);
+      console.error("[Camera] Lỗi:", err);
+      toast.error("Không thể truy cập camera. Vui lòng cấp quyền.");
     } finally {
       isInitializing.current = false;
     }
   };
 
   useEffect(() => {
+    isMounted.current = true;
     startCamera();
 
     const initWorker = async () => {
-      const worker = await Tesseract.createWorker("eng", 1, {
-        logger: () => { }
-      });
-      await worker.setParameters({
-        tessedit_char_whitelist: "0123456789ABCDEFGHKLMNPSTUVXYZ",
-      });
-      tesseractWorkerRef.current = worker;
+      try {
+        const worker = await Tesseract.createWorker("eng", 1, {
+          logger: () => { }
+        });
+        await worker.setParameters({
+          tessedit_char_whitelist: "0123456789ABCDEFGHKLMNPSTUVXYZ",
+          tessedit_pageseg_mode: "6" as any,
+        });
+        if (isMounted.current) {
+          tesseractWorkerRef.current = worker;
+        } else {
+          await worker.terminate();
+        }
+      } catch (e) {
+        console.error("OCR Worker Init Error:", e);
+      }
     };
     initWorker();
 
     return () => {
+      isMounted.current = false;
       if (scannerRef.current) {
         if (scannerRef.current.isScanning) {
-          scannerRef.current.stop().then(() => scannerRef.current?.clear()).catch(console.error);
+          scannerRef.current.stop().then(() => scannerRef.current?.clear()).catch(() => { });
         } else {
           scannerRef.current.clear();
         }
       }
       if (tesseractWorkerRef.current) {
-        tesseractWorkerRef.current.terminate();
+        const worker = tesseractWorkerRef.current;
         tesseractWorkerRef.current = null;
+        worker.terminate().catch(() => { });
       }
-      isMounted.current = false;
     };
   }, []);
 
@@ -246,72 +270,90 @@ export function StaffDashboard() {
     setSelectedFile(null);
     setPreview(null);
     setDetectedPlate("");
+    setLastPenaltyScan(null);
   };
 
   const runOCR = useCallback(async () => {
-    if (!webcamRef.current || isScanningPlate || isProcessing.current || !tesseractWorkerRef.current || !isMounted.current) return;
+    const video = document.querySelector("#qr-reader video") as HTMLVideoElement;
+    if (!video || video.readyState < 2 || isScanningPlate || isOcrRunning.current || isVerifying.current || !tesseractWorkerRef.current || !isMounted.current) return;
 
-    isProcessing.current = true;
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) return;
-
+    isOcrRunning.current = true;
     setIsScanningPlate(true);
 
     try {
-      const img = new Image();
-      img.src = imageSrc;
-      await new Promise((resolve) => (img.onload = resolve));
-
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) return;
 
-      const cropWidth = img.width * 0.7;
-      const cropHeight = img.height * 0.5;
-      const startX = (img.width - cropWidth) / 2;
-      const startY = (img.height - cropHeight) / 2;
+      const cropWidth = video.videoWidth * 0.9;
+      const cropHeight = video.videoHeight * 0.5;
+      const startX = (video.videoWidth - cropWidth) / 2;
+      const startY = (video.videoHeight - cropHeight) / 2;
 
-      canvas.width = cropWidth;
-      canvas.height = cropHeight;
-      ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+      // 1. Capture clean image for Server (No upscaling, high quality)
+      const serverCanvas = document.createElement("canvas");
+      serverCanvas.width = cropWidth;
+      serverCanvas.height = cropHeight;
+      const sCtx = serverCanvas.getContext("2d");
+      sCtx?.drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+      const colorBlob = await new Promise<Blob | null>(resolve => serverCanvas.toBlob(resolve, "image/jpeg", 0.95));
 
-      const colorBlob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg"));
+      // 2. Upscale for LOCAL OCR only
+      const scale = 1.5;
+      canvas.width = cropWidth * scale;
+      canvas.height = cropHeight * scale;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(video, startX, startY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
+
+      const originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const colorPreview = canvas.toDataURL("image/jpeg");
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
+      // Expanded thresholding with noise reduction simulation
+      const thresholds = [128, 100, 150, 70, 180, 210];
+      let plate = null;
 
-      const applyThreshold = (threshold: number) => {
+      for (const threshold of thresholds) {
+        if (!isMounted.current || !tesseractWorkerRef.current) break;
+
+        const imageData = new ImageData(new Uint8ClampedArray(originalImageData.data), originalImageData.width, originalImageData.height);
+        const data = imageData.data;
+
+        // Luminance-based grayscale + Thresholding
         for (let i = 0; i < data.length; i += 4) {
-          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-          const val = avg > threshold ? 255 : 0;
+          const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          const val = gray > threshold ? 255 : 0;
           data[i] = data[i + 1] = data[i + 2] = val;
         }
+
         ctx.putImageData(imageData, 0, 0);
-      };
 
-      applyThreshold(130);
-
-      if (!tesseractWorkerRef.current || !isMounted.current) return;
-
-      let result;
-      try {
-        result = await tesseractWorkerRef.current.recognize(canvas);
-      } catch (err) {
-        console.error("Tesseract recognize error:", err);
-        return;
-      }
-
-      if (!isMounted.current) return;
-      let plate = findPlate(result.data.text);
-
-      if (!plate && tesseractWorkerRef.current && isMounted.current) {
-        applyThreshold(100);
         try {
-          result = await tesseractWorkerRef.current.recognize(canvas);
-          plate = findPlate(result.data.text);
-        } catch (e) { }
+          const result = await tesseractWorkerRef.current.recognize(canvas);
+          const found = findPlate(result?.data?.text || "");
+
+          if (found) {
+            // Consistency Check: Require the same plate twice to confirm
+            if (found === lastDetectedPlateRef.current) {
+              detectionConsistencyRef.current += 1;
+            } else {
+              lastDetectedPlateRef.current = found;
+              detectionConsistencyRef.current = 1;
+            }
+
+            if (detectionConsistencyRef.current >= 2) {
+              plate = found;
+              console.log(`[OCR] Confirmed plate:`, found);
+              toast.success(`Đã nhận diện: ${found}`, {
+                duration: 2000,
+                icon: "🚗"
+              });
+              detectionConsistencyRef.current = 0; // Reset
+              break;
+            }
+          }
+        } catch (err) { }
       }
 
       if (plate && isMounted.current) {
@@ -322,18 +364,34 @@ export function StaffDashboard() {
     } catch (error) {
       console.error("OCR Error:", error);
     } finally {
-      if (isMounted.current) {
-        setIsScanningPlate(false);
-      }
-      isProcessing.current = false;
+      if (isMounted.current) setIsScanningPlate(false);
+      isOcrRunning.current = false;
     }
   }, [isScanningPlate]);
 
   const findPlate = (text: string) => {
+    if (!text || typeof text !== "string") return null;
+
+    // Clean text but keep it as close as possible to raw for initial match
     const cleanText = text.toUpperCase().replace(/[^A-Z0-9]/g, "");
-    const plateRegex = /[0-9]{2}[A-Z][0-9A-Z]?[0-9]{4,5}/;
+
+    // Broad Vietnamese plate regex (Matches 2 digits + 1-3 chars + 4-5 digits)
+    const plateRegex = /\d{2}[A-Z0-9]{1,3}\d{4,5}/;
     const match = cleanText.match(plateRegex);
-    return match ? match[0] : null;
+
+    if (match) return match[0];
+
+    // Fallback: If no match, try common character swaps for OCR errors
+    // E.g. '8' misread as 'B', '0' as 'O', '1' as 'I'
+    const fuzzyText = cleanText
+      .replace(/B/g, "8")
+      .replace(/O/g, "0")
+      .replace(/D/g, "0")
+      .replace(/I/g, "1")
+      .replace(/S/g, "5");
+
+    const fuzzyMatch = fuzzyText.match(plateRegex);
+    return fuzzyMatch ? fuzzyMatch[0] : null;
   };
 
   useEffect(() => {
@@ -344,7 +402,7 @@ export function StaffDashboard() {
   }, [runOCR, selectedFile]);
 
   useEffect(() => {
-    if (qrContent && selectedFile && !isProcessing.current) {
+    if (qrContent && selectedFile && !isVerifying.current) {
       handleVerifyAll();
     }
   }, [qrContent, selectedFile]);
@@ -358,8 +416,8 @@ export function StaffDashboard() {
   };
 
   const handleVerifyAll = async () => {
-    if (isProcessing.current) return;
-    isProcessing.current = true;
+    if (isVerifying.current) return;
+    isVerifying.current = true;
     setLoading(true);
 
     const formData = new FormData();
@@ -376,19 +434,41 @@ export function StaffDashboard() {
         },
       });
       const data = await res.json();
-      
+
       if (res.ok) {
-        toast.success(data.message || "Xác thực thành công!");
+        if (data.penalty?.isLate) {
+          setLastPenaltyScan(data.penalty);
+        } else {
+          toast.success(data.message || "Xác thực thành công!");
+          setLastPenaltyScan(null);
+        }
+
         setQrContent("");
         setSelectedFile(null);
         setPreview(null);
         setDetectedPlate("");
         fetchHistory();
       } else {
-        toast.error(data.message || "Xác thực thất bại!");
+        // Map server error messages to user-friendly ones
+        let errorMsg = data.message || "Xác thực thất bại!";
+        const lowerMsg = errorMsg.toLowerCase();
+
+        if (lowerMsg.includes("biển số") || lowerMsg.includes("plate")) {
+          // If server provides a detailed comparison, show it
+          if (errorMsg.includes("!") || errorMsg.includes("vs") || errorMsg.includes("đối chiếu")) {
+            toast.error(errorMsg, { duration: 6000 });
+          } else {
+            toast.error("Sai biển số xe!", { duration: 4000 });
+          }
+        } else {
+          // Show the actual error message from server (e.g., "Mã QR đã sử dụng", "Quá hạn", etc.)
+          toast.error(errorMsg, { duration: 5000 });
+        }
+
         setQrContent("");
         setSelectedFile(null);
         setPreview(null);
+        setDetectedPlate("");
       }
     } catch (error) {
       toast.error("Lỗi kết nối Backend!");
@@ -397,7 +477,7 @@ export function StaffDashboard() {
       setPreview(null);
     } finally {
       setLoading(false);
-      isProcessing.current = false;
+      isVerifying.current = false;
     }
   };
 
@@ -424,13 +504,13 @@ export function StaffDashboard() {
               </h1>
             </div>
           </div>
-          
-          <div className="flex items-center gap-4 w-full sm:w-auto justify-end border-t sm:border-t-0 border-zinc-100 dark:border-zinc-800 pt-3 sm:pt-0">
-            <Separator orientation="vertical" className="hidden sm:block h-10" />
-            <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 sm:gap-0 w-full sm:w-auto justify-between">
-              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Thời gian thực</p>
-              <div className="flex items-center gap-1.5 text-lg md:text-2xl font-bold text-primary tabular-nums">
-                <IconClock className="size-4 md:size-5" />
+
+          <div className="flex items-center gap-4">
+            <Separator orientation="vertical" className="hidden md:block h-12" />
+            <div className="flex flex-col items-end">
+              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Thời gian thực</p>
+              <div className="flex items-center gap-2 text-2xl font-bold text-primary tabular-nums">
+                <IconClock size={20} />
                 {currentTime.toLocaleTimeString('vi-VN', { hour12: false })}
               </div>
             </div>
@@ -481,6 +561,62 @@ export function StaffDashboard() {
             </CardContent>
           </Card>
         </div>
+        {/* PENALTY PERSISTENT BANNER */}
+        {lastPenaltyScan && (
+          <div className={`p-6 rounded-[2.5rem] border-4 animate-in slide-in-from-top-4 duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.1)] relative overflow-hidden ${lastPenaltyScan.paymentStatus === 'success'
+            ? 'bg-white border-emerald-500 text-emerald-900 dark:bg-zinc-900 dark:border-emerald-500 dark:text-emerald-400'
+            : 'bg-white border-red-500 text-red-900 dark:bg-zinc-900 dark:border-red-500 dark:text-red-400'
+            }`}>
+            {/* Background Accent */}
+            <div className={`absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 rounded-full opacity-10 ${lastPenaltyScan.paymentStatus === 'success' ? 'bg-emerald-500' : 'bg-red-500'
+              }`}></div>
+
+            <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${lastPenaltyScan.paymentStatus === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white animate-pulse'
+                }`}>
+                <IconAlertCircle size={36} stroke={2.5} />
+              </div>
+
+              <div className="flex-1 text-center md:text-left space-y-1">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                  <h4 className="text-2xl font-black uppercase tracking-tighter">
+                    {lastPenaltyScan.paymentStatus === 'success' ? 'Phí phạt quá hạn' : 'Cảnh báo thu tiền mặt'}
+                  </h4>
+                  <Badge variant={lastPenaltyScan.paymentStatus === 'success' ? 'default' : 'destructive'} className="px-3 py-0.5 text-xs font-black uppercase tracking-widest border-2 border-white/20 shadow-sm">
+                    {lastPenaltyScan.paymentStatus === 'success' ? 'Đã trừ ví' : 'CHƯA THANH TOÁN'}
+                  </Badge>
+                </div>
+                <p className="font-bold text-lg opacity-80 leading-tight">
+                  Biển số <span className="underline decoration-2 underline-offset-4">{detectedPlate || lastPenaltyScan.plate || "???"}</span> ra muộn <span className="text-primary dark:text-primary-foreground font-black">{lastPenaltyScan.lateMinutes} phút</span>.
+                  {lastPenaltyScan.paymentStatus === 'success'
+                    ? ` Hệ thống đã khấu trừ ${lastPenaltyScan.penaltyFee?.toLocaleString()}đ thành công.`
+                    : ` Vui lòng thu trực tiếp ${lastPenaltyScan.penaltyFee?.toLocaleString()}đ trước khi mở cổng.`
+                  }
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <Button
+                  onClick={() => setLastPenaltyScan(null)}
+                  variant="outline"
+                  className={`flex-1 md:flex-none h-14 rounded-2xl border-2 font-black uppercase tracking-widest transition-all ${lastPenaltyScan.paymentStatus === 'success'
+                    ? 'border-emerald-500/20 text-emerald-600 hover:bg-emerald-50'
+                    : 'border-red-500/20 text-red-600 hover:bg-red-50'
+                    }`}
+                >
+                  <IconRefresh className="mr-2" size={18} /> Bỏ qua
+                </Button>
+                <Button
+                  onClick={() => setLastPenaltyScan({ ...lastPenaltyScan })} // Re-trigger modal by updating state reference
+                  className={`flex-1 md:flex-none h-14 px-8 rounded-2xl font-black uppercase tracking-widest shadow-lg ${lastPenaltyScan.paymentStatus === 'success' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'
+                    }`}
+                >
+                  Chi tiết
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* MAIN SCANNING SECTION */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
@@ -496,9 +632,12 @@ export function StaffDashboard() {
                   <CardDescription className="text-[9px] md:text-[10px] text-zinc-500 uppercase font-bold">Primary QR Code Reader</CardDescription>
                 </div>
               </div>
-              <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 bg-emerald-500/10 text-[9px] px-1.5 py-0">
-                LIVE FEED
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 bg-emerald-500/10 animate-pulse">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 shadow-[0_0_8px_#10b981]"></div>
+                  SCANNING ACTIVE
+                </Badge>
+              </div>
             </CardHeader>
             <div className="relative aspect-video bg-black overflow-hidden">
               <div id="qr-reader" className="w-full h-full border-0"></div>
@@ -506,14 +645,18 @@ export function StaffDashboard() {
                 #qr-reader video { object-fit: cover !important; width: 100% !important; height: 100% !important; opacity: 0.7; }
                 #qr-reader { border: none !important; }
               `}</style>
-              
-              {/* Scan Overlay UI */}
+
+              {/* Scan Overlay UI - Matched with 280px qrbox */}
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div className="w-40 h-40 md:w-56 md:h-56 relative">
-                  <div className="absolute top-0 left-0 w-8 h-8 md:w-12 md:h-12 border-t-2 md:border-t-4 border-l-2 md:border-l-4 border-emerald-500 rounded-tl-xl md:rounded-tl-2xl shadow-[0_0_20px_rgba(16,185,129,0.4)]"></div>
-                  <div className="absolute top-0 right-0 w-8 h-8 md:w-12 md:h-12 border-t-2 md:border-t-4 border-r-2 md:border-r-4 border-emerald-500 rounded-tr-xl md:rounded-tr-2xl shadow-[0_0_20px_rgba(16,185,129,0.4)]"></div>
-                  <div className="absolute bottom-0 left-0 w-8 h-8 md:w-12 md:h-12 border-b-2 md:border-b-4 border-l-2 md:border-l-4 border-emerald-500 rounded-bl-xl md:rounded-bl-2xl shadow-[0_0_20px_rgba(16,185,129,0.4)]"></div>
-                  <div className="absolute bottom-0 right-0 w-8 h-8 md:w-12 md:h-12 border-b-2 md:border-b-4 border-r-2 md:border-r-4 border-emerald-500 rounded-br-xl md:rounded-br-2xl shadow-[0_0_20px_rgba(16,185,129,0.4)]"></div>
+                <div className="w-[280px] h-[280px] relative">
+                  <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-emerald-500 rounded-tl-2xl shadow-[0_0_20px_rgba(16,185,129,0.4)]"></div>
+                  <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-emerald-500 rounded-tr-2xl shadow-[0_0_20px_rgba(16,185,129,0.4)]"></div>
+                  <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-emerald-500 rounded-bl-2xl shadow-[0_0_20px_rgba(16,185,129,0.4)]"></div>
+                  <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-emerald-500 rounded-br-2xl shadow-[0_0_20px_rgba(16,185,129,0.4)]"></div>
+
+                  {/* Scanning Animation Line */}
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-emerald-500/50 shadow-[0_0_15px_#10b981] animate-scan-line"></div>
+
                   {!qrContent && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-16 h-16 md:w-24 md:h-24 border border-emerald-500/20 rounded-full animate-ping"></div>
@@ -535,10 +678,10 @@ export function StaffDashboard() {
                         {qrContent}
                       </div>
                     </div>
-                    <Button 
-                      onClick={handleResetScanner} 
-                      variant="outline" 
-                      className="w-full h-12 md:h-14 rounded-xl md:rounded-2xl border-zinc-700 text-white hover:bg-zinc-800 font-bold uppercase tracking-widest text-xs"
+                    <Button
+                      onClick={handleResetScanner}
+                      variant="outline"
+                      className="w-full h-14 rounded-2xl border-zinc-700 text-white hover:bg-zinc-800 font-bold uppercase tracking-widest"
                     >
                       <IconRefresh className="mr-2" size={16} /> Quét lại mã khác
                     </Button>
@@ -560,14 +703,23 @@ export function StaffDashboard() {
                   <CardDescription className="text-[9px] md:text-[10px] text-zinc-500 uppercase font-bold">AI Powered OCR Recognition</CardDescription>
                 </div>
               </div>
-              <Badge variant="outline" className="text-blue-500 border-blue-500/30 bg-blue-500/10 text-[9px] px-1.5 py-0">
-                AI PROCESSING
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-blue-500 border-blue-500/30 bg-blue-500/10 animate-pulse">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5 shadow-[0_0_8px_#3b82f6]"></div>
+                  AI ANALYZING
+                </Badge>
+              </div>
             </CardHeader>
-            <div className="relative aspect-video bg-black overflow-hidden">
-              <Webcam audio={false} ref={webcamRef} screenshotFormat="image/jpeg" className="w-full h-full object-cover opacity-70" />
+            <div className="relative aspect-video bg-black overflow-hidden flex items-center justify-center">
+              <video
+                ref={plateVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover opacity-70"
+              />
               <canvas ref={canvasRef} className="hidden" />
-              
+
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                 <div className="w-[85%] h-[40%] border-2 border-white/20 rounded-xl md:rounded-2xl relative overflow-hidden">
                   <div className="absolute top-0 left-0 right-0 h-0.5 md:h-1 bg-blue-500 shadow-[0_0_20px_#3b82f6] animate-scan-line"></div>
@@ -586,15 +738,15 @@ export function StaffDashboard() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
-                      <Button 
-                        onClick={() => { setDetectedPlate(""); setSelectedFile(null); }} 
-                        className="flex-1 h-10 md:h-12 rounded-lg md:rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold uppercase tracking-widest text-xs"
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => { setDetectedPlate(""); setSelectedFile(null); }}
+                        className="flex-1 h-12 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold uppercase tracking-widest"
                       >
                         <IconRefresh size={16} className="mr-2" /> Thử lại
                       </Button>
                       {qrContent && (
-                        <Button 
+                        <Button
                           onClick={handleVerifyAll}
                           disabled={loading}
                           className="flex-1 h-10 md:h-12 rounded-lg md:rounded-xl bg-primary hover:bg-primary/90 text-white font-bold uppercase tracking-widest text-xs"
@@ -618,8 +770,8 @@ export function StaffDashboard() {
               {gates.length} Cổng khả dụng
             </Badge>
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {gatesLoading ? (
               [1, 2, 3].map(i => (
                 <Card key={i} className="rounded-2xl border-zinc-200 dark:border-zinc-800 p-4 md:p-6">
@@ -656,7 +808,7 @@ export function StaffDashboard() {
                       `}>
                         <IconBuildingStore size={20} className="md:size-6" />
                       </div>
-                      <Badge 
+                      <Badge
                         variant={gate.status === 'ACTIVE' ? 'default' : 'secondary'}
                         className={`text-[9px] ${gate.status === 'ACTIVE' ? 'bg-emerald-500 hover:bg-emerald-600' : ''}`}
                       >
@@ -708,11 +860,11 @@ export function StaffDashboard() {
                     <SelectItem value="ALL">Tất cả</SelectItem>
                   </SelectContent>
                 </Select>
-                
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="h-10 w-10 rounded-xl border-zinc-200 dark:border-zinc-700 shrink-0"
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-11 w-11 rounded-xl border-zinc-200 dark:border-zinc-700"
                   onClick={fetchHistory}
                 >
                   <IconRefresh size={16} />
@@ -774,12 +926,12 @@ export function StaffDashboard() {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="px-4 md:px-8 py-4">
-                          <Badge 
-                            variant="secondary" 
-                            className={`h-7 px-2.5 font-black tracking-widest text-[9px]
-                              ${isIn 
-                                ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800' 
+                        <TableCell className="px-8 py-6">
+                          <Badge
+                            variant="secondary"
+                            className={`h-8 px-4 font-black tracking-widest text-[10px]
+                              ${isIn
+                                ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
                                 : 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800'
                               }
                             `}
@@ -810,9 +962,9 @@ export function StaffDashboard() {
                                 setSelectedSnapshot(`${origin}${log.image_url}`);
                               }}
                             >
-                              <img 
-                                src={`${new URL(API_BASE_URL).origin}${log.image_url}`} 
-                                className="w-full h-full object-cover rounded-md group-hover/thumb:scale-110 transition-transform" 
+                              <img
+                                src={`${new URL(API_BASE_URL).origin}${log.image_url}`}
+                                className="w-full h-full object-cover rounded-lg group-hover/thumb:scale-110 transition-transform"
                                 alt="snapshot"
                               />
                             </Button>
@@ -881,11 +1033,13 @@ export function StaffDashboard() {
                 </div>
               </div>
             </DialogHeader>
-            <img 
-              src={selectedSnapshot || ""} 
-              className="w-full h-full object-contain" 
-              alt="full-snapshot"
-            />
+            {selectedSnapshot && (
+              <img
+                src={selectedSnapshot}
+                className="w-full h-full object-contain"
+                alt="full-snapshot"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -905,6 +1059,71 @@ export function StaffDashboard() {
           </Card>
         </div>
       )}
+      {/* PENALTY MODAL (Prominent Overlay - Moved to bottom for global visibility) */}
+      <Dialog open={!!lastPenaltyScan} onOpenChange={(open) => !open && setLastPenaltyScan(null)}>
+        <DialogContent className="sm:max-w-[540px] rounded-[3rem] border-none p-0 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl bg-white/95 dark:bg-zinc-900/95 animate-in fade-in zoom-in duration-300">
+          <div className={`p-10 ${lastPenaltyScan?.paymentStatus === 'success'
+            ? 'bg-emerald-500/10'
+            : 'bg-red-500/10'
+            }`}>
+            <div className="flex flex-col items-center text-center space-y-8">
+              <div className={`w-28 h-28 rounded-[2rem] flex items-center justify-center shadow-2xl ${lastPenaltyScan?.paymentStatus === 'success'
+                ? 'bg-emerald-500 text-white shadow-emerald-500/30'
+                : 'bg-red-500 text-white shadow-red-500/30 animate-pulse'
+                }`}>
+                <IconAlertCircle size={56} stroke={2.5} />
+              </div>
+
+              <div className="space-y-3">
+                <h2 className={`text-4xl font-black uppercase tracking-tighter leading-tight ${lastPenaltyScan?.paymentStatus === 'success' ? 'text-emerald-600' : 'text-red-600'
+                  }`}>
+                  {lastPenaltyScan?.paymentStatus === 'success' ? 'Thanh Toán Phạt' : 'Yêu Cầu Tiền Mặt'}
+                </h2>
+                <div className="flex justify-center">
+                  <Badge variant={lastPenaltyScan?.paymentStatus === 'success' ? 'default' : 'destructive'} className="px-6 py-2 text-base font-black uppercase tracking-[0.2em] rounded-full border-4 border-white/20">
+                    {lastPenaltyScan?.paymentStatus === 'success' ? 'VÍ ĐÃ TRỪ TIỀN' : 'CHƯA THANH TOÁN'}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="w-full space-y-6 bg-zinc-100/50 dark:bg-black/40 p-8 rounded-[2.5rem] border border-zinc-200/50 dark:border-white/5 shadow-inner">
+                <div className="flex justify-between items-center border-b border-dashed border-zinc-300 dark:border-zinc-700 pb-4">
+                  <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Thời gian quá hạn</span>
+                  <span className="text-2xl font-black text-zinc-900 dark:text-white underline decoration-primary decoration-4 underline-offset-8">
+                    {lastPenaltyScan?.lateMinutes} PHÚT
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Số tiền cần thu</span>
+                  <span className={`text-5xl font-black tracking-tighter ${lastPenaltyScan?.paymentStatus === 'success' ? 'text-emerald-600' : 'text-red-600'
+                    }`}>
+                    {lastPenaltyScan?.penaltyFee?.toLocaleString()}đ
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-full bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+                <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300 leading-relaxed uppercase tracking-wide">
+                  {lastPenaltyScan?.paymentStatus === 'success'
+                    ? "Hệ thống đã tự động khấu trừ tiền phạt. Bạn có thể cho xe ra ngay."
+                    : "Lưu ý: Ví khách không đủ tiền. Nhân viên PHẢI thu tiền mặt trước khi mở cổng."
+                  }
+                </p>
+              </div>
+
+              <Button
+                onClick={() => setLastPenaltyScan(null)}
+                className={`w-full h-20 rounded-[1.5rem] text-2xl font-black uppercase tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.02] active:scale-95 ${lastPenaltyScan?.paymentStatus === 'success'
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                  : 'bg-red-500 hover:bg-red-600 text-white'
+                  }`}
+              >
+                Xác nhận & Hoàn tất
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}
+}

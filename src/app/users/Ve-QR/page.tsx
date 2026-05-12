@@ -27,7 +27,6 @@ import {
   Lock
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Roboto } from "next/font/google";
 import Header from "@/components/layout/Header";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuthStore } from "@/stores/auth.store";
@@ -43,11 +42,7 @@ import { motion, AnimatePresence, Variants } from "framer-motion";
 import { containerVariants, itemVariants } from "@/lib/animations";
 import { QRCardSkeleton, VehicleListSkeleton, LiveTrackSkeleton } from "@/components/skeletons/QRCodeSkeleton";
 
-const roboto = Roboto({
-  weight: ["100", "300", "400", "500", "700", "900"],
-  subsets: ["latin", "vietnamese"],
-  display: "swap",
-});
+// Vehicle Interface
 
 interface Vehicle {
   id: number;
@@ -181,7 +176,7 @@ export default function VeQRPage() {
   const displayedHistory = isHistoryExpanded ? recentHistory : recentHistory.slice(0, 5);
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 bg-white dark:bg-[#121212] text-[#000000] dark:text-[#F3F4F6] pb-20 ${roboto.className}`}>
+    <div className="font-sans min-h-screen transition-colors duration-300 bg-white dark:bg-stone-950 text-gray-900 dark:text-white pb-20">
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-12 space-y-12">
@@ -189,10 +184,10 @@ export default function VeQRPage() {
         {/* --- HEADER --- */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
           <div className="space-y-2">
-            <h1 className="text-4xl font-black tracking-tight uppercase">
+            <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase text-gray-900 dark:text-white">
               VÉ QR CỦA TÔI
             </h1>
-            <p className="font-semibold text-lg text-zinc-600 dark:text-zinc-400">
+            <p className="text-lg md:text-xl text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
               Sử dụng mã QR để check-in & check-out tại cổng
             </p>
           </div>
@@ -251,8 +246,8 @@ export default function VeQRPage() {
                         </Badge>
                       </div>
                       <div className="space-y-1">
-                        <h3 className="text-2xl font-black tracking-tighter text-[#000000] dark:text-[#F3F4F6]">{v.plate_number}</h3>
-                        <p className="text-sm font-semibold opacity-70 text-[#000000] dark:text-zinc-400">{v.brand} • {v.type || "White"}</p>
+                        <h3 className="text-xl md:text-2xl font-black tracking-tighter text-gray-900 dark:text-white">{v.plate_number}</h3>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{v.brand} • {v.type || "White"}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -269,7 +264,7 @@ export default function VeQRPage() {
               <Card className="rounded-[2.5rem] border-2 border-[#E5E7EB] dark:border-[#374151] bg-white/60 dark:bg-stone-900/60 backdrop-blur-2xl shadow-xl overflow-hidden min-h-[550px] transition-all duration-500">
                 <CardContent className="p-8 md:p-12">
                   <div className="mb-10 pb-8 border-b border-dashed border-[#E5E7EB] dark:border-[#374151] flex flex-col items-center lg:items-start">
-                    <h1 className="text-2xl md:text-3xl font-black text-[#000000] dark:text-[#F3F4F6] tracking-tighter">
+                    <h1 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tighter">
                       {isSelectedOperating ? (activeBooking?.slot?.parkingZone?.parkingFloor?.parkingLot?.name || "N/A") : "CHƯA CÓ LƯỢT ĐỖ"}
                     </h1>
                   </div>
@@ -302,7 +297,7 @@ export default function VeQRPage() {
                               ) : (
                                 <div className="flex flex-col items-center gap-4 text-zinc-400">
                                   <Lock className="w-12 h-12 opacity-20" />
-                                  <div className="text-[10px] font-black text-center tracking-[0.2em] uppercase px-8 opacity-40">
+                                  <div className="text-[10px] font-black text-center tracking-widest uppercase px-8 opacity-40">
                                     CHỌN PHƯƠNG TIỆN
                                   </div>
                                 </div>
@@ -311,7 +306,7 @@ export default function VeQRPage() {
 
                             {!isSelectedOperating && selectedVehicle && (
                               <div className="absolute bottom-10 left-0 right-0 text-center animate-bounce">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 bg-white/80 backdrop-blur-sm py-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-red-500 bg-white/80 backdrop-blur-sm py-1">
                                   Mã đã hết hạn
                                 </p>
                               </div>
@@ -321,18 +316,18 @@ export default function VeQRPage() {
                       </div>
 
                       <div className="text-center space-y-4">
-                        <p className="font-black tracking-[0.25em] uppercase text-xs">
+                        <p className="font-black tracking-widest uppercase text-base  dark:text-gray-400">
                           QUÉT MÃ TẠI CỔNG
                         </p>
                       </div>
                     </div>
 
                     {/* DETAILS SECTION */}
-  
+
                     <div className="flex flex-col justify-between py-2">
                       <div className="space-y-10">
                         <div className="flex justify-between items-center">
-                          <h2 className="text-2xl font-bold tracking-tight text-[#000000] dark:text-[#F3F4F6]">Chi tiết lượt đỗ</h2>
+                          <h2 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">Chi tiết lượt đỗ</h2>
                           {activeBooking && (
                             <Badge
                               style={{ color: BRAND_GREEN, borderColor: `${BRAND_GREEN}40`, backgroundColor: `${BRAND_GREEN}10` }}
@@ -346,46 +341,46 @@ export default function VeQRPage() {
 
                         {selectedVehicle ? (
                           <div className="grid grid-cols-2 gap-y-10 gap-x-12">
-                            
+
 
                             <div className="space-y-1.5">
-                              <p className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.15em]">TẦNG</p>
-                              <p className="text-2xl font-black text-[#000000] dark:text-[#F3F4F6]">
+                              <p className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">TẦNG</p>
+                              <p className="text-xl md:text-2xl font-black text-gray-900 dark:text-white">
                                 {isSelectedOperating ? (activeBooking?.slot?.parkingZone?.parkingFloor?.floor_name || "N/A") : "--"}
                               </p>
                             </div>
                             <div className="space-y-1.5">
-                              <p className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.15em]">KHU VỰC</p>
-                              <p className="text-2xl font-black text-[#000000] dark:text-[#F3F4F6]">
+                              <p className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">KHU VỰC</p>
+                              <p className="text-xl md:text-2xl font-black text-gray-900 dark:text-white">
                                 {isSelectedOperating ? (activeBooking?.slot?.parkingZone?.zone_name || "N/A") : "--"}
                               </p>
                             </div>
                             <div className="space-y-1.5">
-                              <p className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.15em]">VỊ TRÍ</p>
+                              <p className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">VỊ TRÍ</p>
                               <p
-                                style={{ color: isSelectedOperating ? BRAND_GREEN : "#000000" }}
-                                className="text-4xl font-black tracking-tighter"
+                                style={{ color: isSelectedOperating ? BRAND_GREEN : undefined }}
+                                className="text-xl md:text-2xl font-black tracking-tighter text-gray-900 dark:text-white"
                               >
                                 {isSelectedOperating ? (activeBooking?.slot?.code || "N/A") : "--"}
                               </p>
                             </div>
                             <div className="space-y-1.5">
-                              <p className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.15em]">THỜI GIAN VÀO</p>
-                              <p className="text-2xl font-black text-[#000000] dark:text-[#F3F4F6]">
+                              <p className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">THỜI GIAN VÀO</p>
+                              <p className="text-xl md:text-2xl font-black text-gray-900 dark:text-white">
                                 {isSelectedOperating ? dayjs(activeBooking?.start_time).format("HH:mm") : "--"}
                               </p>
                             </div>
 
-                            <div className="col-span-2 pt-6 border-t border-dashed border-[#E5E7EB] dark:border-[#374151]">
-                              <p className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.15em] mb-2">THỜI GIAN HẾT HẠN (DỰ KIẾN)</p>
+                            <div className="col-span-2 pt-6 border-t border-dashed border-gray-200 dark:border-stone-800">
+                              <p className="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">THỜI GIAN HẾT HẠN (DỰ KIẾN)</p>
                               <div className="flex items-baseline gap-3">
-                                <span className="text-3xl font-black tracking-tighter text-[#000000] dark:text-[#F3F4F6]">
+                                <span className="text-3xl font-black tracking-tighter text-gray-900 dark:text-white">
                                   {isSelectedOperating ? dayjs(activeBooking?.end_time).format("HH:mm") : "--:--"}
                                 </span>
                                 {isSelectedOperating && (() => {
                                   const diff = dayjs(activeBooking?.end_time).diff(dayjs(), 'minute');
                                   return (
-                                    <span className="text-xs font-bold uppercase tracking-wide text-zinc-500">
+                                    <span className="text-xs font-bold uppercase tracking-wide text-red-600">
                                       ({diff} phút nữa)
                                     </span>
                                   );
@@ -424,8 +419,8 @@ export default function VeQRPage() {
                   </div>
 
                   {/* FOOTER OF CENTER SECTION */}
-                  <div className="mt-12 pt-8 border-t border-[#E5E7EB] dark:border-[#374151] flex flex-col md:flex-row justify-between items-center gap-6 opacity-70">
-                    <div className="flex items-center gap-4 text-[12px] font-bold uppercase tracking-widest">
+                  <div className="mt-12 pt-8 border-t border-[#E5E7EB] dark:border-[#374151] flex flex-col md:flex-row justify-between items-center gap-6 ">
+                    <div className="flex items-center gap-4 text-[14px] font-bold uppercase tracking-widest text-black dark:text-white">
                       <div
                         style={{ color: BRAND_GREEN, borderColor: "#E5E7EB" }}
                         className="p-2 bg-[#F9F9F9] dark:bg-[#121212] rounded-xl border"
@@ -434,7 +429,7 @@ export default function VeQRPage() {
                       </div>
                       Mã QR đã được mã hóa an toàn cao cấp
                     </div>
-                    <div className="text-[12px] font-mono font-bold uppercase tracking-widest bg-[#F9F9F9] dark:bg-[#121212] px-4 py-2 rounded-lg border border-[#E5E7EB] dark:border-[#374151]">
+                    <div className="text-[14px] font-mono font-bold uppercase tracking-widest bg-[#F9F9F9] dark:bg-[#121212] px-4 py-2 rounded-lg border border-[#E5E7EB] dark:border-[#374151]">
                       ID: {activeBooking?.id ? String(activeBooking.id).slice(0, 8).toUpperCase() : "FF-QR-99023"}
                     </div>
                   </div>
@@ -447,7 +442,7 @@ export default function VeQRPage() {
         {/* --- ACTIVITY TIMELINE --- */}
         <section className="bg-white/60 dark:bg-stone-900/60 backdrop-blur-2xl rounded-[2.5rem] p-8 md:p-12 border-2 border-[#E5E7EB] dark:border-[#374151] shadow-xl relative overflow-hidden transition-all duration-500">
           <div className="flex justify-between items-center mb-16 relative z-10">
-            <h2 className="text-[14px] font-black opacity-60 uppercase tracking-[0.25em]">TRẠNG THÁI HOẠT ĐỘNG</h2>
+            <h2 className="text-base font-black dark:text-base uppercase tracking-widest">TRẠNG THÁI HOẠT ĐỘNG</h2>
             <Badge
               style={{ color: BRAND_GREEN, borderColor: `${BRAND_GREEN}30`, backgroundColor: `${BRAND_GREEN}10` }}
               className="rounded-full px-6 py-2.5 text-[12px] font-black uppercase tracking-widest border"
@@ -524,7 +519,7 @@ export default function VeQRPage() {
                       )}
                     </div>
                     <span
-                      className={`text-[14px] font-black uppercase tracking-[0.15em] transition-all duration-500 text-[#000000] dark:text-[#F3F4F6] ${isOperating ? 'scale-110 drop-shadow-[0_0_8px_rgba(0,167,77,0.6)]' : 'opacity-40'}`}
+                      className={`text-sm font-black uppercase tracking-widest transition-all duration-500 text-gray-900 dark:text-white ${isOperating ? 'scale-110 drop-shadow-[0_0_8px_rgba(0,167,77,0.4)]' : 'opacity-40'}`}
                     >
                       XE {idx + 1}
                     </span>
@@ -538,8 +533,8 @@ export default function VeQRPage() {
         {/* --- HISTORY TABLE --- */}
         <section className="bg-white/60 dark:bg-stone-900/60 backdrop-blur-2xl rounded-[2.5rem] border-2 border-[#E5E7EB] dark:border-[#374151] shadow-xl overflow-hidden transition-all duration-500">
           <div className="p-8 md:p-10 border-b border-[#E5E7EB] dark:border-[#374151] flex justify-between items-center bg-[#F9F9F9] dark:bg-[#121212]/50">
-            <h2 className="text-xl font-bold tracking-tight uppercase">LỊCH SỬ CHECK-IN/CHECK-OUT</h2>
-            <Badge variant="secondary" className="rounded-full px-5 py-1.5 bg-[#E5E7EB] dark:bg-[#374151] text-zinc-500 text-[10px] font-black uppercase tracking-widest border-none">
+            <h2 className="text-xl font-black tracking-tighter uppercase  dark:text-white">LỊCH SỬ CHECK-IN/CHECK-OUT</h2>
+            <Badge variant="secondary" className="rounded-full px-5 py-1.5 bg-[#E5E7EB] dark:bg-[#374151] dark:text-white  text-black text-[13px] font-black uppercase tracking-widest border-none">
               Gần đây
             </Badge>
           </div>
@@ -548,10 +543,10 @@ export default function VeQRPage() {
             <Table className="border-collapse border border-[#E5E7EB] dark:border-[#374151] w-full">
               <TableHeader className="bg-[#F9F9F9] dark:bg-[#121212]">
                 <TableRow className="border-b border-[#E5E7EB] dark:border-[#374151] hover:bg-transparent">
-                  <TableHead className="text-[18px] font-black uppercase tracking-tight px-8 py-6 border border-[#E5E7EB] dark:border-[#374151] h-auto">PHƯƠNG TIỆN</TableHead>
-                  <TableHead className="text-[18px] font-black uppercase tracking-tight px-8 py-6 border border-[#E5E7EB] dark:border-[#374151] h-auto">THỜI GIAN (VÀO - RA)</TableHead>
-                  <TableHead className="text-[18px] font-black uppercase tracking-tight px-8 py-6 border border-[#E5E7EB] dark:border-[#374151] h-auto">ĐỊA ĐIỂM</TableHead>
-                  <TableHead className="text-[18px] font-black uppercase tracking-tight px-8 py-6 border border-[#E5E7EB] dark:border-[#374151] h-auto text-center">TRẠNG THÁI</TableHead>
+                  <TableHead className="text-base font-black uppercase tracking-widest px-8 py-6 border border-gray-100 dark:border-stone-800 h-auto ">PHƯƠNG TIỆN</TableHead>
+                  <TableHead className="text-base font-black uppercase tracking-widest px-8 py-6 border border-gray-100 dark:border-stone-800 h-auto ">THỜI GIAN (VÀO - RA)</TableHead>
+                  <TableHead className="text-base font-black uppercase tracking-widest px-8 py-6 border border-gray-100 dark:border-stone-800 h-auto ">ĐỊA ĐIỂM</TableHead>
+                  <TableHead className="text-base font-black uppercase tracking-widest px-8 py-6 border border-gray-100 dark:border-stone-800 h-auto  text-center">TRẠNG THÁI</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -563,8 +558,8 @@ export default function VeQRPage() {
                     >
                       <TableCell className="px-8 py-6 border border-[#E5E7EB] dark:border-[#374151]">
                         <div className="flex flex-col">
-                          <span className="font-bold text-[17px] tracking-tight">{booking.vehicle?.plate_number}</span>
-                          <span className="text-[14px] opacity-60 font-semibold uppercase tracking-tight">{booking.vehicle?.brand}</span>
+                          <span className="font-bold text-base tracking-tight  dark:text-white">{booking.vehicle?.plate_number}</span>
+                          <span className="text-xs text-gray-500 font-medium uppercase tracking-tight">{booking.vehicle?.brand}</span>
                         </div>
                       </TableCell>
                       <TableCell className="px-8 py-6 border border-[#E5E7EB] dark:border-[#374151]">
@@ -572,33 +567,33 @@ export default function VeQRPage() {
                           <div className="flex items-center gap-2">
                             <span
                               style={{ backgroundColor: `${BRAND_GREEN}15`, color: BRAND_GREEN }}
-                              className="text-[11px] font-black px-2 py-0.5 rounded uppercase"
+                              className="text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest"
                             >
                               Vào
                             </span>
-                            <span className="text-[16px] font-semibold">{dayjs(booking.start_time).format("HH:mm, DD/MM/YYYY")}</span>
+                            <span className="text-base font-semibold text-gray-900 dark:text-white">{dayjs(booking.start_time).format("HH:mm, DD/MM/YYYY")}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-black bg-red-500/10 text-red-500 px-2 py-0.5 rounded uppercase">Ra</span>
-                            <span className="text-[16px] font-semibold">{dayjs(booking.end_time).format("HH:mm, DD/MM/YYYY")}</span>
+                            <span className="text-[10px] font-black bg-red-500/10 text-red-500 px-2 py-0.5 rounded uppercase tracking-widest">Ra</span>
+                            <span className="text-sm font-semibold text-gray-900 dark:text-white">{dayjs(booking.end_time).format("HH:mm, DD/MM/YYYY")}</span>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="px-8 py-6 border border-[#E5E7EB] dark:border-[#374151]">
-                        <span className="text-[17px] font-semibold">
+                        <span className="text-base font-medium ">
                           {booking.slot?.parkingZone?.parkingFloor?.floor_name}, {booking.slot?.code}
                         </span>
                       </TableCell>
                       <TableCell className="px-8 py-6 border border-[#E5E7EB] dark:border-[#374151]">
-                        <div className="flex flex-col items-center gap-3">
-                          <Badge className={`rounded-md px-4 py-2 text-[13px] font-black uppercase tracking-widest border shadow-none
+                        <div className="flex flex-col items-center gap-2">
+                          <Badge className={`rounded-full px-4 py-1 text-[10px] font-bold uppercase tracking-widest border shadow-none
                           ${booking.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500 border-green-500/30' :
                               booking.status === 'CANCELLED' ? 'bg-red-500/10 text-red-500 border-red-500/30' :
                                 'bg-blue-500/10 text-blue-500 border-blue-500/30'}
                         `}>
                             {booking.status}
                           </Badge>
-                          <span className="text-[11px] font-black opacity-60 uppercase tracking-widest">
+                          <span className="text-[10px] font-bold  uppercase tracking-widest">
                             {booking.status === 'COMPLETED' ? 'CHECK-OUT' :
                               booking.status === 'CONFIRMED' ? 'CHƯA CHECK-IN' : 'CHECK-IN'}
                           </span>

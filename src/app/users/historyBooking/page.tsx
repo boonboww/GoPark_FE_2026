@@ -23,7 +23,6 @@ import RateBookingModal from "./rateBookingModal";
 import ViewReviewModal from "./viewReviewModal";
 import { useAuthStore } from "@/stores";
 import { mapBookingData } from "@/lib/booking-until";
-import { Roboto } from "next/font/google";
 import dayjs from "dayjs";
 
 // Shadcn UI Components
@@ -33,13 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { containerVariants, itemVariants } from "@/lib/animations";
-import { HistoryListSkeleton } from "@/components/skeletons/HistoryCardSkeleton";
-
-const roboto = Roboto({
-  weight: ["100", "300", "400", "500", "700", "900"],
-  subsets: ["latin", "vietnamese"],
-  display: "swap",
-});
+import { HistoryCardSkeleton, HistoryListSkeleton } from "@/components/skeletons/HistoryCardSkeleton";
 
 const statusMap: Record<string, string> = {
   "Đã xác nhận": "CONFIRMED",
@@ -63,8 +56,13 @@ interface BookingItem {
   status: string;
   total_price: number;
   end_time_raw: string;
+  vehicle_brand: string;
+  vehicle_type: string;
   qrCode_content: string;
+  image: string;
 }
+
+
 
 /**
  * Hàm fetch dữ liệu booking từ API
@@ -242,9 +240,7 @@ function HistoryBooking() {
   }, [parkingOptions, searchQuery]);
 
   return (
-    <div
-      className={`${roboto.className} min-h-screen bg-background text-foreground pb-16`}
-    >
+    <div className="font-sans min-h-screen bg-background text-foreground pb-16">
       <Header />
 
       <main className="max-w-[1200px] mx-auto px-6 mt-12">
@@ -254,10 +250,10 @@ function HistoryBooking() {
           transition={{ duration: 0.6 }}
         >
           <div className="mb-10">
-            <h2 className="text-4xl font-black tracking-tight mb-2 text-foreground">
+            <h2 className="text-4xl md:text-5xl font-black tracking-tighter mb-4 text-gray-900 dark:text-white">
               Lịch sử đặt chỗ
             </h2>
-            <p className="text-foreground font-semibold text-base">
+            <p className="text-lg md:text-xl text-gray-500 dark:text-gray-400 font-medium max-w-2xl leading-relaxed">
               Xem và quản lý lịch sử đỗ xe của bạn một cách tiện lợi
             </p>
           </div>
@@ -269,7 +265,7 @@ function HistoryBooking() {
                 <div className="w-10 h-10 rounded-2xl bg-muted flex items-center justify-center shadow-inner">
                   <Search className="w-5 h-5 text-foreground" />
                 </div>
-                <h3 className="text-xl font-extrabold text-foreground tracking-tight">
+                <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
                   Tìm kiếm chuyến đi
                 </h3>
               </div>
@@ -277,7 +273,7 @@ function HistoryBooking() {
               <div className="flex flex-col lg:flex-row justify-between items-end gap-6 lg:gap-4">
                 {/* 1. Date Range Picker */}
                 <div className="w-full lg:w-[280px]">
-                  <label className="block text-[11px] font-black text-foreground uppercase tracking-[0.2em] mb-3 ml-1">
+                  <label className="block text-sm font-black  dark:text-gray-400 uppercase tracking-widest mb-3 ml-1">
                     Khoảng thời gian
                   </label>
                   <div className="relative w-full">
@@ -291,14 +287,14 @@ function HistoryBooking() {
                         setSelectedDate(e.target.value);
                         setCurrentPage(1);
                       }}
-                      className="w-full bg-muted/50 border-border rounded-2xl pl-12 pr-4 py-6 text-base font-bold text-foreground outline-none focus:ring-emerald-500/10 transition-all hover:bg-card"
+                      className="w-full bg-muted/50 border-border rounded-2xl pl-12 pr-4 py-6 text-base font-semibold text-gray-900 dark:text-white outline-none focus:ring-emerald-500/10 transition-all hover:bg-card"
                     />
                   </div>
                 </div>
 
                 {/* 2. Phần Tìm Kiếm */}
                 <div className="w-full lg:w-[350px] lg:mx-auto">
-                  <label className="block text-[11px] font-black text-foreground uppercase tracking-[0.2em] mb-3 ml-1">
+                  <label className="block text-sm font-black  dark:text-gray-400 uppercase tracking-widest mb-3 ml-1">
                     Từ khoá tìm kiếm
                   </label>
                   <div className="relative w-full">
@@ -315,7 +311,7 @@ function HistoryBooking() {
                         setListDropdown(true);
                         setCurrentPage(1);
                       }}
-                      className="w-full bg-muted/50 border-border rounded-2xl pl-12 pr-4 py-6 text-base font-bold text-foreground outline-none focus:ring-emerald-500/10 transition-all hover:bg-card placeholder:text-foreground/50"
+                      className="w-full bg-muted/50 border-border rounded-2xl pl-12 pr-4 py-6 text-base font-semibold text-gray-900 dark:text-white outline-none focus:ring-emerald-500/10 transition-all hover:bg-card placeholder:text-gray-500"
                     />
 
                     {/* DROPDOWN - Custom styling */}
@@ -341,7 +337,7 @@ function HistoryBooking() {
 
                 {/* 3. Quick Time Suggestions */}
                 <div className="w-full lg:w-auto lg:border-l border-border lg:pl-8 flex flex-col items-start lg:items-end">
-                  <label className="block text-[11px] font-black text-foreground uppercase tracking-[0.2em] mb-3 ml-1">
+                  <label className="block text-sm font-black dark:text-gray-400 uppercase tracking-widest mb-3 ml-1">
                     Gợi ý nhanh
                   </label>
                   <div className="flex gap-3">
@@ -351,7 +347,7 @@ function HistoryBooking() {
                         setSelectedDate(today);
                         setCurrentPage(1);
                       }}
-                      className="h-14 px-8 rounded-2xl font-black text-sm transition-all shadow-lg shadow-emerald-500/20 active:scale-95 whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="h-14 px-8 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-emerald-500/20 active:scale-95 whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
                       Hôm nay
                     </Button>
@@ -363,7 +359,7 @@ function HistoryBooking() {
                         setFilterStatus("Tất cả");
                         setCurrentPage(1);
                       }}
-                      className="h-14 px-8 rounded-2xl font-black text-sm transition-all active:scale-95 whitespace-nowrap flex items-center gap-2 border-border text-foreground"
+                      className="h-14 px-8 rounded-2xl font-bold text-sm transition-all active:scale-95 whitespace-nowrap flex items-center gap-2 border-border  dark:text-gray-400"
                     >
                       <RotateCcw className="w-4 h-4" />
                       Đặt lại
@@ -389,10 +385,10 @@ function HistoryBooking() {
                       setFilterStatus(status);
                       setCurrentPage(1);
                     }}
-                    className={`flex items-center gap-2.5 whitespace-nowrap h-12 px-6 rounded-2xl text-[14px] font-black transition-all ${
+                    className={`flex items-center gap-2.5 whitespace-nowrap h-12 px-6 rounded-2xl text-sm font-bold transition-all ${
                       isActive
                         ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/30"
-                        : "text-foreground hover:text-emerald-600 hover:bg-emerald-500/10"
+                        : " dark:text-gray-400 hover:text-emerald-800 hover:bg-emerald-500/10"
                     }`}
                   >
                     {status}
@@ -401,9 +397,9 @@ function HistoryBooking() {
               })}
             </div>
 
-            <div className="flex bg-card/60 text-foreground text-sm font-black px-6 py-3 rounded-2xl items-center justify-center gap-4 shadow-xl w-full lg:w-auto h-[56px] shrink-0 border border-border/50 backdrop-blur-md">
-              <span className="uppercase tracking-[0.15em] text-foreground text-[11px]">
-                {filterStatus === "Tất cả" ? "Tổng chuyến đi" : filterStatus}
+            <div className="flex bg-card/60 text-gray-900 dark:text-white text-sm font-bold px-6 py-3 rounded-2xl items-center justify-center gap-4 shadow-xl w-full lg:w-auto h-[56px] shrink-0 border border-border/50 backdrop-blur-md">
+              <span className="uppercase tracking-widest  dark:text-gray-400 text-sm font-black">
+                {filterStatus === "Tất cả" ? "Tổng lượt đặt" : filterStatus}
               </span>
               <span className="bg-emerald-600 px-3.5 py-1 rounded-xl shadow-lg shadow-emerald-500/20 text-xl text-white min-w-[40px] text-center leading-none flex items-center justify-center">
                 {filteredBooking.length}
@@ -413,7 +409,7 @@ function HistoryBooking() {
             <div className="flex justify-end w-full lg:w-auto shrink-0 z-10">
               <Button
                 variant="outline"
-                className="flex items-center gap-3 h-12 px-6 bg-card text-foreground border-border rounded-full text-base font-black shadow-sm hover:bg-accent transition-all w-36 justify-center"
+                className="flex items-center gap-3 h-12 px-6 bg-card text-gray-900 dark:text-white border-border rounded-full text-base font-bold shadow-sm hover:bg-accent transition-all w-36 justify-center"
               >
                 <Clock className="w-5 h-5" strokeWidth={2.5} />
                 {currentTime || "--:--"}
@@ -451,28 +447,29 @@ function HistoryBooking() {
                         <Card className="bg-card rounded-[40px] p-6 shadow-sm border-border flex flex-col lg:flex-row gap-8 items-stretch transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/5 group">
                           <div className="w-full lg:w-[320px] h-[240px] rounded-[32px] overflow-hidden shrink-0 border border-border shadow-inner group-hover:scale-[1.02] transition-transform duration-500">
                             <img
-                              src="/xedep.jpg"
-                              alt="Bãi đỗ xe"
+                              src={item.image || "/xedep.jpg"}
+                              alt={item.name}
                               className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                             />
+
                           </div>
 
                           <div className="flex-1 flex flex-col justify-between py-2 pr-2">
                             <div>
                               <div className="flex justify-between items-start mb-6">
                                 <div className="space-y-1.5">
-                                  <h3 className="text-2xl font-black text-foreground tracking-tight line-clamp-1 mb-1">
+                                  <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight line-clamp-1 mb-1">
                                     {item.name}
                                   </h3>
-                                  <div className="flex items-center gap-2 text-foreground text-[15px] font-bold">
-                                    <MapPin className="w-5 h-5 text-foreground" />
+                                  <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm font-medium">
+                                    <MapPin className="w-4 h-4" />
                                     <span>{item.address}</span>
                                   </div>
                                 </div>
 
                                 <div className="flex flex-col items-end gap-2">
                                   <Badge
-                                    className={`text-[11px] font-black tracking-[0.15em] px-5 py-2.5 rounded-2xl uppercase text-white shadow-xl transition-all flex items-center gap-2.5 border-none
+                                    className={`text-[10px] font-bold tracking-widest px-4 py-1.5 rounded-full uppercase text-white shadow-xl transition-all flex items-center gap-2 border-none
                                     ${
                                       item.statusRaw === "CONFIRMED"
                                         ? "bg-blue-600 shadow-blue-500/30 ring-4 ring-blue-500/10"
@@ -522,37 +519,37 @@ function HistoryBooking() {
 
                               <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-4 bg-emerald-500/5 p-6 rounded-[28px] border border-emerald-500/10">
                                 <div>
-                                  <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
+                                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                                     Giờ vào
                                   </p>
                                   <div className="flex flex-col gap-1">
-                                    <span className="font-black text-foreground text-xl leading-tight">
+                                    <span className="font-black text-gray-900 dark:text-white text-xl leading-tight">
                                       {item.start_time}
                                     </span>
-                                    <span className="font-bold text-foreground text-xs">
+                                    <span className="font-bold text-gray-500 dark:text-gray-400 text-xs">
                                       {item.start_date}
                                     </span>
                                   </div>
                                 </div>
                                 <div>
-                                  <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5">
+                                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                                     Giờ ra
                                   </p>
                                   <div className="flex flex-col gap-1">
-                                    <span className="font-black text-foreground text-xl leading-tight">
+                                    <span className="font-black text-gray-900 dark:text-white text-xl leading-tight">
                                       {item.end_time}
                                     </span>
-                                    <span className="font-bold text-foreground text-xs">
+                                    <span className="font-bold text-gray-500 dark:text-gray-400 text-xs">
                                       {item.end_date}
                                     </span>
                                   </div>
                                 </div>
                                 <div className="flex flex-col">
-                                  <p className="text-[10px] font-black text-foreground uppercase tracking-[0.2em] mb-2">
+                                  <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">
                                     Vị trí xe
                                   </p>
                                   <div className="flex flex-col gap-1 mt-0.5">
-                                    <span className="font-black text-foreground text-xl leading-tight bg-muted w-fit px-4 py-2 rounded-xl border border-border shadow-sm">
+                                    <span className="font-black text-gray-900 dark:text-white text-xl leading-tight bg-muted w-fit px-4 py-2 rounded-xl border border-border shadow-sm">
                                       {item.code}
                                     </span>
                                   </div>
@@ -562,10 +559,10 @@ function HistoryBooking() {
 
                             <div className="flex flex-col sm:flex-row justify-between items-center sm:items-end mt-4 gap-4">
                               <div className="flex flex-col gap-1 px-2 w-full sm:w-1/2">
-                                <p className="text-[11px] font-black text-foreground uppercase tracking-[0.2em]">
+                                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                                   Thanh toán
                                 </p>
-                                <span className="font-black text-red-600 text-3xl leading-none">
+                                <span className="font-extrabold text-red-600 text-3xl leading-none">
                                   {item.total_price
                                     ? new Intl.NumberFormat("vi-VN", {
                                         style: "currency",
@@ -631,10 +628,10 @@ function HistoryBooking() {
                         <div className="w-24 h-24 bg-emerald-500/10 text-emerald-600 flex items-center justify-center rounded-3xl mx-auto mb-8 shadow-inner rotate-3">
                           <Search className="w-12 h-12" />
                         </div>
-                        <h4 className="text-2xl font-black text-foreground mb-3 tracking-tight">
+                        <h4 className="text-2xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
                           Không tìm thấy chuyến nào !
                         </h4>
-                        <p className="text-foreground font-bold text-base max-w-[300px] mx-auto">
+                        <p className="text-gray-500 dark:text-gray-400 font-bold text-base max-w-[300px] mx-auto">
                           Bạn thử chọn ngày khác hoặc từ khóa khác xem sao .
                         </p>
                       </Card>
@@ -663,10 +660,10 @@ function HistoryBooking() {
                   key={i}
                   variant={currentPage === i + 1 ? "default" : "outline"}
                   onClick={() => setCurrentPage(i + 1)}
-                  className={`w-14 h-14 rounded-2xl font-black text-lg transition-all ${
+                  className={`w-14 h-14 rounded-2xl font-bold text-lg transition-all ${
                     currentPage === i + 1
                       ? "bg-emerald-600 text-white shadow-xl shadow-emerald-500/30 -translate-y-1"
-                      : "bg-card text-foreground border-border hover:bg-emerald-500/10"
+                      : "bg-card text-gray-600 dark:text-gray-400 border-border hover:bg-emerald-500/10"
                   }`}
                 >
                   {i + 1}

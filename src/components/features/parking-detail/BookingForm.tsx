@@ -8,14 +8,23 @@ import {
   MapPin,
   Search,
   CreditCard,
+  Ticket,
+  Tag,
+  ChevronRight,
+  X,
+  CheckCircle2,
+  Info,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 
 import { useRouter } from "next/navigation";
 import { ParkingContext } from "./ParkingContext";
-import { post } from "@/lib/api";
+import { post, get } from "@/lib/api";
 import dayjs from "dayjs";
 import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
+import { VoucherModal } from "./VoucherModal";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { containerVariants, itemVariants } from "@/lib/animations";
@@ -26,6 +35,16 @@ const HOURS = Array.from({ length: 24 }, (_, i) =>
 );
 
 const MINUTES = ["00", "15", "30", "45"];
+
+const DAY_MAP: Record<string, number> = {
+  "THỨ 2": 1, "T2": 1, "THỨ HAI": 1, "MONDAY": 1, "MON": 1,
+  "THỨ 3": 2, "T3": 2, "THỨ BA": 2, "TUESDAY": 2, "TUE": 2,
+  "THỨ 4": 3, "T4": 3, "THỨ TƯ": 3, "WEDNESDAY": 3, "WED": 3,
+  "THỨ 5": 4, "T5": 4, "THỨ NĂM": 4, "THURSDAY": 4, "THU": 4,
+  "THỨ 6": 5, "T6": 5, "THỨ SÁU": 5, "FRIDAY": 5, "FRI": 5,
+  "THỨ 7": 6, "T7": 6, "THỨ BẢY": 6, "SATURDAY": 6, "SAT": 6,
+  "CHỦ NHẬT": 0, "CN": 0, "SUNDAY": 0, "SUN": 0
+};
 
 // Kiểm tra xem một giờ có phải là quá khứ không
 const checkIsPastHour = (h: string, selectedDate: string, today: string) => {
@@ -85,9 +104,17 @@ export function BookingForm({
 
   const [paymentMethod, setPaymentMethod] = useState(defaultPayment || "vnpay");
 
+  // Voucher states
+  const [vouchers, setVouchers] = useState<any[]>([]);
+  const [selectedVoucher, setSelectedVoucher] = useState<any>(null);
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false);
+  const [isLoadingVouchers, setIsLoadingVouchers] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
+
   const today = dayjs().format("YYYY-MM-DD");
 
   const context = useContext(ParkingContext);
+  const auth = useAuthStore();
 
   if (!context) return null;
 
@@ -124,26 +151,96 @@ export function BookingForm({
     if (dataLot?.userVehicles?.length > 0 && !selectedPlate) {
       setSelectedPlate(dataLot.userVehicles[0].plate_number);
     }
+  }, [dataLot, defaultStart, defaultEnd, defaultVehicle, defaultPayment]);
 
-    // Auto setup time
-    if (!startTime) {
-      const now = dayjs();
+  const openTimeStr = useMemo(() => {
+    if (!dataLot?.open_time) return "00:00";
+    const d = dayjs(dataLot.open_time);
+    return d.isValid() ? d.format("HH:mm") : "00:00";
+  }, [dataLot]);
 
-      const currentMinute = now.minute();
+  const closeTimeStr = useMemo(() => {
+    if (!dataLot?.close_time) return "23:59";
+    const d = dayjs(dataLot.close_time);
+    return d.isValid() ? d.format("HH:mm") : "23:59";
+  }, [dataLot]);
 
-      let roundedMinute = 0;
+  const isTimeInRange = (timeStr: string) => {
+    if (closeTimeStr < openTimeStr) {
+      // Overnight case: e.g., 22:00 to 06:00
+      return timeStr >= openTimeStr || timeStr <= closeTimeStr;
+    }
+    return timeStr >= openTimeStr && timeStr <= closeTimeStr;
+  };
 
-      if (currentMinute < 15) roundedMinute = 15;
-      else if (currentMinute < 30) roundedMinute = 30;
-      else if (currentMinute < 45) roundedMinute = 45;
-      else roundedMinute = 60;
+  const isOperatingDay = (date: dayjs.Dayjs) => {
+    if (!dataLot?.operating_days) return true;
+    const daysStr = dataLot.operating_days.toUpperCase();
+    const dayOfWeek = date.day();
 
-      let start;
+    // Check if it's a comma-separated list (e.g. "Monday,Tuesday,Wednesday")
+    if (daysStr.includes(",")) {
+      const dayList = daysStr.split(",").map((s: string) => s.trim());
+      return dayList.some((d: string) => {
+        for (const [name, val] of Object.entries(DAY_MAP)) {
+          if (d === name || d.startsWith(name)) return val === dayOfWeek;
+        }
+        return false;
+      });
+    }
 
-      if (roundedMinute === 60) {
-        start = now.add(1, "hour").minute(0).second(0);
+    // Handle range e.g. "Thứ 2 - Thứ 7"
+    const parts = daysStr.split(/[-–—]|đến/i).map((s: string) => s.trim());
+    if (parts.length === 2) {
+      let startDay = 1;
+      let endDay = 0;
+
+      for (const [key, val] of Object.entries(DAY_MAP)) {
+        if (parts[0].includes(key)) startDay = val;
+        if (parts[1].includes(key)) endDay = val;
+      }
+
+      if (startDay <= endDay) {
+        return dayOfWeek >= startDay && dayOfWeek <= endDay;
       } else {
-        start = now.minute(roundedMinute).second(0);
+        // Overnight week: e.g. Saturday (6) to Monday (1)
+        return dayOfWeek >= startDay || dayOfWeek <= endDay;
+      }
+    }
+    return true;
+  };
+
+  const getAvailableHours = () => {
+    return HOURS.filter(h => {
+      return MINUTES.some(m => isTimeInRange(`${h}:${m}`));
+    });
+  };
+
+  const getAvailableMinutes = (selectedHour: string) => {
+    return MINUTES.filter(m => isTimeInRange(`${selectedHour}:${m}`));
+  };
+
+  // Auto setup time
+  useEffect(() => {
+    if (!startTime && dataLot) {
+      const now = dayjs();
+      let start = now.minute(Math.ceil(now.minute() / 15) * 15).second(0);
+
+      // If current time is out of range, move to next hour or opening
+      if (!isTimeInRange(start.format("HH:mm"))) {
+        const h = parseInt(openTimeStr.split(":")[0]);
+        const m = parseInt(openTimeStr.split(":")[1]);
+        start = start.hour(h).minute(m);
+        if (now.hour() >= parseInt(closeTimeStr.split(":")[0])) {
+          start = start.add(1, "day");
+        }
+      }
+
+      // Ensure start day is an operating day
+      let attempts = 0;
+      while (!isOperatingDay(start) && attempts < 7) {
+        start = start.add(1, "day").hour(parseInt(openTimeStr.split(":")[0])).minute(parseInt(openTimeStr.split(":")[1]));
+        attempts++;
       }
 
       const end = start.add(1, "hour");
@@ -151,16 +248,7 @@ export function BookingForm({
       setStartTime(start.format("YYYY-MM-DDTHH:mm"));
       setEndTime(end.format("YYYY-MM-DDTHH:mm"));
     }
-  }, [
-    dataLot,
-    defaultStart,
-    defaultEnd,
-    defaultVehicle,
-    defaultPayment,
-    selectedPlate,
-    startTime,
-  ]);
-
+  }, [dataLot, startTime, openTimeStr, closeTimeStr]);
   // Booking details
   const bookingDetails = useMemo(() => {
     const currentVehicle = dataLot?.userVehicles?.find(
@@ -186,10 +274,10 @@ export function BookingForm({
 
     const pricing = selectedZone
       ? dataLot?.pricingRules?.find(
-          (p: any) =>
-            p.zone_name === selectedZone.zone_name &&
-            p.floor_name === selectedZone.floor_name,
-        )
+        (p: any) =>
+          p.zone_name === selectedZone.zone_name &&
+          p.floor_name === selectedZone.floor_name,
+      )
       : null;
 
     return {
@@ -231,9 +319,37 @@ export function BookingForm({
     paymentMethod,
   ]);
 
-  // Calculate total price
-  const totalPrice = useMemo(() => {
-    if (!startTime || !endTime) return 0;
+  // Fetch vouchers
+  const fetchVouchers = async () => {
+    try {
+      setIsLoadingVouchers(true);
+      const res: any = await get("/vouchers/all-with-eligibility");
+      // Handle cases where API might wrap data in a 'data' property
+      const voucherData = Array.isArray(res) ? res : res?.data || [];
+      setVouchers(voucherData);
+    } catch (error) {
+      console.error("Failed to fetch vouchers:", error);
+    } finally {
+      setIsLoadingVouchers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      fetchVouchers();
+    }
+  }, [auth.isAuthenticated]);
+
+  // Re-fetch when modal opens to get latest eligibility (used count, etc.)
+  useEffect(() => {
+    if (isVoucherModalOpen && auth.isAuthenticated) {
+      fetchVouchers();
+    }
+  }, [isVoucherModalOpen, auth.isAuthenticated]);
+
+  // Calculate pricing breakdown
+  const pricingBreakdown = useMemo(() => {
+    if (!startTime || !endTime) return { subTotal: 0, discount: 0, finalTotal: 0 };
 
     const start = dayjs(startTime);
     const end = dayjs(endTime);
@@ -244,26 +360,53 @@ export function BookingForm({
       end.isBefore(start) ||
       end.isSame(start)
     ) {
-      return 0;
+      return { subTotal: 0, discount: 0, finalTotal: 0 };
     }
 
     const totalMinutes = end.diff(start, "minute");
-
     const pricePerHour = bookingDetails.priceHourly || 0;
-
     const priceDay = bookingDetails.priceDayly || 0;
-
     const priceMin = pricePerHour / 60;
 
     const days = Math.floor(totalMinutes / 1440);
-
     const remainingMinutes = totalMinutes % 1440;
 
-    return days * priceDay + remainingMinutes * priceMin;
-  }, [startTime, endTime, bookingDetails]);
+    const subTotal = days * priceDay + remainingMinutes * priceMin;
+
+    // Apply voucher discount
+    let discount = 0;
+    if (selectedVoucher) {
+      const minVal = Number(selectedVoucher.min_booking_value || 0);
+      const discountVal = Number(selectedVoucher.discount_value || 0);
+      const maxDiscount = selectedVoucher.max_discount_amount 
+        ? Number(selectedVoucher.max_discount_amount) 
+        : Infinity;
+
+      if (subTotal >= minVal) {
+        if (selectedVoucher.discount_type === "PERCENTAGE") {
+          discount = (subTotal * discountVal) / 100;
+          if (discount > maxDiscount) {
+            discount = maxDiscount;
+          }
+        } else if (selectedVoucher.discount_type === "FIXED_AMOUNT") {
+          discount = discountVal;
+          if (discount > maxDiscount) {
+            discount = maxDiscount;
+          }
+        }
+      }
+    }
+
+    return {
+      subTotal,
+      discount,
+      finalTotal: Math.max(0, subTotal - discount),
+    };
+  }, [startTime, endTime, bookingDetails, selectedVoucher]);
 
   async function handBooking(e: any) {
     e.preventDefault();
+    if (isBooking) return;
 
     const start = dayjs(startTime);
     const end = dayjs(endTime);
@@ -284,6 +427,26 @@ export function BookingForm({
       return;
     }
 
+    if (!isOperatingDay(start)) {
+      alert(`Bãi đỗ không hoạt động vào thứ này. Lịch hoạt động: ${dataLot.operating_days}`);
+      return;
+    }
+
+    if (!isOperatingDay(end)) {
+      alert(`Bãi đỗ không hoạt động vào ngày kết thúc. Lịch hoạt động: ${dataLot.operating_days}`);
+      return;
+    }
+
+    if (!isTimeInRange(start.format("HH:mm"))) {
+      alert(`Giờ vào phải trong khoảng thời gian hoạt động: ${openTimeStr} - ${closeTimeStr}`);
+      return;
+    }
+
+    if (!isTimeInRange(end.format("HH:mm"))) {
+      alert(`Giờ ra phải trong khoảng thời gian hoạt động: ${openTimeStr} - ${closeTimeStr}`);
+      return;
+    }
+
     if (end.isBefore(start) || end.isSame(start)) {
       alert("Thời gian ra phải sau thời gian vào");
       return;
@@ -296,8 +459,6 @@ export function BookingForm({
 
     const vehicle = bookingDetails.vehicle;
 
-    const auth = useAuthStore.getState();
-
     const currentUserId = auth?.user?.id;
 
     if (!vehicle) {
@@ -307,26 +468,23 @@ export function BookingForm({
 
     const bookingData = {
       user_id: String(currentUserId || vehicle?.user?.id),
-
       vehicle_id: vehicle.id,
-
       slot_id: selectedSpot?.slot.id,
-
       parking_lot_id: dataLot.id,
-
       start_time: dayjs(startTime).toISOString(),
-
       end_time: dayjs(endTime).toISOString(),
-
       status: paymentMethod === "cash" ? "PENDING" : "PENDING_PAYMENT",
+      voucher_code: selectedVoucher?.code || undefined,
+      sub_total: Math.round(pricingBreakdown.subTotal),
     };
 
     try {
+      setIsBooking(true);
       const saved: any = await post("/booking", bookingData);
 
       const bookingId = saved?.id || saved?.data?.id;
 
-      const amount = Math.round(totalPrice || 0);
+      const amount = Math.round(pricingBreakdown.finalTotal || 0);
 
       // VNPAY
       if (paymentMethod === "vnpay") {
@@ -402,11 +560,14 @@ export function BookingForm({
         "Đặt chỗ thất bại";
 
       alert(errorMessage);
+    } finally {
+      setIsBooking(false);
     }
   }
 
   return (
-    <AnimatePresence mode="wait">
+    <>
+      <AnimatePresence mode="wait">
       {loadingLot ? (
         <motion.div
           key="skeleton"
@@ -493,6 +654,8 @@ export function BookingForm({
                   <div className="relative">
                     <input
                       type="time"
+                      min={openTimeStr}
+                      max={closeTimeStr}
                       value={startTime ? startTime.split("T")[1] : ""}
                       onChange={(e) => {
                         const date = startTime.split("T")[0] || today;
@@ -525,6 +688,8 @@ export function BookingForm({
                   <div className="relative">
                     <input
                       type="time"
+                      min={openTimeStr}
+                      max={closeTimeStr}
                       value={endTime ? endTime.split("T")[1] : ""}
                       onChange={(e) => {
                         const date = endTime.split("T")[0] || today;
@@ -533,6 +698,19 @@ export function BookingForm({
                       }}
                       className="w-full h-12 px-4 border border-gray-200 rounded-xl bg-gray-50 font-medium focus:ring-2 focus:ring-green-500/20 focus:border-green-600 outline-none transition-all"
                     />
+                  </div>
+                </div>
+
+                {/* Operating Info Note */}
+                <div className="mt-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50 flex items-start gap-3">
+                  <div className="mt-0.5">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[18px] font-bold text-blue-900 uppercase tracking-tight">Thông tin hoạt động</p>
+                    <p className="text-sm text-blue-700 leading-relaxed">
+                      Bãi đỗ hoạt động từ <span className="font-bold">{openTimeStr} đến {closeTimeStr}</span> các ngày <span className="font-bold">{dataLot.operating_days}</span>.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -557,6 +735,52 @@ export function BookingForm({
               </div>
             </motion.div>
 
+            {/* Voucher Section */}
+            <motion.div variants={itemVariants} className="space-y-2">
+              <label className="block text-sm font-medium flex items-center gap-1">
+                <Ticket className="w-4 h-4 text-orange-500" />
+                Voucher khuyến mãi
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setIsVoucherModalOpen(true)}
+                className="w-full flex items-center justify-between p-3 border-2 border-dashed border-orange-200 rounded-xl bg-orange-50/30 hover:bg-orange-50 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600">
+                    <Tag className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    {selectedVoucher ? (
+                      <>
+                        <p className="text-sm font-bold text-orange-700">
+                          Mã: {selectedVoucher.code}
+                        </p>
+                        <p className="text-xs text-orange-600">
+                          {selectedVoucher.discount_type === "PERCENTAGE"
+                            ? `Giảm ${selectedVoucher.discount_value}%`
+                            : `Giảm ${selectedVoucher.discount_value.toLocaleString()}đ`}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-bold text-gray-700">
+                          Chọn hoặc nhập mã
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {vouchers.length > 0
+                            ? `Có ${vouchers.length} voucher khả dụng`
+                            : "Khám phá các ưu đãi từ GoPark"}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500 transition-colors" />
+              </button>
+            </motion.div>
+
             {/* Payment */}
             <motion.div variants={itemVariants} id="booking-payment-method">
               <label className="block text-sm font-medium mb-2 flex items-center gap-1">
@@ -576,39 +800,89 @@ export function BookingForm({
             </motion.div>
 
             {/* TOTAL */}
-            <motion.div variants={itemVariants} className="border-t pt-5">
-              <div className="flex justify-between mb-3">
-                <span className="text-sm">Đơn giá</span>
-
-                <span>
-                  {bookingDetails.priceHourly.toLocaleString()}
-                  đ/giờ
-                </span>
+            <motion.div variants={itemVariants} className="border-t pt-5 space-y-3">
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>Đơn giá</span>
+                <span>{bookingDetails.priceHourly.toLocaleString()}đ/giờ</span>
               </div>
 
-              <div className="flex justify-between items-end mb-6" id="booking-total-price">
-                <span className="font-bold">Tổng tạm tính</span>
+              {pricingBreakdown.discount > 0 && (
+                <>
+                  <div className="flex justify-between text-sm text-gray-500">
+                    <span>Tạm tính</span>
+                    <span>{Math.round(pricingBreakdown.subTotal).toLocaleString()}đ</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-orange-600 font-medium">
+                    <span className="flex items-center gap-1">
+                      <Tag className="w-3 h-3" />
+                      Giảm giá
+                    </span>
+                    <span>-{Math.round(pricingBreakdown.discount).toLocaleString()}đ</span>
+                  </div>
+                </>
+              )}
 
+              <div className="flex justify-between items-end pt-2" id="booking-total-price">
+                <span className="font-bold text-gray-900">Tổng tiền</span>
                 <span className="text-2xl font-black text-green-600">
-                  {Math.round(totalPrice).toLocaleString()}đ
+                  {Math.round(pricingBreakdown.finalTotal).toLocaleString()}đ
                 </span>
               </div>
 
-                <button
+              <button
                 type="button"
                 id="summit-booking-btn"
                 onClick={handBooking}
-                className="w-full bg-green-800 hover:bg-green-700 text-white font-bold py-3.5 rounded-lg"
+                disabled={isBooking}
+                className={`w-full font-bold py-3.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                  isBooking
+                    ? "bg-green-700/50 cursor-not-allowed text-white/70"
+                    : "bg-green-800 hover:bg-green-700 text-white shadow-lg hover:shadow-green-900/20 active:scale-[0.98]"
+                }`}
               >
-                <span className="flex items-center justify-center gap-2">
-                  <ShieldCheck className="w-5 h-5" />
-                  Xác nhận Đặt Chỗ
-                </span>
+                <ShieldCheck className="w-5 h-5" />
+                <span>Xác nhận Đặt Chỗ</span>
               </button>
             </motion.div>
           </form>
         </motion.div>
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+
+      {/* Full-screen Loading Overlay */}
+      <AnimatePresence>
+        {isBooking && (
+          <motion.div
+            key="booking-loading-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm"
+          >
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-green-100 dark:border-gray-700 rounded-full"></div>
+                <div className="w-16 h-16 border-4 border-green-700 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-black text-gray-900 dark:text-white">Đang xử lý đặt chỗ</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Vui lòng đợi trong giây lát...</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <VoucherModal
+        isOpen={isVoucherModalOpen}
+        onClose={() => setIsVoucherModalOpen(false)}
+        vouchers={vouchers}
+        onSelect={setSelectedVoucher}
+        selectedVoucher={selectedVoucher}
+        subTotal={pricingBreakdown.subTotal}
+      />
+    </>
   );
 }
+
+

@@ -2,18 +2,11 @@
 
 import React from "react";
 import { MapPin, X, FileText, Clock, ArrowRight, Car } from "lucide-react";
-import { Roboto } from "next/font/google";
-
 // Shadcn UI Components
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-const roboto = Roboto({
-  weight: ["100", "300", "400", "500", "700", "900"],
-  subsets: ["latin", "vietnamese"],
-  display: "swap",
-});
 
 interface Props {
   isOpen: boolean;
@@ -26,7 +19,7 @@ function DetailHistoryBooking({ isOpen, onClose, booking }: Props) {
 
   return (
 
-    <div className={`${roboto.className} fixed inset-0 z-[100] flex items-center justify-center p-4`}>
+    <div className="font-sans fixed inset-0 z-[100] flex items-center justify-center p-4">
 
       {/* Overlay Backdrop */}
       <div
@@ -40,7 +33,7 @@ function DetailHistoryBooking({ isOpen, onClose, booking }: Props) {
         {/* HEADER */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <Badge className={`inline-block px-5 py-2 rounded-full text-[13px] font-black uppercase tracking-widest mb-4 text-white shadow-sm border-none ${booking.status === 'Đã hoàn thành'
+            <Badge className={`inline-block px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-widest mb-4 text-white shadow-sm border-none ${booking.status === 'Đã hoàn thành'
               ? 'bg-red-600 shadow-red-600/30'
               : booking.status === 'Đang hoạt động'
                 ? 'bg-emerald-600 shadow-emerald-600/30'
@@ -49,10 +42,10 @@ function DetailHistoryBooking({ isOpen, onClose, booking }: Props) {
               {booking.status}
             </Badge>
 
-            <h2 className="text-4xl lg:text-5xl font-black text-foreground tracking-tight">{booking.name}</h2>
+            <h2 className="text-4xl lg:text-5xl font-black text-gray-900 dark:text-white tracking-tighter">{booking.name}</h2>
 
-            <div className="flex items-center gap-2.5 text-foreground font-bold mt-4 text-[17px]">
-              <MapPin className="w-6 h-6 text-foreground" />
+            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 font-medium mt-4 text-base">
+              <MapPin className="w-5 h-5" />
               <span>{booking.address}</span>
             </div>
           </div>
@@ -73,11 +66,12 @@ function DetailHistoryBooking({ isOpen, onClose, booking }: Props) {
           {/* KHỐI 1: HÌNH ẢNH */}
           <div className="rounded-[1.5rem] overflow-hidden shadow-sm border-2 border-border h-full min-h-[270px]">
             <img
-              src="/xedep.jpg"
+              src={booking.image || "/xedep.jpg"}
               className="w-full h-full object-cover"
-              alt="Hình bãi đỗ xe"
+              alt={booking.name}
             />
           </div>
+
 
           {/* KHỐI 2: CHI TIẾT VÉ ĐẶT */}
           <Card className="bg-card rounded-[1.5rem] p-6 lg:p-7 shadow-sm border-2 border-border h-full">
@@ -88,19 +82,19 @@ function DetailHistoryBooking({ isOpen, onClose, booking }: Props) {
 
             <div className="grid grid-cols-2 gap-y-8 gap-x-4">
               <div className="col-span-2 sm:col-span-1">
-                <p className="text-[13px] text-muted-foreground font-black mb-2.5 uppercase tracking-widest">Mã vé (ID)</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-black mb-2 uppercase tracking-widest">Mã vé (ID)</p>
                 <p className="font-black text-foreground text-lg break-words leading-tight">{booking.id}</p>
               </div>
               <div>
-                <p className="text-[13px] text-muted-foreground font-black mb-2.5 uppercase tracking-widest">Vị trí đỗ</p>
-                <p className="font-black text-foreground text-2xl bg-muted w-fit px-5 py-2 rounded-xl border-2 border-border">{booking.code}</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-black mb-2 uppercase tracking-widest">Vị trí đỗ</p>
+                <p className="font-black text-foreground text-xl bg-muted w-fit px-5 py-2 rounded-xl border-2 border-border">{booking.code}</p>
               </div>
               <div>
-                <p className="text-[13px] text-muted-foreground font-black mb-2.5 uppercase tracking-widest">Khu vực</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-black mb-2 uppercase tracking-widest">Khu vực</p>
                 <p className="font-black text-foreground text-[21px]">{booking.floor_zone && booking.floor_zone !== "N/A" ? booking.floor_zone : "Không có"}</p>
               </div>
               <div>
-                <p className="text-[13px] text-muted-foreground font-black mb-2.5 uppercase tracking-widest">Tầng đỗ xe</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-black mb-2 uppercase tracking-widest">Tầng đỗ xe</p>
                 <p className="font-black text-foreground text-[21px]">
                   {booking.floor_name && booking.floor_name !== "N/A"
                     ? booking.floor_name
@@ -121,7 +115,7 @@ function DetailHistoryBooking({ isOpen, onClose, booking }: Props) {
               {/* Hàng Thời gian */}
               <div className="flex items-center justify-between p-4 lg:p-6 rounded-2xl bg-muted border-2 border-border">
                 <div className="flex-1">
-                  <p className="text-[13px] text-muted-foreground font-black mb-2.5 uppercase tracking-widest">Thời gian vào</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 font-black mb-2 uppercase tracking-widest">Thời gian vào</p>
                   <p className="font-black text-foreground text-[26px] leading-tight mb-1">{booking.start_time}</p>
                   <p className="text-[17px] text-muted-foreground font-bold">{booking.start_date}</p>
                 </div>
@@ -131,7 +125,7 @@ function DetailHistoryBooking({ isOpen, onClose, booking }: Props) {
                 </div>
 
                 <div className="flex-1 text-right">
-                  <p className="text-[13px] text-muted-foreground font-black mb-2.5 uppercase tracking-widest">Thời gian ra</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 font-black mb-2 uppercase tracking-widest">Thời gian ra</p>
                   <p className="font-black text-foreground text-[26px] leading-tight mb-1">{booking.end_time}</p>
                   <p className="text-[17px] text-muted-foreground font-bold">{booking.end_date}</p>
                 </div>
@@ -139,8 +133,8 @@ function DetailHistoryBooking({ isOpen, onClose, booking }: Props) {
 
               {/* Hàng Tổng tiền */}
               <div className="flex items-end justify-between pt-6 border-t-2 border-border pb-2">
-                <p className="text-[15px] text-foreground font-black uppercase tracking-widest mb-2">Tổng tiền</p>
-                <p className="font-black text-red-600 text-[36px] tracking-tight leading-none drop-shadow-sm">
+                <p className="text-sm  dark:text-gray-400 font-black uppercase tracking-widest mb-2">Tổng tiền</p>
+                <p className="font-black text-red-600 text-4xl tracking-tighter leading-none">
                   {booking.total_price ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(booking.total_price) : "0 ₫"}
                 </p>
               </div>
@@ -156,19 +150,20 @@ function DetailHistoryBooking({ isOpen, onClose, booking }: Props) {
 
             <div className="grid grid-cols-2 gap-y-8 gap-x-4">
               <div className="col-span-2 sm:col-span-1">
-                <p className="text-[13px] text-muted-foreground font-black mb-2.5 uppercase tracking-widest">Khách hàng</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-black mb-2 uppercase tracking-widest">Khách hàng</p>
                 <p className="font-black text-foreground text-xl leading-tight">
                   {booking.user_name || booking.userName || booking.customer_name || "Chưa cập nhật"}
                 </p>
               </div>
               <div>
-                <p className="text-[13px] text-muted-foreground font-black mb-2.5 uppercase tracking-widest">Loại xe</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-black mb-2 uppercase tracking-widest">Hãng xe</p>
                 <p className="font-black text-foreground text-xl leading-tight">
-                  {booking.vehicle_type || booking.type || "Chưa cập nhật"}
+                  {booking.vehicle_brand || "Chưa cập nhật"}
                 </p>
               </div>
+
               <div className="col-span-2">
-                <p className="text-[13px] text-muted-foreground font-black mb-2.5 uppercase tracking-widest">Biển số xe</p>
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-black mb-2 uppercase tracking-widest">Biển số xe</p>
                 <p className="font-black text-foreground text-[24px] bg-muted w-fit px-6 py-3 rounded-xl border-2 border-border tracking-wider">
                   {booking.license_plate || booking.plate_number || "Chưa đánh biển số"}
                 </p>

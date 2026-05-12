@@ -39,6 +39,8 @@ import { notificationService } from "@/services/notification.service";
 import { SentNotification } from "@/stores/notification.store";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
+import { toast } from "sonner";
+
 
 const Header = () => {
   const { isAuthenticated: isLoggedIn, user, logout } = useAuthStore();
@@ -145,8 +147,16 @@ const Header = () => {
         setNotifications(prev => [newNotif, ...prev]);
         setUnreadCount(prev => prev + 1);
 
-        // Có thể thêm âm thanh thông báo hoặc toast ở đây
+        // Hiển thị toast thông báo
+        toast.info(newNotif.title, {
+          description: newNotif.content,
+          action: {
+            label: "Xem",
+            onClick: () => handleNotificationClick(newNotif),
+          },
+        });
       });
+
 
       socketRef.current = socket;
     }

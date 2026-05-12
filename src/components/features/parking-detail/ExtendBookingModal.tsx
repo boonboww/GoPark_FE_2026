@@ -42,8 +42,13 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
   const [pricingInfo, setPricingInfo] = useState({
     pricePerHour: 0,
     priceDay: 0,
-    zoneName: ""
+    zoneName: "",
+    operatingHours: { open: null, close: null } as { open: string | null; close: string | null }
   });
+
+
+
+
 
   useEffect(() => {
     if (!isOpen || !booking) return;
@@ -69,9 +74,14 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
             setPricingInfo({
               pricePerHour: res.data.pricePerHour || 0,
               priceDay: res.data.priceDay || 0,
-              zoneName: res.data.zoneName || "Khu vực"
+              zoneName: res.data.zoneName || "Khu vực",
+              operatingHours: res.data.operatingHours || { open: null, close: null }
             });
           }
+
+
+
+
         } catch (error) {
           console.error("Lỗi fetch giá:", error);
           setExtraAmount(0);
@@ -135,6 +145,8 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
             </div>
           </div>
 
+
+
           {/* Section 2: Current Times */}
           <div className="border-2 border-dashed border-gray-300 rounded-2xl p-4 grid grid-cols-2 gap-4 bg-white">
             <div>
@@ -175,9 +187,9 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
                 </SelectTrigger>
                 <SelectContent className="bg-white rounded-xl border-2 border-gray-300 shadow-xl z-[9999] opacity-100 !bg-opacity-100">
                   {HOURS.map((h) => (
-                    <SelectItem 
-                      key={h} 
-                      value={h} 
+                    <SelectItem
+                      key={h}
+                      value={h}
                       disabled={dayjs(`${newEndTime.split('T')[0]}T${h}:${getMM(newEndTime)}`).isBefore(dayjs(booking.end_time))}
                       className="font-bold text-gray-900 focus:bg-blue-50 focus:text-blue-700 cursor-pointer"
                     >
@@ -199,10 +211,10 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
                 </SelectTrigger>
                 <SelectContent className="bg-white rounded-xl border-2 border-gray-300 shadow-xl z-[9999] opacity-100 !bg-opacity-100">
                   {MINUTES.map((m) => (
-                    <SelectItem 
-                      key={m} 
-                      value={m} 
-                      disabled={dayjs(`${newEndTime.split('T')[0]}T${getHH(newEndTime)}:${m}`).isBefore(dayjs(booking.end_time)) }
+                    <SelectItem
+                      key={m}
+                      value={m}
+                      disabled={dayjs(`${newEndTime.split('T')[0]}T${getHH(newEndTime)}:${m}`).isBefore(dayjs(booking.end_time))}
                       className="font-bold text-gray-900 focus:bg-blue-50 focus:text-blue-700 cursor-pointer"
                     >
                       {m}
@@ -212,6 +224,16 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
               </Select>
             </div>
           </div>
+
+          {pricingInfo.operatingHours.open && (
+            <p className="text-red-500 text-[11px] font-bold uppercase tracking-wider mt-1 ml-1">
+              Giờ hoạt động: {pricingInfo.operatingHours.open} - {pricingInfo.operatingHours.close}
+            </p>
+          )}
+
+
+
+
 
           {/* Section 5: Summary Card */}
           <div className="bg-blue-50 p-4 rounded-3xl space-y-3 border border-blue-100">
@@ -251,9 +273,27 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
             </button>
             <button
               onClick={handleExtend}
-              disabled={loadingPrice || isSubmitting || !newEndTime || dayjs(newEndTime).isBefore(dayjs(booking.end_time))}
+              disabled={
+                loadingPrice || 
+                isSubmitting || 
+                !newEndTime || 
+                dayjs(newEndTime).isBefore(dayjs(booking.end_time)) ||
+                (() => {
+                  if (!pricingInfo.operatingHours.open || !pricingInfo.operatingHours.close) return false;
+                  const open = pricingInfo.operatingHours.open;
+                  const close = pricingInfo.operatingHours.close;
+                  const current = dayjs(newEndTime).format("HH:mm");
+                  
+                  if (open < close) {
+                    return current < open || current > close;
+                  } else {
+                    return current < open && current > close;
+                  }
+                })()
+              }
               className="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:bg-blue-300 disabled:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2 text-base"
             >
+
               {isSubmitting ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : "Xác nhận gia hạn"}

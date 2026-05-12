@@ -41,6 +41,9 @@ export const mapBookingData = (item: any) => {
         floor_name: item.slot.parkingZone.parkingFloor.floor_name,
         user_name: item.user.profile.name,
         plate_number: item.vehicle.plate_number,
+        vehicle_brand: item.vehicle.brand || "Chưa cập nhật",
+        vehicle_type: item.vehicle.type || "Chưa cập nhật",
+
         start_date: formatDate(start),
         start_time: formatTime(start),
         end_date: formatDate(end),
@@ -53,5 +56,6 @@ export const mapBookingData = (item: any) => {
         total_price: totalPrice,
         end_time_raw: item.end_time,
         qrCode_content: item.qrCode?.content || "",
+        image: item.slot?.parkingZone?.parkingFloor?.parkingLot?.image?.thumbnail || "",
     }
-}
+}
