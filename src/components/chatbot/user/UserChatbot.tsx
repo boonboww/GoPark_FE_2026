@@ -275,6 +275,14 @@ export default function UserChatbot() {
       const text2 = response?.data?.text || response?.text || response?.message || "Không có phản hồi";
       const assistantMsg: Message = { role: "assistant", content: text2 };
       setMessages([...messagesRef.current, assistantMsg]); messagesRef.current = [...messagesRef.current, assistantMsg];
+      // Nếu voice mode đang bật → đọc câu trả lời
+      if (voiceModeRef.current) {
+        setVoiceState("speaking");
+        speakText(text2, () => {
+          if (voiceModeRef.current) { setVoiceState("wake-listening"); startWakeListener(); }
+          else setVoiceState("idle");
+        });
+      }
     } catch {
       const errMsg: Message = { role: "assistant", content: "❌ Lỗi kết nối. Vui lòng thử lại." };
       setMessages([...messagesRef.current, errMsg]); messagesRef.current = [...messagesRef.current, errMsg];
@@ -405,15 +413,14 @@ export default function UserChatbot() {
               <tbody>
                 {others.map((lot: any) => (
                   <tr key={lot.id}>
-                    <td style={{ fontWeight: 500 }}>
-                      <div>{lot.name}</div>
-                      <div style={{ fontSize: 10, color: "#4a7a5a", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lot.address}</div>
+                    <td style={{ fontWeight: 500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      {lot.name}
                     </td>
                     <td style={{ whiteSpace: "nowrap" }}>{(lot.hourly_rate || 20000).toLocaleString("vi-VN")}đ</td>
-                    <td>{lot.available_slots ?? "?"}/{lot.total_slots ?? "?"}</td>
-                    {lot.distance_km != null && <td>{lot.distance_km}km</td>}
-                    <td>{lot.avgRating > 0 ? Number(lot.avgRating).toFixed(1) : "-"}</td>
-                    <td>
+                    <td style={{ whiteSpace: "nowrap" }}>{lot.available_slots ?? "?"}/{lot.total_slots ?? "?"}</td>
+                    {lot.distance_km != null && <td style={{ whiteSpace:"nowrap" }}>{lot.distance_km}km</td>}
+                    <td style={{ whiteSpace: "nowrap" }}>{lot.avgRating > 0 ? Number(lot.avgRating).toFixed(1) : "-"}</td>
+                    <td style={{ whiteSpace: "nowrap" }}>
                       <button className="uc-btn-detail" onClick={() => (window.location.href = `/users/detailParking/${lot.id}`)}>Chi tiết</button>
                       <button className="uc-btn-book" onClick={() => (window.location.href = `/users/myBooking/${lot.id}`)}>Đặt</button>
                     </td>
@@ -491,11 +498,12 @@ export default function UserChatbot() {
         .uc-parking-card-close { border:none; background:transparent; color:#9ef08d; cursor:pointer; font-size:12px; padding:2px 6px; border-radius:6px; margin-left:auto; }
         .uc-parking-secondary { padding:10px 12px; }
         .uc-parking-secondary-title { font-size:11px; color:#a7f3d0; font-weight:700; margin-bottom:6px; }
-        .uc-parking-table { width:100%; border-collapse:collapse; font-size:11px; }
-        .uc-parking-table th, .uc-parking-table td { padding:6px 5px; text-align:left; border-bottom:1px solid rgba(34,197,94,0.08); }
-        .uc-parking-table th { background:rgba(34,197,94,0.08); color:#86efac; font-weight:600; }
-        .uc-btn-detail, .uc-btn-book { background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.25); color:#bbf7d0; padding:3px 7px; border-radius:5px; cursor:pointer; margin-right:3px; font-size:10px; }
-        .uc-btn-book { background:rgba(34,197,94,0.25); }
+        .uc-parking-table { width:100%; border-collapse:collapse; font-size:11px; table-layout:fixed; }
+        .uc-parking-table th, .uc-parking-table td { padding:6px 5px; text-align:left; border-bottom:1px solid rgba(34,197,94,0.08); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+        .uc-parking-table th { background:rgba(34,197,94,0.08); color:#86efac; font-weight:600; white-space:nowrap; }
+        .uc-parking-table th:first-child { width:35%; }
+        .uc-parking-table td:last-child { white-space:nowrap; overflow:visible; }
+        .uc-btn-detail, .uc-btn-book { background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.25); color:#bbf7d0; padding:3px 6px; border-radius:5px; cursor:pointer; margin-right:2px; font-size:10px; white-space:nowrap; display:inline-block; }
         /* Input */
         .uc-inp-area { flex-shrink:0; padding:8px 12px 10px; border-top:1px solid rgba(34,197,94,.08); }
         .uc-inp-box { display:flex; gap:8px; align-items:flex-end; background:rgba(255,255,255,.04); border:1px solid rgba(34,197,94,.15); border-radius:16px; padding:6px 8px 6px 14px; }
