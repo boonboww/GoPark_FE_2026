@@ -127,6 +127,7 @@ export default function OwnerChatList() {
     <SidebarProvider>
       <AppSidebar variant="inset" />
       <SidebarInset>
+        <SiteHeader />
         <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 bg-slate-50/50">
           <div className="max-w-7xl mx-auto w-full space-y-6">
             <div className="flex flex-col gap-1">

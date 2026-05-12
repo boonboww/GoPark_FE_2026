@@ -238,6 +238,7 @@ export default function OwnerChatRoom({
     <SidebarProvider>
       <AppSidebar variant="inset" />
       <SidebarInset>
+        <SiteHeader />
         <main className="flex-1 flex flex-col p-4 md:p-6 bg-slate-50/50">
           <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col gap-4 min-h-0">
             <div className="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-slate-100">

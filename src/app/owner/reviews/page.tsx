@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SiteHeader } from "@/components/site-header";
 import {
   Card,
   CardContent,
@@ -83,6 +84,7 @@ export default function OwnerReviewsPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset className="bg-zinc-50/50 dark:bg-zinc-950">
+        <SiteHeader />
         <div className="max-w-6xl mx-auto p-6 lg:p-10 space-y-10 w-full font-roboto">
           {/* Premium Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">

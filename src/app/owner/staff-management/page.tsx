@@ -171,6 +171,7 @@ export default function StaffManagementPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
+        <SiteHeader />
         <div className="max-w-[1400px] mx-auto p-6 lg:p-8 space-y-8 w-full">
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">

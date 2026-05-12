@@ -14,6 +14,8 @@ import { useOwnerTotals } from "@/hooks/useOwnerTotals";
 import { useCustomerStore } from "@/stores/customer.store";
 import { useAuthStore } from "@/stores/auth.store";
 
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
 import { NotificationBell } from "@/components/owner/NotificationBell";
 
 export function SiteHeader() {
@@ -30,10 +32,12 @@ export function SiteHeader() {
   }, [parkingLots, lotId, setLotId]);
 
   return (
-    <header className="sticky top-0 z-50 flex h-(--header-height) shrink-0 items-center gap-2 border-b border-border bg-card/90 backdrop-blur-sm transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
-      <div className="flex w-full items-center justify-between px-4 lg:px-6 gap-4">
-        {/* Left: Search-style lot selector */}
+    <header className="sticky top-0 z-50 flex h-(--header-height) shrink-0 items-center border-b border-border bg-card/95 backdrop-blur-sm transition-[width,height] ease-linear">
+      <div className="flex w-full items-center justify-between px-4 lg:px-8 h-full">
+        {/* Left: Sidebar Trigger + Search-style lot selector */}
         <div className="flex items-center gap-3">
+          <SidebarTrigger className="-ml-1 h-9 w-9 rounded-lg border border-border bg-background shadow-sm hover:bg-accent hover:text-accent-foreground transition-all" />
+          <Separator orientation="vertical" className="mx-2 h-4 hidden sm:block" />
           <div className="relative flex items-center">
             <Search className="absolute left-3 h-5 w-5 text-muted-foreground pointer-events-none" />
             <Select

@@ -111,17 +111,26 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="border-b border-sidebar-border pb-4">
+      <SidebarHeader className="h-(--header-height) flex items-center justify-center border-b border-sidebar-border p-0">
         <SidebarMenu>
-          <SidebarMenuItem className="flex w-full items-center justify-between group-data-[collapsible=icon]:justify-center">
+          <SidebarMenuItem>
             <SidebarMenuButton
+              size="lg"
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5 group-data-[collapsible=icon]:!hidden hover:bg-transparent"
+              className="hover:bg-transparent group-data-[collapsible=icon]:!p-0"
             >
-              <a href="/owner" className="flex items-center gap-2">
-                <span className="text-[25px] font-bold text-foreground ml-3">
-                  GoPark
-                </span>
+              <a href="/owner" className="flex items-center gap-3 px-3">
+                <div className="flex aspect-square size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+                  <span className="text-xl font-black">G</span>
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                  <span className="truncate font-black text-lg text-foreground tracking-tight">
+                    GoPark
+                  </span>
+                  <span className="truncate text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    Owner Panel
+                  </span>
+                </div>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -44,6 +44,7 @@ export default function MyParkingLotsPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
+        <SiteHeader />
         <div className="max-w-7xl mx-auto p-6 lg:p-10 space-y-10 w-full">
           {/* Header Section */}
           <div className="flex flex-col space-y-6">

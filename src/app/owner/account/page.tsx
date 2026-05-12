@@ -7,6 +7,7 @@ import { updateOwnerProfile, changePassword } from "@/services/ownerService";
 import { useAuthStore } from "@/stores/auth.store";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SiteHeader } from "@/components/site-header";
 import {
   Card,
   CardContent,
@@ -131,6 +132,7 @@ export default function OwnerAccountPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
+        <SiteHeader />
         <main className="flex-1 overflow-y-auto bg-slate-50/30 p-4 lg:p-10">
           <div className="mx-auto max-w-6xl space-y-8">
             {/* Page Header */}

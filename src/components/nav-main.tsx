@@ -9,6 +9,7 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -42,15 +43,16 @@ export function NavMain({
                 : pathname.startsWith(item.url);
             return (
               <SidebarMenuItem key={item.title}>
-                <button
+                <SidebarMenuButton
                   id={`sidebar-item-${item.url.split("/").pop() || "dashboard"}`}
+                  isActive={isActive}
+                  tooltip={item.title}
                   onClick={() => router.push(item.url)}
-                  title={item.title}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    "h-11 rounded-xl px-3 transition-all duration-200",
                     isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent",
                   )}
                 >
                   {item.icon && (
@@ -58,13 +60,13 @@ export function NavMain({
                       className={cn(
                         "size-5 shrink-0 transition-colors",
                         isActive
-                          ? "text-sidebar-primary-foreground"
+                          ? "text-primary-foreground"
                           : "text-sidebar-foreground/60",
                       )}
                     />
                   )}
-                  <span>{item.title}</span>
-                </button>
+                  <span className="font-semibold text-[13px]">{item.title}</span>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             );
           })}

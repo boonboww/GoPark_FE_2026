@@ -222,7 +222,7 @@ const Header = () => {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex flex-1 items-center justify-center gap-8 text-sm font-medium text-muted-foreground relative">
+          <nav className="hidden lg:flex flex-1 items-center justify-center gap-8 text-sm font-medium text-muted-foreground relative">
             <Link
               href="/"
               id="home-nav-link"
@@ -280,7 +280,7 @@ const Header = () => {
           </nav>
 
           {/* Auth Actions */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             {/* Theme Toggle Button */}
             {mounted && (
               <button
@@ -297,7 +297,7 @@ const Header = () => {
             )}
 
             {isLoggedIn ? (
-              <div className="flex items-center gap-3 md:gap-5">
+              <div className="flex items-center gap-3 lg:gap-5">
                 {/* Nút thông báo */}
                 <div className="relative" ref={notificationRef}>
                   <button
@@ -531,7 +531,79 @@ const Header = () => {
           </div>
 
           {/* Mobile Menu Toggle */}
-          <div className="md:hidden flex items-center gap-2">
+          <div className="lg:hidden flex items-center gap-2">
+            {/* Show notification bell on mobile if logged in */}
+            {isLoggedIn && (
+              <div className="relative mr-1">
+                <button
+                  onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                  className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-stone-800"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 h-3.5 min-w-3.5 px-0.5 flex items-center justify-center rounded-full bg-red-500 border-2 border-white dark:border-stone-900 text-[8px] font-bold text-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+                
+                {/* Mobile Notification Dropdown */}
+                {isNotificationOpen && (
+                  <div className="absolute right-[-60px] sm:right-0 mt-3 w-[280px] sm:w-80 bg-white dark:bg-stone-900 border border-gray-100 dark:border-stone-800 rounded-2xl shadow-xl py-2 animate-in fade-in slide-in-from-top-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-50 dark:border-stone-800 flex justify-between items-center">
+                      <h3 className="text-xs font-bold text-black dark:text-white">Thông báo</h3>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={async () => {
+                            await notificationService.markAllRead();
+                            setUnreadCount(0);
+                            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                          }}
+                          className="text-[10px] text-blue-600 hover:underline"
+                        >
+                          Đã đọc tất cả
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                      {notifications.length === 0 ? (
+                        <div className="px-4 py-6 text-center text-gray-500">
+                          <p className="text-xs">Không có thông báo nào</p>
+                        </div>
+                      ) : (
+                        notifications.slice(0, 5).map((notif) => (
+                          <button
+                            key={notif.id}
+                            onClick={() => handleNotificationClick(notif)}
+                            className={`w-full text-left px-4 py-2.5 border-b border-gray-50 dark:border-stone-800/50 hover:bg-gray-50 dark:hover:bg-stone-800/50 transition-colors flex gap-2 ${!notif.isRead ? "bg-blue-50/20 dark:bg-blue-900/10" : ""}`}
+                          >
+                            <div className={`mt-0.5 h-6 w-6 rounded-full flex-shrink-0 flex items-center justify-center ${getNotificationColor(notif.type)}`}>
+                              {React.cloneElement(getNotificationIcon(notif.type) as React.ReactElement, { className: "h-3 w-3" })}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-[11px] truncate ${!notif.isRead ? "font-bold text-black dark:text-white" : "text-gray-600 dark:text-gray-400"}`}>
+                                {notif.title}
+                              </p>
+                              <p className="text-[10px] text-gray-500 truncate mt-0.5">
+                                {notif.content}
+                              </p>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                    <Link
+                      href="/users/requests"
+                      onClick={() => setIsNotificationOpen(false)}
+                      className="block px-4 py-2 text-center text-[10px] font-semibold text-gray-500 hover:text-blue-600 border-t border-gray-50 dark:border-stone-800"
+                    >
+                      Xem tất cả
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+            
             {/* Mobile Theme Toggle Button */}
             {mounted && (
               <button
@@ -561,49 +633,51 @@ const Header = () => {
 
         {/* Mobile Menu Drawer */}
         {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-[100] md:hidden">
+          <div className="fixed inset-0 z-[2000] lg:hidden">
             <div
-              className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
               onClick={() => setIsMobileMenuOpen(false)}
             />
-            <div className="absolute right-0 top-0 h-full w-full sm:w-[320px] bg-white dark:bg-stone-900 shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col z-[101]">
-              <div className="p-6 border-b flex items-center justify-between dark:border-stone-800">
+            <div className="absolute right-0 top-0 h-svh w-full sm:w-[320px] bg-white dark:bg-stone-950 shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col z-[2001] overflow-hidden">
+              {/* Drawer Header - Non-sticky to avoid clipping */}
+              <div className="p-5 border-b flex items-center justify-between dark:border-stone-800 bg-white dark:bg-stone-950">
                 <Link href="/" className="flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
-                  <div className="bg-green-600 p-1.5 rounded-lg">
-                    <img src="/logo.png" alt="Logo" className="h-6 w-6 invert brightness-0" />
+                  <div className="bg-green-600 p-1.5 rounded-lg shadow-sm">
+                    <img src="/logo.png" alt="Logo" className="h-5 w-5 invert brightness-0" />
                   </div>
-                  <span className="font-bold text-xl dark:text-white">Go<span className="text-green-600">Park</span></span>
+                  <span className="font-bold text-lg dark:text-white tracking-tight">Go<span className="text-green-600">Park</span></span>
                 </Link>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2.5 bg-gray-100 dark:bg-stone-800 hover:bg-gray-200 dark:hover:bg-stone-700 rounded-xl transition-colors"
+                  className="p-2 bg-gray-100 dark:bg-stone-800 hover:bg-gray-200 dark:hover:bg-stone-700 rounded-xl transition-all"
                 >
                   <X className="h-5 w-5 dark:text-gray-400" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+              {/* Drawer Content - Scrollable */}
+              <div className="flex-1 overflow-y-auto px-5 py-8 space-y-8 bg-white dark:bg-stone-950">
                 {isLoggedIn && (
-                  <div className="p-5 bg-linear-to-br from-gray-50 to-gray-100 dark:from-stone-800/50 dark:to-stone-900/50 rounded-[2rem] border border-gray-200 dark:border-stone-700/50">
+                  <div className="p-5 bg-linear-to-br from-gray-50 to-gray-100 dark:from-stone-800/40 dark:to-stone-900/40 rounded-[1.5rem] border border-gray-100 dark:border-stone-800/50">
                     <div className="flex items-center gap-4 mb-4">
-                      <div className="relative">
+                      <div className="relative shrink-0">
                         <img
                           src={user?.profile?.image || "https://i.pravatar.cc/150?img=11"}
                           alt="Avatar"
                           className="w-14 h-14 rounded-2xl object-cover border-2 border-white dark:border-stone-800 shadow-sm"
                         />
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-stone-900 rounded-full"></div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-white dark:border-stone-900 rounded-full"></div>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-base font-black truncate dark:text-white leading-tight">{user?.profile?.name || "Người dùng"}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1">{user?.email}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-1">{user?.email}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 py-2.5 px-4 bg-white dark:bg-stone-800 rounded-xl border border-gray-100 dark:border-stone-700 shadow-xs">
+                    <div className="flex items-center gap-3 py-2.5 px-4 bg-white dark:bg-stone-800/60 rounded-xl border border-gray-100 dark:border-stone-700 shadow-xs">
                       <Wallet className="h-4 w-4 text-emerald-500" />
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Số dư ví</span>
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Số dư ví</span>
                         <span className="text-sm font-black dark:text-white">
                           {isWalletLoading ? "..." : `${(balance || 0).toLocaleString("vi-VN")} đ`}
                         </span>
@@ -612,48 +686,54 @@ const Header = () => {
                   </div>
                 )}
 
+                {/* Primary Nav Section */}
                 <div className="space-y-1">
-                  <p className="px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Điều hướng chính</p>
+                  <p className="px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 opacity-50">Điều hướng chính</p>
                   <MobileNavItem href="/" icon={Home} label="Trang chủ" onClick={() => setIsMobileMenuOpen(false)} />
                   <MobileNavItem href="/users/findParking" icon={Search} label="Tìm bãi đỗ" onClick={() => setIsMobileMenuOpen(false)} />
                   <MobileNavItem href="/users/promotions" icon={Ticket} label="Ưu đãi & Khuyến mãi" onClick={() => setIsMobileMenuOpen(false)} />
                   <MobileNavItem href="/users/historyBooking" icon={History} label="Lịch sử đặt chỗ" onClick={() => setIsMobileMenuOpen(false)} />
                 </div>
 
+                {/* Support Section */}
                 <div className="space-y-1">
-                  <p className="px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Tài khoản & Hỗ trợ</p>
+                  <p className="px-3 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 opacity-50">Tài khoản & Hỗ trợ</p>
                   <MobileNavItem href="/users/chat" icon={MessageCircle} label="Tin nhắn" onClick={() => setIsMobileMenuOpen(false)} />
                   <MobileNavItem href="/users/profile" icon={User} label="Hồ sơ cá nhân" onClick={() => setIsMobileMenuOpen(false)} />
                   <MobileNavItem href="/users/setting" icon={Settings} label="Cài đặt hệ thống" onClick={() => setIsMobileMenuOpen(false)} />
-                  <MobileNavItem href="/about" icon={Info} label="Về GoPark" onClick={() => setIsMobileMenuOpen(false)} />
-                  <MobileNavItem href="/contact" icon={Contact} label="Trung tâm trợ giúp" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem href="/users/about" icon={Info} label="Về GoPark" onClick={() => setIsMobileMenuOpen(false)} />
+                  <MobileNavItem href="/users/contact" icon={Contact} label="Trung tâm trợ giúp" onClick={() => setIsMobileMenuOpen(false)} />
                 </div>
-              </div>
 
-              <div className="p-6 border-t dark:border-stone-800 bg-gray-50/50 dark:bg-stone-900/50">
-                {isLoggedIn ? (
-                  <Button
-                    variant="destructive"
-                    className="w-full justify-center gap-3 h-14 rounded-2xl font-bold shadow-lg shadow-red-500/20"
-                    onClick={() => {
-                      logout();
-                      setIsMobileMenuOpen(false);
-                      router.push("/auth/login");
-                    }}
-                  >
-                    <LogOut className="h-5 w-5" />
-                    Đăng xuất tài khoản
-                  </Button>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" className="h-12 rounded-2xl font-bold" asChild onClick={() => setIsMobileMenuOpen(false)}>
-                      <Link href="/auth/login">Đăng nhập</Link>
+                {/* Auth Actions in Scroll - To ensure they don't cover info on short screens */}
+                <div className="pt-4 border-t dark:border-stone-800">
+                  {isLoggedIn ? (
+                    <Button
+                      variant="destructive"
+                      className="w-full justify-center gap-3 h-12 rounded-xl font-bold shadow-md shadow-red-500/10 active:scale-[0.98] transition-all"
+                      onClick={() => {
+                        logout();
+                        setIsMobileMenuOpen(false);
+                        router.push("/auth/login");
+                      }}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Đăng xuất tài khoản
                     </Button>
-                    <Button className="h-12 rounded-2xl bg-green-600 hover:bg-green-700 font-bold shadow-lg shadow-green-500/20" asChild onClick={() => setIsMobileMenuOpen(false)}>
-                      <Link href="/auth/register">Đăng ký</Link>
-                    </Button>
-                  </div>
-                )}
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button variant="outline" className="h-11 rounded-xl font-bold" asChild onClick={() => setIsMobileMenuOpen(false)}>
+                        <Link href="/auth/login">Đăng nhập</Link>
+                      </Button>
+                      <Button className="h-11 rounded-xl bg-green-600 hover:bg-green-700 font-bold shadow-md shadow-green-500/20" asChild onClick={() => setIsMobileMenuOpen(false)}>
+                        <Link href="/auth/register">Đăng ký</Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Safe bottom area */}
+                <div className="h-10" />
               </div>
             </div>
           </div>
