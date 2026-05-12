@@ -10,6 +10,7 @@ type Message = {
   data?: any;
 };
 type Status = "unknown" | "connected" | "disconnected";
+type VoiceState = "idle" | "wake-listening" | "prompted" | "question-listening" | "speaking";
 
 const API_URL =
   process.env.NEXT_PUBLIC_CHATBOT_API ||
@@ -35,6 +36,23 @@ const WELCOME_MSG: Message = {
     "Xin chào! Tôi là trợ lý GoPark dành cho bạn.\n\nTôi có thể giúp:\n🔹 Tìm và đặt bãi đỗ xe\n🔹 Xem lịch sử đặt chỗ\n🔹 Kiểm tra số dư ví\n🔹 Xem danh sách xe đã đăng ký\n\nBạn cần gì hôm nay?",
 };
 
+function speakText(text: string, onEnd?: () => void) {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const clean = text.replace(/[🔹🔸💰⭐📅📋💳🚗❓🔍✅❌⚠️💡📊📈🏆📋🎉👤🏢]/gu, "").trim();
+  const utt = new SpeechSynthesisUtterance(clean);
+  utt.lang = "vi-VN";
+  utt.rate = 1.05;
+  utt.pitch = 1;
+  // Ưu tiên giọng Google tiếng Việt
+  const voices = window.speechSynthesis.getVoices();
+  const googleVi = voices.find(v => v.lang === "vi-VN" && v.name.toLowerCase().includes("google"))
+    || voices.find(v => v.lang === "vi-VN");
+  if (googleVi) utt.voice = googleVi;
+  if (onEnd) utt.onend = onEnd;
+  window.speechSynthesis.speak(utt);
+}
+
 export default function UserChatbot() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -49,9 +67,18 @@ export default function UserChatbot() {
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState<Status>("unknown");
   const [hasUnread, setHasUnread] = useState(false);
+  // Voice AI mode
+  const [voiceMode, setVoiceMode] = useState(false);
+  const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const recognitionRef = useRef<any>(null);
+  const wakeRecognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>(messages);
+  const voiceModeRef = useRef(false);
+  const voiceStateRef = useRef<VoiceState>("idle");
+
+  useEffect(() => { voiceModeRef.current = voiceMode; }, [voiceMode]);
+  useEffect(() => { voiceStateRef.current = voiceState; }, [voiceState]);
 
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("gopark_user_chat", JSON.stringify(messages));
@@ -62,6 +89,7 @@ export default function UserChatbot() {
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { if (open) setHasUnread(false); }, [open]);
 
+  // Setup recognition cho input thường
   useEffect(() => {
     const win: any = typeof window !== "undefined" ? window : {};
     const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
@@ -73,6 +101,71 @@ export default function UserChatbot() {
     r.onend = () => setListening(false);
     recognitionRef.current = r;
   }, []);
+
+  // Wake word listener
+  const startWakeListener = useCallback(() => {
+    const win: any = typeof window !== "undefined" ? window : {};
+    const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
+    if (!SR) return;
+    const r = new SR();
+    r.lang = "vi-VN"; r.interimResults = false; r.continuous = true;
+    r.onresult = (ev: any) => {
+      const transcript = Array.from(ev.results)
+        .map((x: any) => x[0].transcript).join(" ").toLowerCase();
+      if (transcript.includes("hey gopark") || transcript.includes("hey go park") || transcript.includes("hê gopark")) {
+        r.stop();
+        setVoiceState("prompted");
+        voiceStateRef.current = "prompted";
+        speakText("Xin chào! Bạn muốn hỏi gì?", () => {
+          if (voiceModeRef.current) startQuestionListener();
+        });
+      }
+    };
+    r.onend = () => {
+      if (voiceModeRef.current && voiceStateRef.current === "wake-listening") {
+        try { r.start(); } catch {}
+      }
+    };
+    r.start();
+    wakeRecognitionRef.current = r;
+    setVoiceState("wake-listening");
+  }, []);
+
+  const startQuestionListener = useCallback(() => {
+    const win: any = typeof window !== "undefined" ? window : {};
+    const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
+    if (!SR) return;
+    const r = new SR();
+    r.lang = "vi-VN"; r.interimResults = false; r.continuous = false;
+    setVoiceState("question-listening");
+    r.onresult = async (ev: any) => {
+      const question = Array.from(ev.results).map((x: any) => x[0].transcript).join("").trim();
+      if (question) {
+        setVoiceState("speaking");
+        await sendMessageVoice(question);
+      }
+    };
+    r.onend = () => {
+      if (voiceModeRef.current && voiceStateRef.current === "question-listening") {
+        setVoiceState("wake-listening");
+        startWakeListener();
+      }
+    };
+    r.start();
+  }, [startWakeListener]);
+
+  // Bật/tắt voice mode
+  useEffect(() => {
+    if (voiceMode) {
+      setOpen(true);
+      startWakeListener();
+    } else {
+      window.speechSynthesis?.cancel();
+      try { wakeRecognitionRef.current?.stop(); } catch {}
+      try { recognitionRef.current?.stop(); } catch {}
+      setVoiceState("idle");
+    }
+  }, [voiceMode, startWakeListener]);
 
   const checkStatus = useCallback(async () => {
     try {
@@ -133,6 +226,47 @@ export default function UserChatbot() {
     } finally { setLoading(false); }
   }
 
+  // Gửi tin nhắn từ voice và đọc kết quả
+  async function sendMessageVoice(content: string) {
+    if (!content || loading) return;
+    const userMsg: Message = { role: "user", content };
+    const newMessages = [...messagesRef.current, userMsg];
+    setMessages(newMessages);
+    messagesRef.current = newMessages;
+    setLoading(true);
+    try {
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+      const resp = await fetch(API_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ messages: messagesRef.current.filter(m => m.role === "user") }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const response = await resp.json();
+      const text2 = response?.data?.text || response?.text || response?.message || "Không có phản hồi";
+      const assistantMsg: Message = { role: "assistant", content: text2 };
+      setMessages([...messagesRef.current, assistantMsg]);
+      messagesRef.current = [...messagesRef.current, assistantMsg];
+      setLoading(false);
+      setVoiceState("speaking");
+      speakText(text2, () => {
+        if (voiceModeRef.current) {
+          setVoiceState("wake-listening");
+          startWakeListener();
+        } else {
+          setVoiceState("idle");
+        }
+      });
+    } catch {
+      const errMsg: Message = { role: "assistant", content: "❌ Lỗi kết nối. Vui lòng thử lại." };
+      setMessages([...messagesRef.current, errMsg]);
+      messagesRef.current = [...messagesRef.current, errMsg];
+      setLoading(false);
+      if (voiceModeRef.current) { setVoiceState("wake-listening"); startWakeListener(); }
+    }
+  }
+
   function clearHistory() {
     setMessages([WELCOME_MSG]);
     if (typeof window !== "undefined") localStorage.removeItem("gopark_user_chat");
@@ -144,6 +278,14 @@ export default function UserChatbot() {
 
   const statusDot: Record<Status, string> = { connected: "#22c55e", disconnected: "#ef4444", unknown: "#f59e0b" };
   const statusLabel: Record<Status, string> = { connected: "Đã kết nối", disconnected: "Mất kết nối", unknown: "Đang kiểm tra" };
+
+  const voiceStateLabel: Record<VoiceState, string> = {
+    idle: "",
+    "wake-listening": "🎙️ Đang chờ \"Hey GoPark\"...",
+    prompted: "🤖 Bạn muốn hỏi gì?",
+    "question-listening": "👂 Đang nghe câu hỏi...",
+    speaking: "🔊 Đang trả lời...",
+  };
 
   return (
     <>
@@ -213,6 +355,23 @@ export default function UserChatbot() {
         .uc-fab:hover { transform:scale(1.08); }
         .uc-fab.hidden { opacity:0; visibility:hidden; transform:scale(0.8); pointer-events:none; }
         .uc-badge { position:absolute; top:-3px; right:-3px; width:16px; height:16px; border-radius:50%; background:#ef4444; border:2px solid #070f1c; font-size:9px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
+        /* Voice toggle */
+        .uc-voice-row { display:flex; align-items:center; justify-content:space-between; margin-top:8px; padding:6px 10px; background:rgba(34,197,94,0.06); border-radius:10px; border:1px solid rgba(34,197,94,0.12); }
+        .uc-voice-label { font-size:11px; color:#86efac; display:flex; align-items:center; gap:5px; }
+        .uc-toggle { position:relative; width:38px; height:20px; cursor:pointer; }
+        .uc-toggle input { opacity:0; width:0; height:0; }
+        .uc-toggle-slider { position:absolute; inset:0; background:#1a3a28; border-radius:20px; transition:.25s; border:1px solid rgba(34,197,94,.2); }
+        .uc-toggle-slider:before { content:""; position:absolute; width:14px; height:14px; left:2px; top:2px; background:#4a7a5a; border-radius:50%; transition:.25s; }
+        .uc-toggle input:checked + .uc-toggle-slider { background:#15803d; border-color:#22c55e; }
+        .uc-toggle input:checked + .uc-toggle-slider:before { transform:translateX(18px); background:#fff; }
+        .uc-voice-status { font-size:10px; color:#22c55e; text-align:center; padding:4px 0 2px; min-height:18px; }
+        @keyframes ucWavePulse { 0%,100%{transform:scaleY(0.4);} 50%{transform:scaleY(1);} }
+        .uc-wave { display:inline-flex; align-items:center; gap:2px; height:14px; }
+        .uc-wave span { display:inline-block; width:3px; background:#22c55e; border-radius:2px; animation:ucWavePulse 0.8s infinite; }
+        .uc-wave span:nth-child(2){animation-delay:.15s;height:10px;}
+        .uc-wave span:nth-child(3){animation-delay:.3s;height:14px;}
+        .uc-wave span:nth-child(4){animation-delay:.15s;height:10px;}
+        .uc-wave span:nth-child(5){animation-delay:0s;height:6px;}
       `}</style>
 
       <div className="uc">
@@ -252,6 +411,30 @@ export default function UserChatbot() {
                   </button>
                 </div>
               </div>
+              {/* Voice AI toggle */}
+              <div className="uc-voice-row">
+                <span className="uc-voice-label">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+                  </svg>
+                  Chế độ giọng nói AI
+                </span>
+                <label className="uc-toggle">
+                  <input type="checkbox" checked={voiceMode} onChange={e => setVoiceMode(e.target.checked)} />
+                  <span className="uc-toggle-slider" />
+                </label>
+              </div>
+              {voiceMode && (
+                <div className="uc-voice-status">
+                  {(voiceState === "wake-listening" || voiceState === "question-listening") && (
+                    <span className="uc-wave">
+                      <span style={{height:6}} /><span /><span /><span /><span style={{height:6}} />
+                    </span>
+                  )}{" "}
+                  {voiceStateLabel[voiceState]}
+                </div>
+              )}
             </div>
 
             {/* Messages */}
