@@ -10,30 +10,62 @@ type Message = {
   data?: any;
 };
 type Status = "unknown" | "connected" | "disconnected";
+type VoiceState = "idle" | "wake-listening" | "prompted" | "question-listening" | "speaking";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_CHATBOT_API ||
-  `${API_BASE_URL}/chatbot/chat`;
-const STATUS_URL =
-  process.env.NEXT_PUBLIC_CHATBOT_STATUS ||
-  `${API_BASE_URL}/chatbot/status`;
+const API_URL = process.env.NEXT_PUBLIC_CHATBOT_API || `${API_BASE_URL}/chatbot/chat`;
+const STATUS_URL = process.env.NEXT_PUBLIC_CHATBOT_STATUS || `${API_BASE_URL}/chatbot/status`;
 
 const QUICK_CHIPS = [
-  "🔍 Tìm bãi gần tôi",
-  "💰 Bãi giá rẻ nhất",
-  "⭐ Bãi phù hợp nhất",
-  "📅 Đặt bãi",
-  "📋 Lịch sử đặt của tôi",
-  "💳 Số dư ví GoPark",
-  "🚗 Xe đã đăng ký",
-  "❓ Hướng dẫn thanh toán",
+  "🔍 Tìm bãi gần tôi", "💰 Bãi giá rẻ nhất", "⭐ Bãi phù hợp nhất",
+  "📅 Đặt bãi", "📋 Lịch sử đặt của tôi", "💳 Số dư ví GoPark",
+  "🚗 Xe đã đăng ký", "❓ Hướng dẫn thanh toán",
 ];
 
 const WELCOME_MSG: Message = {
   role: "assistant",
-  content:
-    "Xin chào! Tôi là trợ lý GoPark dành cho bạn.\n\nTôi có thể giúp:\n🔹 Tìm và đặt bãi đỗ xe\n🔹 Xem lịch sử đặt chỗ\n🔹 Kiểm tra số dư ví\n🔹 Xem danh sách xe đã đăng ký\n\nBạn cần gì hôm nay?",
+  content: "Xin chào! Tôi là trợ lý GoPark dành cho bạn.\n\nTôi có thể giúp:\n🔹 Tìm và đặt bãi đỗ xe\n🔹 Xem lịch sử đặt chỗ\n🔹 Kiểm tra số dư ví\n🔹 Xem danh sách xe đã đăng ký\n\nBạn cần gì hôm nay?",
 };
+
+function speakText(text: string, onEnd?: () => void) {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+
+  // Convert số tiền sang chữ tiếng Việt để đọc tự nhiên
+  const convertMoney = (t: string) =>
+    t.replace(/(\d[\d,.]*)đ/g, (_, num) => {
+      const n = parseInt(num.replace(/[,.]/g, ""), 10);
+      if (isNaN(n)) return num + " đồng";
+      if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(".0","") + " tỷ đồng";
+      if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(".0","") + " triệu đồng";
+      if (n >= 1_000) return (n / 1_000).toFixed(0) + " nghìn đồng";
+      return n + " đồng";
+    });
+
+  const clean = convertMoney(text)
+    .replace(/[🔹🔸💰⭐📅📋💳🚗❓🔍✅❌⚠️💡📊📈🏆🎉👤🏢\*#\*\*]/gu, "")
+    .replace(/\*\*/g, "")
+    .trim();
+
+  const utt = new SpeechSynthesisUtterance(clean);
+  utt.lang = "vi-VN"; utt.rate = 1.05; utt.pitch = 1;
+  const voices = window.speechSynthesis.getVoices();
+  const googleVi = voices.find(v => v.lang === "vi-VN" && v.name.toLowerCase().includes("google")) || voices.find(v => v.lang === "vi-VN");
+  if (googleVi) utt.voice = googleVi;
+  if (onEnd) utt.onend = onEnd;
+  window.speechSynthesis.speak(utt);
+}
+
+// Lấy GPS của user
+function getUserLocation(): Promise<{ lat: number; lng: number } | null> {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve(null);
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve(null),
+      { timeout: 4000 }
+    );
+  });
+}
 
 export default function UserChatbot() {
   const [open, setOpen] = useState(false);
@@ -49,9 +81,28 @@ export default function UserChatbot() {
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState<Status>("unknown");
   const [hasUnread, setHasUnread] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
+  const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+  const [userVehicles, setUserVehicles] = useState<any[]>([]);
+
+  // Draggable / resizable state
+  const [panelPos, setPanelPos] = useState<{ right: number; bottom: number }>({ right: 24, bottom: 24 });
+  const [panelSize, setPanelSize] = useState<{ width: number; height: number }>({ width: 420, height: 600 });
+  const draggingRef = useRef(false);
+  const dragStartRef = useRef({ mouseX: 0, mouseY: 0, right: 24, bottom: 24 });
+  const resizingRef = useRef(false);
+  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 420, height: 600 });
+  const panelRef = useRef<HTMLDivElement>(null);
+
   const recognitionRef = useRef<any>(null);
+  const wakeRecognitionRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>(messages);
+  const voiceModeRef = useRef(false);
+  const voiceStateRef = useRef<VoiceState>("idle");
+
+  useEffect(() => { voiceModeRef.current = voiceMode; }, [voiceMode]);
+  useEffect(() => { voiceStateRef.current = voiceState; }, [voiceState]);
 
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("gopark_user_chat", JSON.stringify(messages));
@@ -62,6 +113,42 @@ export default function UserChatbot() {
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { if (open) setHasUnread(false); }, [open]);
 
+  // Drag handlers
+  const onDragMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button, input, textarea, label")) return;
+    draggingRef.current = true;
+    dragStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, right: panelPos.right, bottom: panelPos.bottom };
+    e.preventDefault();
+  };
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (draggingRef.current) {
+        const dx = e.clientX - dragStartRef.current.mouseX;
+        const dy = e.clientY - dragStartRef.current.mouseY;
+        setPanelPos({ right: Math.max(0, dragStartRef.current.right - dx), bottom: Math.max(0, dragStartRef.current.bottom - dy) });
+      }
+      if (resizingRef.current) {
+        const dx = e.clientX - resizeStartRef.current.mouseX;
+        const dy = e.clientY - resizeStartRef.current.mouseY;
+        setPanelSize({
+          width: Math.max(320, Math.min(700, resizeStartRef.current.width - dx)),
+          height: Math.max(400, Math.min(900, resizeStartRef.current.height - dy)),
+        });
+      }
+    };
+    const onUp = () => { draggingRef.current = false; resizingRef.current = false; };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, []);
+
+  const onResizeMouseDown = (e: React.MouseEvent) => {
+    resizingRef.current = true;
+    resizeStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, width: panelSize.width, height: panelSize.height };
+    e.preventDefault(); e.stopPropagation();
+  };
+
+  // Mic input setup
   useEffect(() => {
     const win: any = typeof window !== "undefined" ? window : {};
     const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
@@ -71,8 +158,84 @@ export default function UserChatbot() {
     r.onresult = (ev: any) => setInput(Array.from(ev.results).map((x: any) => x[0].transcript).join(""));
     r.onstart = () => setListening(true);
     r.onend = () => setListening(false);
+    r.onerror = () => setListening(false);
     recognitionRef.current = r;
   }, []);
+
+  // Wake word listener
+  const startWakeListener = useCallback(() => {
+    const win: any = typeof window !== "undefined" ? window : {};
+    const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
+    if (!SR) return;
+    // Dừng instance cũ nếu có
+    try { wakeRecognitionRef.current?.stop(); } catch {}
+    const r = new SR();
+    r.lang = "vi-VN"; r.interimResults = true; r.continuous = true;
+    r.onresult = (ev: any) => {
+      const transcript = Array.from(ev.results).map((x: any) => x[0].transcript).join(" ").toLowerCase();
+      if (
+        transcript.includes("hey gopark") || transcript.includes("hey go park") ||
+        transcript.includes("hê gopark") || transcript.includes("hei gopark") ||
+        transcript.includes("này gopark") || transcript.includes("ê gopark")
+      ) {
+        r.stop();
+        setVoiceState("prompted");
+        voiceStateRef.current = "prompted";
+        speakText("Xin chào! Bạn muốn hỏi gì?", () => {
+          if (voiceModeRef.current) startQuestionListener();
+        });
+      }
+    };
+    r.onend = () => {
+      if (voiceModeRef.current && voiceStateRef.current === "wake-listening") {
+        setTimeout(() => { try { r.start(); } catch {} }, 300);
+      }
+    };
+    r.onerror = (e: any) => {
+      if (e.error === "no-speech" || e.error === "aborted") return;
+      if (voiceModeRef.current && voiceStateRef.current === "wake-listening") {
+        setTimeout(() => startWakeListener(), 1000);
+      }
+    };
+    try { r.start(); } catch {}
+    wakeRecognitionRef.current = r;
+    setVoiceState("wake-listening");
+  }, []);
+
+  const startQuestionListener = useCallback(() => {
+    const win: any = typeof window !== "undefined" ? window : {};
+    const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
+    if (!SR) return;
+    const r = new SR();
+    r.lang = "vi-VN"; r.interimResults = false; r.continuous = false;
+    setVoiceState("question-listening");
+    r.onresult = async (ev: any) => {
+      const question = Array.from(ev.results).map((x: any) => x[0].transcript).join("").trim();
+      if (question) { setVoiceState("speaking"); await sendMessageVoice(question); }
+    };
+    r.onend = () => {
+      if (voiceModeRef.current && voiceStateRef.current === "question-listening") {
+        setVoiceState("wake-listening");
+        startWakeListener();
+      }
+    };
+    r.onerror = () => {
+      if (voiceModeRef.current) { setVoiceState("wake-listening"); startWakeListener(); }
+    };
+    try { r.start(); } catch {}
+  }, [startWakeListener]);
+
+  useEffect(() => {
+    if (voiceMode) {
+      setOpen(true);
+      startWakeListener();
+    } else {
+      window.speechSynthesis?.cancel();
+      try { wakeRecognitionRef.current?.stop(); } catch {}
+      try { recognitionRef.current?.stop(); } catch {}
+      setVoiceState("idle");
+    }
+  }, [voiceMode, startWakeListener]);
 
   const checkStatus = useCallback(async () => {
     try {
@@ -89,61 +252,231 @@ export default function UserChatbot() {
     return () => clearInterval(t);
   }, [checkStatus]);
 
+  // Fetch danh sách xe của user
+  useEffect(() => {
+    if (!accessToken) return;
+    fetch(`${API_BASE_URL}/chatbot/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+      body: JSON.stringify({ messages: [{ role: "user", content: "xe cua toi" }] }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        // Parse danh sách xe từ text response
+        const text: string = data?.data?.text || "";
+        const lines = text.split("\n").filter(l => /^\d+\./.test(l.trim()));
+        const vehicles = lines.map((l, i) => {
+          const match = l.match(/\d+\.\s*(.+?)\s*\((.+?)\)/);
+          return match ? { label: `🚗 Xe ${i+1}: ${match[1]}`, msg: `xe ${i+1}` } : null;
+        }).filter(Boolean);
+        setUserVehicles(vehicles as any[]);
+      })
+      .catch(() => {});
+  }, [accessToken]);
+
   async function sendMessage(text?: string) {
     const content = (text ?? input).trim();
     if (!content || loading) return;
     const userMsg: Message = { role: "user", content };
     const newMessages = [...messagesRef.current, userMsg];
-    setMessages(newMessages);
-    messagesRef.current = newMessages;
-    setInput("");
+    setMessages(newMessages); messagesRef.current = newMessages;
+    setInput(""); setLoading(true);
+    try {
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+      // Lấy GPS nếu câu hỏi liên quan đến gần tôi
+      let context: any = {};
+      if (/gần|nearby|gan/i.test(content)) {
+        const loc = await getUserLocation();
+        if (loc) context = { userLat: loc.lat, userLng: loc.lng };
+      }
+      const resp = await fetch(API_URL, {
+        method: "POST", headers,
+        body: JSON.stringify({ messages: messagesRef.current.filter(m => m.role === "user"), context }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const response = await resp.json();
+      if (response?.data?.action === "list_parking" && response?.data?.lots) {
+        const msg: Message = {
+          role: "assistant", type: "parking-list",
+          content: response?.data?.text || response?.text || "Tìm thấy các bãi sau:",
+          data: { lots: response.data.lots, criteria: response.data.criteria },
+        };
+        setMessages([...messagesRef.current, msg]); messagesRef.current = [...messagesRef.current, msg];
+        setLoading(false); return;
+      }
+      // Xử lý redirect - check cả data.action và action (BE có thể trả ở 2 chỗ)
+      const redirectAction = response?.data?.action === "redirect" ? response.data : (response?.action === "redirect" ? response : null);
+      if (redirectAction) {
+        const redirectUrl = redirectAction.redirectUrl || redirectAction.data?.url;
+        const redirectMsg = redirectAction.text || redirectAction.message || "🔄 Đang chuyển sang trang đặt chỗ...";
+        const msg: Message = { role: "assistant", content: redirectMsg };
+        setMessages([...messagesRef.current, msg]); messagesRef.current = [...messagesRef.current, msg];
+        if (voiceModeRef.current) speakText(redirectMsg);
+        setTimeout(() => { if (redirectUrl) window.location.href = redirectUrl; }, 1800);
+        setLoading(false); return;
+      }
+      const text2 = response?.data?.text || response?.text || response?.message || "Không có phản hồi";
+      const assistantMsg: Message = { role: "assistant", content: text2 };
+      setMessages([...messagesRef.current, assistantMsg]); messagesRef.current = [...messagesRef.current, assistantMsg];
+      // Nếu voice mode đang bật → đọc câu trả lời
+      if (voiceModeRef.current) {
+        setVoiceState("speaking");
+        speakText(text2, () => {
+          if (voiceModeRef.current) { setVoiceState("wake-listening"); startWakeListener(); }
+          else setVoiceState("idle");
+        });
+      }
+    } catch {
+      const errMsg: Message = { role: "assistant", content: "❌ Lỗi kết nối. Vui lòng thử lại." };
+      setMessages([...messagesRef.current, errMsg]); messagesRef.current = [...messagesRef.current, errMsg];
+    } finally { setLoading(false); }
+  }
+
+  async function sendMessageVoice(content: string) {
+    if (!content || loading) return;
+    const userMsg: Message = { role: "user", content };
+    const newMessages = [...messagesRef.current, userMsg];
+    setMessages(newMessages); messagesRef.current = newMessages;
     setLoading(true);
     try {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
       const resp = await fetch(API_URL, {
-        method: "POST",
-        headers,
+        method: "POST", headers,
         body: JSON.stringify({ messages: messagesRef.current.filter(m => m.role === "user") }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const response = await resp.json();
-
-      if (response?.data?.action === "list_parking" && response?.data?.lots) {
-        const msg: Message = { role: "assistant", type: "parking-list", content: response?.text || "Tìm thấy các bãi sau:", data: { lots: response.data.lots } };
-        setMessages([...messagesRef.current, msg]);
-        messagesRef.current = [...messagesRef.current, msg];
-        setLoading(false); return;
-      }
-      if (response?.action === "redirect" && response?.redirectUrl) {
-        const msg: Message = { role: "assistant", content: response.message || "🔄 Đang chuyển sang trang đặt chỗ..." };
-        setMessages([...messagesRef.current, msg]);
-        messagesRef.current = [...messagesRef.current, msg];
-        setTimeout(() => { window.location.href = response.redirectUrl; }, 1500);
-        setLoading(false); return;
-      }
       const text2 = response?.data?.text || response?.text || response?.message || "Không có phản hồi";
       const assistantMsg: Message = { role: "assistant", content: text2 };
-      setMessages([...messagesRef.current, assistantMsg]);
-      messagesRef.current = [...messagesRef.current, assistantMsg];
+      setMessages([...messagesRef.current, assistantMsg]); messagesRef.current = [...messagesRef.current, assistantMsg];
+      setLoading(false); setVoiceState("speaking");
+      speakText(text2, () => {
+        if (voiceModeRef.current) { setVoiceState("wake-listening"); startWakeListener(); }
+        else setVoiceState("idle");
+      });
     } catch {
       const errMsg: Message = { role: "assistant", content: "❌ Lỗi kết nối. Vui lòng thử lại." };
-      setMessages([...messagesRef.current, errMsg]);
-      messagesRef.current = [...messagesRef.current, errMsg];
-    } finally { setLoading(false); }
+      setMessages([...messagesRef.current, errMsg]); messagesRef.current = [...messagesRef.current, errMsg];
+      setLoading(false);
+      if (voiceModeRef.current) { setVoiceState("wake-listening"); startWakeListener(); }
+    }
   }
 
   function clearHistory() {
     setMessages([WELCOME_MSG]);
     if (typeof window !== "undefined") localStorage.removeItem("gopark_user_chat");
   }
-
   function removeMessage(index: number) {
     setMessages(prev => { const u = prev.filter((_, i) => i !== index); messagesRef.current = u; return u; });
   }
 
   const statusDot: Record<Status, string> = { connected: "#22c55e", disconnected: "#ef4444", unknown: "#f59e0b" };
   const statusLabel: Record<Status, string> = { connected: "Đã kết nối", disconnected: "Mất kết nối", unknown: "Đang kiểm tra" };
+  const voiceStateLabel: Record<VoiceState, string> = {
+    idle: "", "wake-listening": "🎙️ Đang chờ \"Hey GoPark\"...",
+    prompted: "🤖 Bạn muốn hỏi gì?", "question-listening": "👂 Đang nghe câu hỏi...", speaking: "🔊 Đang trả lời...",
+  };
+
+  // Render parking list theo criteria
+  function renderParkingList(m: Message, i: number) {
+    const lots = m.data?.lots || [];
+    const criteria = m.data?.criteria;
+    if (!lots.length) return null;
+
+    const isBest = criteria === "best";
+    const isNearest = criteria === "nearest";
+    const isCheapest = criteria === "price_cheapest";
+
+    const criteriaLabel = isBest ? "⭐ Phù hợp nhất" : isNearest ? "📍 Gần nhất" : isCheapest ? "💰 Giá rẻ nhất" : "🔍 Kết quả tìm kiếm";
+    const criteriaDesc = isBest
+      ? "Điểm tổng hợp: đánh giá (40%) + chỗ trống (30%) + giá rẻ (30%)"
+      : isNearest ? "Sắp xếp theo khoảng cách từ vị trí của bạn"
+      : isCheapest ? "Sắp xếp theo giá/giờ tăng dần, ưu tiên còn chỗ"
+      : "Danh sách bãi đỗ xe";
+
+    const primary = lots[0];
+    const others = isBest ? [] : lots.slice(1); // best chỉ hiện 1 card, không có bảng
+
+    return (
+      <div className="uc-parking-list">
+        {/* Header criteria */}
+        <div className="uc-criteria-header">
+          <span className="uc-criteria-label">{criteriaLabel}</span>
+          <span className="uc-criteria-desc">{criteriaDesc}</span>
+          <button className="uc-parking-card-close" onClick={() => removeMessage(i)}>✕</button>
+        </div>
+
+        {/* Primary card */}
+        <div className="uc-parking-card">
+          <div className="uc-parking-card-row" style={{ alignItems: "flex-start" }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, color: "#ecfccb", fontSize: 14 }}>{primary.name}</div>
+              <div className="uc-parking-card-meta">{primary.address}</div>
+            </div>
+            {primary.avgRating > 0 && (
+              <div style={{ background: "rgba(34,197,94,0.15)", borderRadius: 8, padding: "3px 8px", fontSize: 12, color: "#86efac", flexShrink: 0 }}>
+                ⭐ {Number(primary.avgRating).toFixed(1)}
+              </div>
+            )}
+          </div>
+          <div className="uc-parking-card-row" style={{ marginTop: 8 }}>
+            <div className="uc-parking-card-meta" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <span>💰 {(primary.hourly_rate || 20000).toLocaleString("vi-VN")}đ/giờ</span>
+              <span>🅿️ {primary.available_slots ?? "?"}/{primary.total_slots ?? "?"} chỗ</span>
+              {primary.distance_km != null && <span>📍 {primary.distance_km} km</span>}
+            </div>
+            <div className="uc-parking-card-actions">
+              <button className="uc-btn-detail" onClick={() => (window.location.href = `/users/detailParking/${primary.id}`)}>Chi tiết</button>
+              <button className="uc-btn-book" onClick={() => (window.location.href = `/users/myBooking/${primary.id}`)}>Đặt ngay</button>
+            </div>
+          </div>
+          {isBest && (
+            <div style={{ marginTop: 8, fontSize: 11, color: "#4ade80", background: "rgba(34,197,94,0.08)", borderRadius: 6, padding: "4px 8px" }}>
+              💡 Được chọn dựa trên điểm tổng hợp cao nhất trong tất cả bãi đang hoạt động
+            </div>
+          )}
+        </div>
+
+        {/* Table các bãi còn lại */}
+        {others.length > 0 && (
+          <div className="uc-parking-secondary">
+            <div className="uc-parking-secondary-title">Các bãi khác ({others.length})</div>
+            <table className="uc-parking-table">
+              <thead>
+                <tr>
+                  <th>Tên bãi</th>
+                  <th>💰/h</th>
+                  <th>🅿️</th>
+                  {others[0]?.distance_km != null && <th>📍 km</th>}
+                  <th>⭐</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {others.map((lot: any) => (
+                  <tr key={lot.id}>
+                    <td style={{ fontWeight: 500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      {lot.name}
+                    </td>
+                    <td style={{ whiteSpace: "nowrap" }}>{(lot.hourly_rate || 20000).toLocaleString("vi-VN")}đ</td>
+                    <td style={{ whiteSpace: "nowrap" }}>{lot.available_slots ?? "?"}/{lot.total_slots ?? "?"}</td>
+                    {lot.distance_km != null && <td style={{ whiteSpace:"nowrap" }}>{lot.distance_km}km</td>}
+                    <td style={{ whiteSpace: "nowrap" }}>{lot.avgRating > 0 ? Number(lot.avgRating).toFixed(1) : "-"}</td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      <button className="uc-btn-detail" onClick={() => (window.location.href = `/users/detailParking/${lot.id}`)}>Chi tiết</button>
+                      <button className="uc-btn-book" onClick={() => (window.location.href = `/users/myBooking/${lot.id}`)}>Đặt</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -152,18 +485,29 @@ export default function UserChatbot() {
         .uc * { box-sizing: border-box; font-family: 'Be Vietnam Pro', sans-serif; }
         @keyframes ucFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         .uc-panel {
-          position: fixed; right: 24px; bottom: 24px; width: 420px; height: min(600px, calc(100dvh - 48px));
-          background: #070f1c; border-radius: 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(34,197,94,0.13);
-          display: flex; flex-direction: column; overflow: hidden; z-index: 100010; animation: ucFadeIn 0.22s ease;
+          position: fixed; background: #070f1c; border-radius: 20px;
+          box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(34,197,94,0.13);
+          display: flex; flex-direction: column; overflow: hidden; z-index: 100010;
+          animation: ucFadeIn 0.22s ease; user-select: none;
         }
-        @media(max-width:480px){ .uc-panel{ right:0; left:0; bottom:0; width:100%; height:72dvh; border-radius:18px 18px 0 0; } }
-        .uc-hdr { padding: 12px 14px; background: linear-gradient(160deg,#022c1a 0%,#053d28 100%); border-bottom: 1px solid rgba(34,197,94,0.14); flex-shrink: 0; }
+        .uc-drag-handle { cursor: grab; }
+        .uc-drag-handle:active { cursor: grabbing; }
+        .uc-resize-handle {
+          position: absolute; top: 0; left: 0; width: 18px; height: 18px; cursor: nw-resize;
+          background: linear-gradient(135deg, rgba(34,197,94,0.3) 0%, transparent 60%);
+          border-radius: 20px 0 0 0;
+        }
+        .uc-resize-handle::after {
+          content: "⠿"; position: absolute; top: 2px; left: 3px; font-size: 10px; color: rgba(34,197,94,0.5);
+        }
+        @media(max-width:480px){ .uc-panel{ right:0!important; left:0!important; bottom:0!important; width:100%!important; height:72dvh!important; border-radius:18px 18px 0 0; } }
+        .uc-hdr { padding: 10px 14px 8px; background: linear-gradient(160deg,#022c1a 0%,#053d28 100%); border-bottom: 1px solid rgba(34,197,94,0.14); flex-shrink: 0; }
         .uc-hdr-row { display:flex; align-items:center; justify-content:space-between; }
         .uc-brand { display:flex; align-items:center; gap:9px; }
         .uc-av { width:34px; height:34px; border-radius:10px; background: linear-gradient(135deg,#15803d,#22c55e); display:flex; align-items:center; justify-content:center; }
         .uc-bname { font-size:14px; font-weight:700; color:#f0fdf4; }
         .uc-bsub { font-size:11px; color:#86efac; margin-top:1px; }
-        .uc-role-badge { background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); color:#86efac; font-size:10px; font-weight:600; padding:2px 8px; border-radius:999px; letter-spacing:.5px; }
+        .uc-role-badge { background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); color:#86efac; font-size:10px; font-weight:600; padding:2px 8px; border-radius:999px; }
         .uc-pill { display:flex; align-items:center; gap:5px; background:rgba(0,0,0,.3); border-radius:999px; padding:3px 8px; font-size:11px; color:#bbf7d0; border:1px solid rgba(34,197,94,.16); }
         .uc-dot { width:6px; height:6px; border-radius:50%; }
         .uc-acts { display:flex; align-items:center; gap:6px; }
@@ -174,7 +518,7 @@ export default function UserChatbot() {
         .uc-row { display:flex; gap:8px; align-items:flex-start; }
         .uc-row.u { flex-direction:row-reverse; }
         .uc-mav { width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg,#15803d,#22c55e); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-        .uc-bub { max-width:80%; padding:10px 14px; border-radius:16px; font-size:13.5px; line-height:1.5; word-break:break-word; white-space:pre-wrap; }
+        .uc-bub { max-width:85%; padding:10px 14px; border-radius:16px; font-size:13.5px; line-height:1.5; word-break:break-word; white-space:pre-wrap; }
         .uc-bub.b { background:rgba(255,255,255,.05); color:#dff5ea; border-bottom-left-radius:4px; border:1px solid rgba(34,197,94,.1); }
         .uc-bub.u { background:linear-gradient(135deg,#15803d,#22c55e); color:#fff; border-bottom-right-radius:4px; }
         .uc-tdots { display:flex; gap:4px; padding:6px 2px; }
@@ -186,40 +530,72 @@ export default function UserChatbot() {
         .uc-chips { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin; }
         .uc-chip { flex-shrink:0; background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.2); color:#86efac; padding:5px 12px; border-radius:20px; font-size:12px; cursor:pointer; white-space:nowrap; }
         .uc-chip:hover { background:rgba(34,197,94,.15); }
-        .uc-parking-list { margin:8px 0; background:rgba(255,255,255,0.03); border-radius:12px; overflow-x:auto; padding:12px; }
-        .uc-parking-card { background:rgba(16,46,28,0.85); border:1px solid rgba(34,197,94,0.24); border-radius:16px; padding:14px; display:grid; gap:12px; }
-        .uc-parking-card-header { font-weight:700; color:#d9ffde; margin-bottom:6px; }
-        .uc-parking-card-row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; }
+        /* Parking list */
+        .uc-parking-list { margin:4px 0; background:rgba(255,255,255,0.02); border-radius:12px; overflow:hidden; }
+        .uc-criteria-header { display:flex; align-items:center; gap:8px; padding:8px 12px; background:rgba(34,197,94,0.08); border-bottom:1px solid rgba(34,197,94,0.1); }
+        .uc-criteria-label { font-size:12px; font-weight:700; color:#86efac; flex-shrink:0; }
+        .uc-criteria-desc { font-size:10px; color:#3a6b4a; flex:1; }
+        .uc-parking-card { background:rgba(16,46,28,0.85); border:1px solid rgba(34,197,94,0.2); border-radius:0; padding:12px; }
+        .uc-parking-card-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; }
         .uc-parking-card-meta { color:#c7f9cc; font-size:12px; line-height:1.5; }
-        .uc-parking-card-actions { display:flex; gap:8px; flex-wrap:wrap; }
-        .uc-parking-card-close { border:none; background:transparent; color:#9ef08d; cursor:pointer; font-size:12px; padding:4px 6px; border-radius:8px; }
-        .uc-parking-secondary { margin-top:12px; border-top:1px solid rgba(34,197,94,0.12); padding-top:12px; }
-        .uc-parking-secondary-title { font-size:12px; color:#a7f3d0; font-weight:700; margin-bottom:8px; }
-        .uc-parking-table { width:100%; border-collapse:collapse; font-size:11px; }
-        .uc-parking-table th, .uc-parking-table td { padding:8px 6px; text-align:left; border-bottom:1px solid rgba(34,197,94,0.1); }
-        .uc-parking-table th { background:rgba(34,197,94,0.1); color:#86efac; font-weight:600; }
-        .uc-btn-detail, .uc-btn-book { background:rgba(34,197,94,0.15); border:1px solid rgba(34,197,94,0.3); color:#bbf7d0; padding:4px 8px; border-radius:6px; cursor:pointer; margin-right:4px; font-size:10px; }
-        .uc-inp-area { flex-shrink:0; padding:8px 12px 12px; border-top:1px solid rgba(34,197,94,.08); }
+        .uc-parking-card-actions { display:flex; gap:6px; flex-wrap:wrap; }
+        .uc-parking-card-close { border:none; background:transparent; color:#9ef08d; cursor:pointer; font-size:12px; padding:2px 6px; border-radius:6px; margin-left:auto; }
+        .uc-parking-secondary { padding:10px 12px; }
+        .uc-parking-secondary-title { font-size:11px; color:#a7f3d0; font-weight:700; margin-bottom:6px; }
+        .uc-parking-table { width:100%; border-collapse:collapse; font-size:11px; table-layout:fixed; }
+        .uc-parking-table th, .uc-parking-table td { padding:6px 5px; text-align:left; border-bottom:1px solid rgba(34,197,94,0.08); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+        .uc-parking-table th { background:rgba(34,197,94,0.08); color:#86efac; font-weight:600; white-space:nowrap; }
+        .uc-parking-table th:first-child { width:35%; }
+        .uc-parking-table td:last-child { white-space:nowrap; overflow:visible; }
+        .uc-btn-detail, .uc-btn-book { background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.25); color:#bbf7d0; padding:3px 6px; border-radius:5px; cursor:pointer; margin-right:2px; font-size:10px; white-space:nowrap; display:inline-block; }
+        /* Input */
+        .uc-inp-area { flex-shrink:0; padding:8px 12px 10px; border-top:1px solid rgba(34,197,94,.08); }
         .uc-inp-box { display:flex; gap:8px; align-items:flex-end; background:rgba(255,255,255,.04); border:1px solid rgba(34,197,94,.15); border-radius:16px; padding:6px 8px 6px 14px; }
         .uc-ta { flex:1; background:transparent; border:none; outline:none; color:#e2f5ea; font-size:14px; resize:none; max-height:90px; line-height:1.4; }
         .uc-ta::placeholder{ color:#3a5c47; }
-        .uc-mic { background:transparent; border:none; cursor:pointer; padding:4px; color:#3a6b4a; }
-        .uc-mic.on { color:#ef4444; animation:ucPulse 1s infinite; }
+        .uc-mic { background:transparent; border:none; cursor:pointer; padding:4px; color:#3a6b4a; border-radius:6px; transition:all 0.2s; }
+        .uc-mic:hover { color:#22c55e; background:rgba(34,197,94,0.1); }
+        .uc-mic.on { color:#ef4444; background:rgba(239,68,68,0.1); animation:ucPulse 1s infinite; }
         @keyframes ucPulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
         .uc-send { background:linear-gradient(135deg,#16a34a,#22c55e); border:none; width:34px; height:34px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
         .uc-send:disabled { opacity:0.4; cursor:not-allowed; }
-        .uc-hint { font-size:9px; color:#243d2c; text-align:center; margin-top:6px; }
-        .uc-fab { position:fixed; right:24px; bottom:24px; z-index:100011; width:54px; height:54px; border-radius:50%; background:linear-gradient(135deg,#16a34a,#22c55e); cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 5px 20px rgba(34,197,94,.4); transition:all 0.2s; }
+        .uc-hint { font-size:9px; color:#243d2c; text-align:center; margin-top:5px; }
+        /* FAB */
+        .uc-fab { position:fixed; right:24px; bottom:24px; z-index:100011; width:54px; height:54px; border-radius:50%; background:linear-gradient(135deg,#16a34a,#22c55e); cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 5px 20px rgba(34,197,94,.4); transition:all 0.2s; border:none; }
         .uc-fab:hover { transform:scale(1.08); }
         .uc-fab.hidden { opacity:0; visibility:hidden; transform:scale(0.8); pointer-events:none; }
         .uc-badge { position:absolute; top:-3px; right:-3px; width:16px; height:16px; border-radius:50%; background:#ef4444; border:2px solid #070f1c; font-size:9px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
+        /* Voice */
+        .uc-voice-row { display:flex; align-items:center; justify-content:space-between; margin-top:8px; padding:5px 10px; background:rgba(34,197,94,0.06); border-radius:8px; border:1px solid rgba(34,197,94,0.12); }
+        .uc-voice-label { font-size:11px; color:#86efac; display:flex; align-items:center; gap:5px; }
+        .uc-toggle { position:relative; width:38px; height:20px; cursor:pointer; }
+        .uc-toggle input { opacity:0; width:0; height:0; }
+        .uc-toggle-slider { position:absolute; inset:0; background:#1a3a28; border-radius:20px; transition:.25s; border:1px solid rgba(34,197,94,.2); }
+        .uc-toggle-slider:before { content:""; position:absolute; width:14px; height:14px; left:2px; top:2px; background:#4a7a5a; border-radius:50%; transition:.25s; }
+        .uc-toggle input:checked + .uc-toggle-slider { background:#15803d; border-color:#22c55e; }
+        .uc-toggle input:checked + .uc-toggle-slider:before { transform:translateX(18px); background:#fff; }
+        .uc-voice-status { font-size:10px; color:#22c55e; text-align:center; padding:3px 0 1px; min-height:16px; }
+        @keyframes ucWavePulse { 0%,100%{transform:scaleY(0.4);} 50%{transform:scaleY(1);} }
+        .uc-wave { display:inline-flex; align-items:center; gap:2px; height:14px; }
+        .uc-wave span { display:inline-block; width:3px; background:#22c55e; border-radius:2px; animation:ucWavePulse 0.8s infinite; }
+        .uc-wave span:nth-child(2){animation-delay:.15s;height:10px;}
+        .uc-wave span:nth-child(3){animation-delay:.3s;height:14px;}
+        .uc-wave span:nth-child(4){animation-delay:.15s;height:10px;}
+        .uc-wave span:nth-child(5){animation-delay:0s;height:6px;}
       `}</style>
 
       <div className="uc">
         {open && (
-          <div className="uc-panel">
-            {/* Header */}
-            <div className="uc-hdr">
+          <div
+            ref={panelRef}
+            className="uc-panel"
+            style={{ right: panelPos.right, bottom: panelPos.bottom, width: panelSize.width, height: panelSize.height }}
+          >
+            {/* Resize handle (góc trên trái) */}
+            <div className="uc-resize-handle" onMouseDown={onResizeMouseDown} title="Kéo để thay đổi kích thước" />
+
+            {/* Header - drag handle */}
+            <div className="uc-hdr uc-drag-handle" onMouseDown={onDragMouseDown}>
               <div className="uc-hdr-row">
                 <div className="uc-brand">
                   <div className="uc-av">
@@ -229,9 +605,7 @@ export default function UserChatbot() {
                   </div>
                   <div>
                     <div className="uc-bname">GoPark Assistant</div>
-                    <div className="uc-bsub">
-                      {user?.profile?.name ? `Xin chào, ${user.profile.name}` : "Hỗ trợ người dùng 24/7"}
-                    </div>
+                    <div className="uc-bsub">{user?.profile?.name ? `Xin chào, ${user.profile.name}` : "Hỗ trợ người dùng 24/7"}</div>
                   </div>
                 </div>
                 <div className="uc-acts">
@@ -252,6 +626,29 @@ export default function UserChatbot() {
                   </button>
                 </div>
               </div>
+              {/* Voice toggle */}
+              <div className="uc-voice-row">
+                <span className="uc-voice-label">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+                  </svg>
+                  Chế độ giọng nói AI
+                </span>
+                <label className="uc-toggle">
+                  <input type="checkbox" checked={voiceMode} onChange={e => setVoiceMode(e.target.checked)} />
+                  <span className="uc-toggle-slider" />
+                </label>
+              </div>
+              {voiceMode && (
+                <div className="uc-voice-status">
+                  {(voiceState === "wake-listening" || voiceState === "question-listening") && (
+                    <span className="uc-wave">
+                      <span style={{height:6}} /><span /><span /><span /><span style={{height:6}} />
+                    </span>
+                  )}{" "}{voiceStateLabel[voiceState]}
+                </div>
+              )}
             </div>
 
             {/* Messages */}
@@ -266,64 +663,9 @@ export default function UserChatbot() {
                     </div>
                   )}
                   <div className={`uc-bub${m.role === "user" ? " u" : " b"}`}>
-                    {m.type === "parking-list" ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                        <div>{m.content}</div>
-                        {m.data?.lots?.length > 0 && (() => {
-                          const primary = m.data.lots[0];
-                          const others = m.data.lots.slice(1);
-                          return (
-                            <div className="uc-parking-list">
-                              <div className="uc-parking-card">
-                                <div className="uc-parking-card-row" style={{ alignItems: "flex-start" }}>
-                                  <div>
-                                    <div className="uc-parking-card-header">Bãi phù hợp nhất</div>
-                                    <div className="uc-parking-card-meta">Ưu tiên dựa trên giá, chỗ trống và đánh giá.</div>
-                                  </div>
-                                  <button className="uc-parking-card-close" onClick={() => removeMessage(i)}>✕</button>
-                                </div>
-                                <div className="uc-parking-card-row">
-                                  <div>
-                                    <div style={{ fontWeight: 700, color: "#ecfccb" }}>{primary.name}</div>
-                                    <div className="uc-parking-card-meta">{primary.address}</div>
-                                    <div className="uc-parking-card-meta" style={{ marginTop: 8 }}>
-                                      Giá: {(primary.hourly_rate || 20000).toLocaleString("vi-VN")}đ/giờ ·{" "}
-                                      {primary.available_slots !== undefined ? `${primary.available_slots}/${primary.total_slots || "?"} chỗ trống` : "Còn chỗ"}
-                                    </div>
-                                  </div>
-                                  <div className="uc-parking-card-actions">
-                                    <button className="uc-btn-detail" onClick={() => (window.location.href = `/users/detailParking/${primary.id}`)}>Chi tiết</button>
-                                    <button className="uc-btn-book" onClick={() => (window.location.href = `/users/myBooking/${primary.id}`)}>Đặt ngay</button>
-                                  </div>
-                                </div>
-                              </div>
-                              {others.length > 0 && (
-                                <div className="uc-parking-secondary">
-                                  <div className="uc-parking-secondary-title">Các bãi khác</div>
-                                  <table className="uc-parking-table">
-                                    <thead><tr><th>Tên bãi</th><th>Địa chỉ</th><th>💰/h</th><th>🅿️</th><th></th></tr></thead>
-                                    <tbody>
-                                      {others.map((lot: any) => (
-                                        <tr key={lot.id}>
-                                          <td style={{ fontWeight: 500 }}>{lot.name}</td>
-                                          <td style={{ maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis" }}>{lot.address}</td>
-                                          <td>{(lot.hourly_rate || 20000).toLocaleString("vi-VN")}đ</td>
-                                          <td>{lot.available_slots !== undefined ? `${lot.available_slots}/${lot.total_slots || "?"}` : "✅"}</td>
-                                          <td>
-                                            <button className="uc-btn-detail" onClick={() => (window.location.href = `/users/detailParking/${lot.id}`)}>Chi tiết</button>
-                                            <button className="uc-btn-book" onClick={() => (window.location.href = `/users/myBooking/${lot.id}`)}>Đặt</button>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    ) : m.content}
+                    {m.type === "parking-list"
+                      ? <div>{m.content}{renderParkingList(m, i)}</div>
+                      : m.content}
                   </div>
                 </div>
               ))}
@@ -349,6 +691,12 @@ export default function UserChatbot() {
                 {QUICK_CHIPS.map(label => (
                   <button key={label} className="uc-chip" onClick={() => sendMessage(label)}>{label}</button>
                 ))}
+                {userVehicles.length > 0 && userVehicles.map((v: any) => (
+                  <button key={v.msg} className="uc-chip" style={{ borderColor: "rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.12)" }}
+                    onClick={() => sendMessage(`đặt bãi với ${v.msg}`)}>
+                    {v.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -357,12 +705,24 @@ export default function UserChatbot() {
               <div className="uc-inp-box">
                 <textarea
                   className="uc-ta" rows={1} value={input}
-                  placeholder="Hỏi về bãi đỗ, đặt chỗ, ví tiền..."
+                  placeholder={voiceMode ? "Voice mode bật – hoặc gõ câu hỏi..." : "Hỏi về bãi đỗ, đặt chỗ, ví tiền..."}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 />
-                <button className={`uc-mic${listening ? " on" : ""}`} onClick={() => { const r = recognitionRef.current; if (!r) return; listening ? r.stop() : r.start(); }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
+                <button
+                  className={`uc-mic${listening ? " on" : ""}`}
+                  title={listening ? "Đang nghe – nhấn để dừng" : "Nhấn để nói"}
+                  onClick={() => {
+                    const r = recognitionRef.current;
+                    if (!r) return;
+                    if (listening) { r.stop(); }
+                    else {
+                      try { r.start(); }
+                      catch { const win: any = window; const SR = win.SpeechRecognition || win.webkitSpeechRecognition; if (SR) { const nr = new SR(); nr.lang="vi-VN"; nr.interimResults=true; nr.onresult=(ev:any)=>setInput(Array.from(ev.results).map((x:any)=>x[0].transcript).join("")); nr.onstart=()=>setListening(true); nr.onend=()=>setListening(false); recognitionRef.current=nr; nr.start(); } }
+                    }
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill={listening ? "#ef4444" : "none"} stroke="currentColor" strokeWidth="1.9">
                     <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/>
                   </svg>
                 </button>
@@ -372,7 +732,7 @@ export default function UserChatbot() {
                   </svg>
                 </button>
               </div>
-              <div className="uc-hint">Enter gửi · Shift+Enter xuống dòng</div>
+              <div className="uc-hint">Enter gửi · Shift+Enter xuống dòng · 🎙️ mic để nói</div>
             </div>
           </div>
         )}
