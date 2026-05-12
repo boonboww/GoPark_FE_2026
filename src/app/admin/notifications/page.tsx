@@ -113,6 +113,7 @@ export default function NotificationsPage() {
     availableUsers,
     currentPage,
     pageSize,
+    totalNotifications,
     setCurrentPage,
   } = useNotificationStore();
 
@@ -134,10 +135,11 @@ export default function NotificationsPage() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    if (notifications.length === 0) {
-      fetchNotifications();
-      fetchUsers();
-    }
+    fetchNotifications();
+  }, [currentPage, pageSize]);
+
+  useEffect(() => {
+    fetchUsers();
   }, []);
 
   // Filter logic - derived state
@@ -170,11 +172,8 @@ export default function NotificationsPage() {
     return filtered;
   }, [searchTerm, filterType, filterTarget, filterStatus, notifications]);
 
-  const totalPages = Math.ceil(filteredNotifications.length / pageSize);
-  const paginatedNotifications = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredNotifications.slice(start, start + pageSize);
-  }, [filteredNotifications, currentPage, pageSize]);
+  // Server-side pagination: use notifications directly from store
+  const paginatedNotifications = notifications;
 
   const resetForm = () => {
     setFormData({
@@ -420,7 +419,7 @@ export default function NotificationsPage() {
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-5 bg-gradient-to-b from-primary to-primary/80 rounded-full" />
               <CardTitle className="text-base font-semibold text-foreground">
-                Thông báo đã gửi ({filteredNotifications.length})
+                Thông báo đã gửi ({totalNotifications})
               </CardTitle>
             </div>
             <Button 
@@ -606,7 +605,7 @@ export default function NotificationsPage() {
             </table>
           </div>
 
-          {filteredNotifications.length === 0 && (
+          {totalNotifications === 0 && (
             <div className="text-center py-16">
               <div className="w-16 h-16 bg-muted rounded-2xl mx-auto mb-4 flex items-center justify-center">
                 <Bell className="w-8 h-8 text-gray-300" />
@@ -626,8 +625,20 @@ export default function NotificationsPage() {
               </Button>
             </div>
           )}
-          {filteredNotifications.length > 0 && (
+          {totalNotifications > 0 && (
             <div className="px-5 py-4 border-t border-border flex items-center justify-between bg-card">
+              <div className="text-sm text-muted-foreground">
+                Hiển thị{" "}
+                <span className="font-medium text-foreground">
+                  {Math.min(totalNotifications, (currentPage - 1) * pageSize + 1)}
+                  -{Math.min(totalNotifications, currentPage * pageSize)}
+                </span>{" "}
+                trong{" "}
+                <span className="font-medium text-foreground">
+                  {totalNotifications}
+                </span>{" "}
+                thông báo
+              </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -640,14 +651,27 @@ export default function NotificationsPage() {
                 </Button>
                 
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                    .map((p, i, arr) => {
-                      const showEllipsis = i > 0 && p - arr[i-1] > 1;
-                      return (
-                        <div key={p} className="flex items-center gap-1">
-                          {showEllipsis && <span className="text-gray-400 px-1">...</span>}
+                  {(() => {
+                    const totalPages = Math.ceil(totalNotifications / pageSize);
+                    const pages = [];
+                    for (let i = 1; i <= totalPages; i++) {
+                      if (
+                        i === 1 ||
+                        i === totalPages ||
+                        (i >= currentPage - 1 && i <= currentPage + 1)
+                      ) {
+                        pages.push(i);
+                      } else if (i === currentPage - 2 || i === currentPage + 2) {
+                        pages.push("...");
+                      }
+                    }
+
+                    return pages
+                      .filter((p, idx, arr) => p !== "..." || arr[idx - 1] !== "...")
+                      .map((p, idx) =>
+                        typeof p === "number" ? (
                           <Button
+                            key={idx}
                             variant={currentPage === p ? "default" : "outline"}
                             size="sm"
                             onClick={() => setCurrentPage(p)}
@@ -655,16 +679,18 @@ export default function NotificationsPage() {
                           >
                             {p}
                           </Button>
-                        </div>
+                        ) : (
+                          <span key={idx} className="text-gray-400 px-1">...</span>
+                        )
                       );
-                    })}
+                  })()}
                 </div>
 
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(Math.min(Math.ceil(totalNotifications / pageSize), currentPage + 1))}
+                  disabled={currentPage >= Math.ceil(totalNotifications / pageSize)}
                   className="h-8 w-8 p-0"
                 >
                   <ChevronRight className="h-4 w-4" />

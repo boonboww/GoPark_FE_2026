@@ -75,7 +75,7 @@ export default function AdminDashboard() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalActivities, setTotalActivities] = useState(0);
 
   // Filter states
@@ -304,7 +304,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
             {/* Recent Activities */}
             <Card
               className="lg:col-span-2"
@@ -432,8 +432,9 @@ export default function AdminDashboard() {
                             },
                           };
 
+                          const statusKey = (activity.status || "success").toLowerCase();
                           const currentStatus =
-                            statusConfig[activity.status] ||
+                            (statusConfig as any)[statusKey] ||
                             statusConfig.success;
 
                           return (

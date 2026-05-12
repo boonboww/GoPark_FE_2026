@@ -279,10 +279,7 @@ export default function AdminSidebar({ className = "" }: AdminSidebarProps) {
                 <p className="font-semibold text-sm text-sidebar-foreground/90 truncate">{user?.profile?.name}</p>
                 <p className="text-[11px] text-sidebar-foreground/60 truncate">{user?.email}</p>
               </div>
-              <button className="relative p-1.5 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
-                <Bell className="w-4 h-4 text-sidebar-foreground/60" />
-                <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></div>
-              </button>
+             
             </div>
           </div>
         )}

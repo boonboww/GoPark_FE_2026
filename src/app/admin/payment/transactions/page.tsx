@@ -1,730 +1,299 @@
 "use client";
-
 import { useState, useEffect, useMemo } from "react";
-import {
-  Search,
-  RefreshCw,
-  Download,
-  Eye,
-  Clock,
-  X,
-  CreditCard,
-  TrendingUp,
-  TrendingDown,
-  ArrowUpDown,
-  Wallet,
-  Banknote,
-  Receipt,
-  Calendar,
-  MapPin,
-  User,
-  Hash,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  MoreVertical,
-  ArrowRightLeft,
-  DollarSign,
-} from "lucide-react";
+import { Search, RefreshCw, Eye, Clock, CheckCircle2, XCircle, ArrowRightLeft, Wallet, Banknote, CreditCard, Receipt, AlertCircle, Hash, Calendar, User, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  adminService,
-  Transaction,
-  TransactionType,
-  TransactionStatus,
-  PaymentMethod,
-} from "@/services/admin.service";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { adminService, Transaction } from "@/services/admin.service";
 import { useAdminStore } from "@/stores";
 import { AdminStatCard } from "@/components/admin/AdminStatCard";
 
-/** Bộ lọc */
-interface Filters {
-  search: string;
-  status: string;
-  type: string;
-  paymentMethod: string;
-  dateFrom: string;
-  dateTo: string;
-  sortBy: string;
-}
+interface Filters { search: string; status: string; type: string; dateFrom: string; dateTo: string; sortBy: string; }
 
-
-/** Cấu hình trạng thái giao dịch */
-const statusConfig: Record<TransactionStatus, { label: string; className: string; dot: string; icon: typeof CheckCircle2 }> = {
-  success: {
-    label: "Thành công",
-    className: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
-    dot: "bg-green-500",
-    icon: CheckCircle2,
-  },
-  pending: {
-    label: "Đang xử lý",
-    className: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800",
-    dot: "bg-yellow-500",
-    icon: Clock,
-  },
-  failed: {
-    label: "Thất bại",
-    className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
-    dot: "bg-red-500",
-    icon: XCircle,
-  },
-  refunded: {
-    label: "Đã hoàn tiền",
-    className: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
-    dot: "bg-blue-500",
-    icon: ArrowRightLeft,
-  },
+const statusConfig: Record<string, { label: string; className: string; dot: string; icon: any }> = {
+  COMPLETED: { label: "Hoàn thành", className: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400", dot: "bg-green-500", icon: CheckCircle2 },
+  PENDING: { label: "Đang xử lý", className: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400", dot: "bg-yellow-500", icon: Clock },
+  FAILED: { label: "Thất bại", className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-green-400", dot: "bg-red-500", icon: XCircle },
+  CANCELLED: { label: "Đã hủy", className: "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400", dot: "bg-gray-400", icon: XCircle },
+  SUCCESS: { label: "Thành công", className: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400", dot: "bg-green-500", icon: CheckCircle2 },
 };
 
-/** Cấu hình loại giao dịch */
-const typeConfig: Record<TransactionType, { label: string; color: string; bgColor: string; icon: typeof CreditCard }> = {
-  top_up: { label: "Nộp tiền vào ví", color: "text-green-600", bgColor: "bg-green-100", icon: Wallet },
-  withdrawal: { label: "Rút tiền từ ví", color: "text-emerald-600", bgColor: "bg-emerald-100", icon: Banknote },
-  booking_payment: { label: "Thanh toán đặt chỗ", color: "text-blue-600", bgColor: "bg-blue-100", icon: CreditCard },
-  subscription: { label: "Gói dịch vụ", color: "text-violet-600", bgColor: "bg-violet-100", icon: Receipt },
-  refund: { label: "Hoàn tiền", color: "text-orange-600", bgColor: "bg-orange-100", icon: ArrowRightLeft },
-  penalty: { label: "Phạt đỗ quá giờ", color: "text-red-600", bgColor: "bg-red-100", icon: AlertCircle },
+const typeConfig: Record<string, { label: string; color: string; bgColor: string; icon: any; isOutgoing: boolean }> = {
+  TOP_UP: { label: "Nạp tiền vào ví", color: "text-green-600", bgColor: "bg-green-100", icon: Wallet, isOutgoing: false },
+  WITHDRAW: { label: "Rút tiền từ ví", color: "text-orange-600", bgColor: "bg-orange-100", icon: Banknote, isOutgoing: true },
+  BOOKING_PAYMENT: { label: "Thanh toán đặt chỗ", color: "text-blue-600", bgColor: "bg-blue-100", icon: CreditCard, isOutgoing: true },
+  BOOKING_REFUND: { label: "Hoàn tiền đặt chỗ", color: "text-teal-600", bgColor: "bg-teal-100", icon: ArrowRightLeft, isOutgoing: false },
+  PENALTY: { label: "Phạt quá giờ", color: "text-red-600", bgColor: "bg-red-100", icon: AlertCircle, isOutgoing: true },
+  TRANSFER_IN: { label: "Chuyển tiền vào", color: "text-emerald-600", bgColor: "bg-emerald-100", icon: ArrowUpDown, isOutgoing: false },
+  TRANSFER_OUT: { label: "Chuyển tiền ra", color: "text-rose-600", bgColor: "bg-rose-100", icon: ArrowUpDown, isOutgoing: true },
+  EARN_PARKING_FEE: { label: "Tiền gửi xe", color: "text-emerald-600", bgColor: "bg-emerald-100", icon: Banknote, isOutgoing: false },
+  PAYMENT: { label: "Thanh toán", color: "text-blue-600", bgColor: "bg-blue-100", icon: CreditCard, isOutgoing: true },
 };
 
-/** Nhãn phương thức thanh toán */
-const paymentMethodConfig: Record<PaymentMethod, { label: string; color: string }> = {
-  momo: { label: "MoMo", color: "text-pink-600" },
-  vnpay: { label: "VNPay", color: "text-blue-600" },
-  zalopay: { label: "ZaloPay", color: "text-blue-500" },
-  bank_transfer: { label: "Chuyển khoản", color: "text-foreground/80" },
-  wallet: { label: "Ví GoPark", color: "text-teal-600" },
-  cash: { label: "Tiền mặt", color: "text-green-600" },
-  credit_card: { label: "Thẻ tín dụng", color: "text-indigo-600" },
-};
+const formatCurrency = (v: number | string) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(v));
+const formatCompact = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", notation: "compact", maximumFractionDigits: 1 }).format(v);
+const formatDateTime = (d: string) => new Date(d).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const timeAgo = (d: string) => { const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000); const h = Math.floor(m / 60); const days = Math.floor(h / 24); if (m < 1) return "Vừa xong"; if (m < 60) return `${m} phút trước`; if (h < 24) return `${h} giờ trước`; if (days < 7) return `${days} ngày trước`; return formatDateTime(d); };
 
-/** Nhãn vai trò */
-const roleLabels: Record<string, string> = { user: "Khách hàng", owner: "Chủ bãi" };
-
-// ─── Dữ liệu mẫu ────────────────────────────────────────────────────────────
-
-const mockTransactions: Transaction[] = [
-  {
-    _id: "txn1",
-    transactionCode: "GP-TXN-20260313-001",
-    user: { _id: "u1", userName: "Nguyễn Văn Anh", email: "nguyenvananh@gmail.com", role: "user" },
-    type: "booking_payment",
-    status: "success",
-    amount: 150000,
-    paymentMethod: "momo",
-    description: "Thanh toán đặt chỗ bãi đỗ xe Times City - Khu A, vị trí A01",
-    bookingId: "BK-20260313-001",
-    parkingLotName: "Bãi đỗ xe Times City",
-    parkingLotAddress: "458 Minh Khai, Hai Bà Trưng, Hà Nội",
-    createdAt: "2026-03-13T14:30:00Z",
-    completedAt: "2026-03-13T14:30:15Z",
-  },
-  {
-    _id: "txn2",
-    transactionCode: "GP-TXN-20260313-002",
-    user: { _id: "u2", userName: "Trần Thị Bình", email: "tranthibinh@gmail.com", role: "user" },
-    type: "booking_payment",
-    status: "success",
-    amount: 250000,
-    paymentMethod: "vnpay",
-    description: "Thanh toán đặt chỗ bãi đỗ xe Vincom Đồng Khởi - Tầng 2, vị trí B15",
-    bookingId: "BK-20260313-002",
-    parkingLotName: "Bãi đỗ xe Vincom Đồng Khởi",
-    parkingLotAddress: "72 Lê Thánh Tôn, Quận 1, TP.HCM",
-    createdAt: "2026-03-13T12:15:00Z",
-    completedAt: "2026-03-13T12:15:22Z",
-  },
-  {
-    _id: "txn3",
-    transactionCode: "GP-TXN-20260313-003",
-    user: { _id: "u3", userName: "Phạm Minh Châu", email: "phamminhchau@yahoo.com", role: "user" },
-    type: "refund",
-    status: "refunded",
-    amount: 120000,
-    paymentMethod: "momo",
-    description: "Hoàn tiền do bãi đỗ xe đóng cửa ngoài giờ hoạt động",
-    bookingId: "BK-20260310-045",
-    parkingLotName: "Bãi đỗ xe Quận 10",
-    parkingLotAddress: "200 CMT8, Quận 10, TP.HCM",
-    refundReason: "Bãi đỗ xe đóng cửa, khách đến nhưng không thể vào",
-    createdAt: "2026-03-13T10:00:00Z",
-    completedAt: "2026-03-13T10:05:00Z",
-  },
-  {
-    _id: "txn4",
-    transactionCode: "GP-TXN-20260312-015",
-    user: { _id: "u4", userName: "Lê Hoàng Dũng", email: "lehoangdung@outlook.com", role: "user" },
-    type: "booking_payment",
-    status: "failed",
-    amount: 300000,
-    paymentMethod: "credit_card",
-    description: "Thanh toán đặt chỗ bãi ParkSmart Quận 1",
-    bookingId: "BK-20260312-088",
-    parkingLotName: "ParkSmart Quận 1",
-    failedReason: "Thẻ tín dụng bị từ chối do không đủ hạn mức",
-    createdAt: "2026-03-12T18:45:00Z",
-  },
-  {
-    _id: "txn5",
-    transactionCode: "GP-TXN-20260312-012",
-    user: { _id: "o4", userName: "Phạm Đức Duy", email: "phamducduy@gmail.com", role: "owner" },
-    type: "withdrawal",
-    status: "success",
-    amount: 5000000,
-    paymentMethod: "bank_transfer",
-    description: "Rút tiền doanh thu từ hệ thống ParkSmart về tài khoản ngân hàng",
-    createdAt: "2026-03-12T16:30:00Z",
-    completedAt: "2026-03-12T16:35:00Z",
-  },
-  {
-    _id: "txn6",
-    transactionCode: "GP-TXN-20260312-010",
-    user: { _id: "o5", userName: "Hoàng Minh Tuấn", email: "hoangminhtuan@outlook.com", role: "owner" },
-    type: "subscription",
-    status: "success",
-    amount: 990000,
-    paymentMethod: "vnpay",
-    description: "Mua gói quảng cáo ưu tiên hiển thị - 1 tháng (04/2026)",
-    parkingLotName: "Bãi đỗ xe Bitexco",
-    createdAt: "2026-03-12T14:00:00Z",
-    completedAt: "2026-03-12T14:00:30Z",
-  },
-  {
-    _id: "txn7",
-    transactionCode: "GP-TXN-20260312-008",
-    user: { _id: "u5", userName: "Vũ Thị Thu Hảo", email: "vuthithuhao@gmail.com", role: "user" },
-    type: "penalty",
-    status: "pending",
-    amount: 50000,
-    paymentMethod: "momo",
-    description: "Phí phạt quá giờ đỗ xe tại Bãi đỗ xe Vạn Hạnh Mall",
-    parkingLotName: "Bãi đỗ xe Vạn Hạnh Mall",
-    parkingLotAddress: "11 Sư Vạn Hạnh, Q10, TP.HCM",
-    createdAt: "2026-03-12T09:20:00Z",
-  },
-  {
-    _id: "txn8",
-    transactionCode: "GP-TXN-20260311-022",
-    user: { _id: "u6", userName: "Đỗ Quang Khải", email: "doquangkhai@gmail.com", role: "user" },
-    type: "booking_payment",
-    status: "success",
-    amount: 350000,
-    paymentMethod: "zalopay",
-    description: "Thanh toán đặt chỗ bãi đỗ xe Bitexco - B1, vị trí B1-25",
-    bookingId: "BK-20260311-055",
-    parkingLotName: "Bãi đỗ xe Bitexco",
-    parkingLotAddress: "2 Hải Triều, Quận 1, TP.HCM",
-    createdAt: "2026-03-11T08:00:00Z",
-    completedAt: "2026-03-11T08:00:18Z",
-  },
-  {
-    _id: "txn9",
-    transactionCode: "GP-TXN-20260311-019",
-    user: { _id: "u1", userName: "Nguyễn Văn Anh", email: "nguyenvananh@gmail.com", role: "user" },
-    type: "booking_payment",
-    status: "success",
-    amount: 200000,
-    paymentMethod: "momo",
-    description: "Thanh toán đặt chỗ bãi Royal City - B2, vị trí B2-10",
-    bookingId: "BK-20260311-030",
-    parkingLotName: "Bãi đỗ xe Royal City",
-    parkingLotAddress: "72A Nguyễn Trãi, Thanh Xuân, Hà Nội",
-    createdAt: "2026-03-11T06:30:00Z",
-    completedAt: "2026-03-11T06:30:12Z",
-  },
-  {
-    _id: "txn10",
-    transactionCode: "GP-TXN-20260310-030",
-    user: { _id: "o2", userName: "Nguyễn Thị Hương", email: "nguyenthihuong@gmail.com", role: "owner" },
-    type: "withdrawal",
-    status: "success",
-    amount: 3200000,
-    paymentMethod: "bank_transfer",
-    description: "Rút tiền doanh thu tháng 2/2026 về tài khoản ngân hàng VCB",
-    createdAt: "2026-03-10T10:00:00Z",
-    completedAt: "2026-03-10T10:10:00Z",
-  },
-  {
-    _id: "txn11",
-    transactionCode: "GP-TXN-20260313-004",
-    user: { _id: "u1", userName: "Nguyễn Văn Anh", email: "nguyenvananh@gmail.com", role: "user" },
-    type: "top_up",
-    status: "success",
-    amount: 500000,
-    paymentMethod: "momo",
-    description: "Nạp tiền vào ví GoPark qua MoMo",
-    createdAt: "2026-03-13T09:00:00Z",
-    completedAt: "2026-03-13T09:00:05Z",
-  },
-  {
-    _id: "txn12",
-    transactionCode: "GP-TXN-20260312-020",
-    user: { _id: "u2", userName: "Trần Thị Bình", email: "tranthibinh@gmail.com", role: "user" },
-    type: "top_up",
-    status: "pending",
-    amount: 1000000,
-    paymentMethod: "bank_transfer",
-    description: "Nạp tiền vào ví GoPark qua chuyển khoản ngân hàng",
-    createdAt: "2026-03-12T11:00:00Z",
-  },
-];
-
-// ─── Hàm tiện ích ─────────────────────────────────────────────────────────────
-
-/** Định dạng ngày */
-const formatDate = (dateString: string) =>
-  new Date(dateString).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
-
-/** Định dạng ngày giờ đầy đủ */
-const formatDateTime = (dateString: string) =>
-  new Date(dateString).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" });
-
-/** Định dạng tiền tệ VND */
-const formatCurrency = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
-
-/** Định dạng tiền tệ rút gọn */
-const formatCompactCurrency = (amount: number) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", notation: "compact", maximumFractionDigits: 1 }).format(amount);
-
-/** Lấy chữ cái đầu cho avatar */
-const getInitials = (name: string) => {
-  const parts = name.split(" ");
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
-};
-
-/** Màu avatar */
-const avatarColors = [
-  "from-blue-500 to-indigo-600", "from-emerald-500 to-teal-600", "from-violet-500 to-purple-600",
-  "from-orange-500 to-amber-600", "from-pink-500 to-rose-600", "from-cyan-500 to-sky-600",
-];
-const getAvatarColor = (id: string) => avatarColors[id.charCodeAt(id.length - 1) % avatarColors.length];
-
-/** Thời gian tương đối */
-const timeAgo = (dateString: string) => {
-  const diffMs = new Date().getTime() - new Date(dateString).getTime();
-  const mins = Math.floor(diffMs / 60000);
-  const hrs = Math.floor(mins / 60);
-  const days = Math.floor(hrs / 24);
-  if (mins < 1) return "Vừa xong";
-  if (mins < 60) return `${mins} phút trước`;
-  if (hrs < 24) return `${hrs} giờ trước`;
-  if (days < 7) return `${days} ngày trước`;
-  return formatDate(dateString);
-};
-
-// ─── Component chính ──────────────────────────────────────────────────────────
+const getTypeConf = (t: string) => typeConfig[t] || { label: t, color: "text-gray-600", bgColor: "bg-gray-100", icon: Receipt, isOutgoing: false };
+const getStatusConf = (s: string) => statusConfig[s] || statusConfig.PENDING;
 
 export default function TransactionsPage() {
-  const {
-    transactions,
-    isTransactionsLoading: loading,
-    transactionsError: error,
-    setTransactions,
-    setTransactionsLoading,
-    setTransactionsError,
+  const { 
+    transactions, 
+    isTransactionsLoading: loading, 
+    transactionsError: error, 
+    setTransactions, 
+    setTransactionsLoading, 
+    setTransactionsError, 
+    totalTransactions, 
+    setTotalTransactions,
+    transactionStats,
+    setTransactionStats
   } = useAdminStore();
-
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const [usingMockData, setUsingMockData] = useState(false);
-
-  const [filters, setFilters] = useState<Filters>({
-    search: "",
-    status: "",
-    type: "",
-    paymentMethod: "",
-    dateFrom: "",
-    dateTo: "",
-    sortBy: "newest",
-  });
-
-  /** Giao dịch đang xem chi tiết */
+  const [filters, setFilters] = useState<Filters>({ search: "", status: "", type: "", dateFrom: "", dateTo: "", sortBy: "newest" });
   const [selectedTxn, setSelectedTxn] = useState<Transaction | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  // ── Gọi API ─────────────────────────────────────────────────────────────────
+  const fetchStats = async () => {
+    try {
+      const res = await adminService.getTransactionStats();
+      setTransactionStats(res);
+    } catch (err) {
+      console.error("Lỗi khi tải thống kê giao dịch:", err);
+    }
+  };
 
   const fetchTransactions = async () => {
     try {
       setTransactionsLoading(true);
       setUsingMockData(false);
-
-      const data = await adminService.getTransactions();
-      setTransactions(data);
+      const res = await adminService.getTransactions(currentPage, pageSize);
+      setTransactions(res.data);
+      setTotalTransactions(res.total);
     } catch (err) {
-      console.error("Lỗi khi tải giao dịch:", err);
       setTransactionsError(err instanceof Error ? err.message : "Lỗi không xác định");
       setUsingMockData(true);
-      setTransactions(mockTransactions);
+    } finally {
+      setTransactionsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (transactions.length === 0) {
-      fetchTransactions();
-    }
+    fetchStats();
   }, []);
 
-  // ── Lọc & sắp xếp ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    fetchTransactions();
+  }, [currentPage, pageSize]);
 
-  const filteredTxns = useMemo(() => {
-    let result = [...transactions];
-
-    // Tìm kiếm theo mã giao dịch, tên người dùng, tên bãi đỗ
+  const filtered = useMemo(() => {
+    let r = [...transactions];
     if (filters.search) {
-      const term = filters.search.toLowerCase();
-      result = result.filter(
-        (t) =>
-          (t.transactionCode || "").toLowerCase().includes(term) ||
-          (t.user?.userName || "").toLowerCase().includes(term) ||
-          (t.user?.email || "").toLowerCase().includes(term) ||
-          (t.parkingLotName || "").toLowerCase().includes(term) ||
-          (t.description || "").toLowerCase().includes(term)
-      );
+      const t = filters.search.toLowerCase();
+      r = r.filter(x => (x.id || "").toLowerCase().includes(t) || (x.ref_id || "").toLowerCase().includes(t) || (x.wallet?.user?.userName || "").toLowerCase().includes(t) || (x.wallet?.user?.email || "").toLowerCase().includes(t) || (x.ref_type || "").toLowerCase().includes(t));
     }
-
-    // Lọc trạng thái
-    if (filters.status) result = result.filter((t) => t.status === filters.status);
-    // Lọc loại
-    if (filters.type) result = result.filter((t) => t.type === filters.type);
-    // Lọc phương thức
-    if (filters.paymentMethod) result = result.filter((t) => t.paymentMethod === filters.paymentMethod);
-
-    // Lọc theo khoảng ngày
-    if (filters.dateFrom) result = result.filter((t) => new Date(t.createdAt) >= new Date(filters.dateFrom));
-    if (filters.dateTo) result = result.filter((t) => new Date(t.createdAt) <= new Date(filters.dateTo + "T23:59:59"));
-
-    // Sắp xếp
+    if (filters.status) r = r.filter(x => x.status === filters.status);
+    if (filters.type) r = r.filter(x => x.type === filters.type);
+    if (filters.dateFrom) r = r.filter(x => new Date(x.created_at) >= new Date(filters.dateFrom));
+    if (filters.dateTo) r = r.filter(x => new Date(x.created_at) <= new Date(filters.dateTo + "T23:59:59"));
+    
     switch (filters.sortBy) {
-      case "newest": result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); break;
-      case "oldest": result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); break;
-      case "amount-high": result.sort((a, b) => b.amount - a.amount); break;
-      case "amount-low": result.sort((a, b) => a.amount - b.amount); break;
+      case "newest": r.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break;
+      case "oldest": r.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); break;
+      case "amount-high": r.sort((a, b) => Number(b.amount) - Number(a.amount)); break;
+      case "amount-low": r.sort((a, b) => Number(a.amount) - Number(b.amount)); break;
     }
-
-    return result;
+    return r;
   }, [transactions, filters]);
 
-  // ── Thống kê ────────────────────────────────────────────────────────────────
-
   const stats = useMemo(() => {
-    const total = transactions.length;
-    const success = transactions.filter((t) => t.status === "success").length;
-    const totalAmount = transactions.filter((t) => t.status === "success" && t.type !== "refund" && t.type !== "withdrawal")
-      .reduce((s, t) => s + t.amount, 0);
-    const refundedAmount = transactions.filter((t) => t.status === "refunded" || t.type === "refund")
-      .reduce((s, t) => s + t.amount, 0);
-    const pending = transactions.filter((t) => t.status === "pending").length;
-    return { total, success, totalAmount, refundedAmount, pending };
+    const completed = transactions.filter(t => t.status === "COMPLETED" || t.status === "SUCCESS");
+    const totalIn = completed.filter(t => !getTypeConf(t.type).isOutgoing).reduce((s, t) => s + Number(t.amount), 0);
+    const totalOut = completed.filter(t => getTypeConf(t.type).isOutgoing).reduce((s, t) => s + Number(t.amount), 0);
+    return { total: transactions.length, completed: completed.length, pending: transactions.filter(t => t.status === "PENDING").length, totalIn, totalOut };
   }, [transactions]);
 
-  // ── Xử lý sự kiện ──────────────────────────────────────────────────────────
-
-  const handleFilterChange = (key: keyof Filters, value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+  const handleFilter = (k: keyof Filters, v: string) => {
+    setFilters(p => ({ ...p, [k]: v }));
+    setCurrentPage(1);
   };
-
+  
   const clearFilters = () => {
-    setFilters({ search: "", status: "", type: "", paymentMethod: "", dateFrom: "", dateTo: "", sortBy: "newest" });
+    setFilters({ search: "", status: "", type: "", dateFrom: "", dateTo: "", sortBy: "newest" });
+    setCurrentPage(1);
   };
 
-  const openDetail = (txn: Transaction) => { setSelectedTxn(txn); setDetailOpen(true); };
-
-  // ── Thẻ thống kê ────────────────────────────────────────────────────────────
-
-  const statCards = [
-    { title: "Tổng giao dịch", value: stats.total.toString(), icon: Receipt, color: "bg-blue-600", light: "bg-blue-50 dark:bg-blue-950/20" },
-    { title: "Thành công", value: stats.success.toString(), icon: CheckCircle2, color: "bg-green-600", light: "bg-green-50 dark:bg-green-950/20" },
-    { title: "Thu vào", value: formatCompactCurrency(stats.totalAmount), icon: TrendingUp, color: "bg-emerald-600", light: "bg-emerald-50 dark:bg-emerald-950/20" },
-    { title: "Hoàn tiền", value: formatCompactCurrency(stats.refundedAmount), icon: TrendingDown, color: "bg-orange-600", light: "bg-orange-50 dark:bg-orange-950/20" },
-  ];
-
-  // ── Loading ─────────────────────────────────────────────────────────────────
-
-  if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Đang tải lịch sử giao dịch...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Giao diện ───────────────────────────────────────────────────────────────
+  if (loading) return <div className="min-h-[60vh] flex items-center justify-center"><div className="text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" /><p className="text-muted-foreground">Đang tải giao dịch...</p></div></div>;
 
   return (
     <div className="space-y-6">
-
-      {/* ── Tiêu đề ───────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl px-8 py-6 shadow-lg">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
-            <Receipt className="w-6 h-6" />
-            Lịch sử Giao dịch
-          </h1>
-          <p className="text-primary-foreground/70 mt-1 text-sm">
-            Tìm thấy {filteredTxns.length} giao dịch
-            {usingMockData && <span className="ml-2 text-orange-300 text-xs">(Dữ liệu mẫu)</span>}
-          </p>
-          {error && <p className="text-red-300 text-xs mt-1">Lỗi kết nối: {error}</p>}
+          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3"><Receipt className="w-6 h-6" />Lịch sử Giao dịch Ví</h1>
+          <p className="text-primary-foreground/70 mt-1 text-sm">Tìm thấy {totalTransactions} giao dịch{usingMockData && <span className="ml-2 text-orange-300 text-xs">(Dữ liệu mẫu)</span>}</p>
+          {error && <p className="text-red-300 text-xs mt-1">Lỗi: {error}</p>}
         </div>
-        <div className="flex gap-3 mt-4 sm:mt-0">
-          <Button onClick={fetchTransactions} className="gap-2 transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
-            <RefreshCw size={16} />Làm mới
-          </Button>
-          <Button className="gap-2 transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
-            <Download size={16} />Xuất Excel
-          </Button>
+        <div className="flex items-center gap-3 mt-4 sm:mt-0">
+          <Button onClick={fetchStats} variant="ghost" className="text-white hover:bg-white/10 gap-2"><RefreshCw size={14} />Thống kê</Button>
+          <Button onClick={fetchTransactions} className="gap-2" style={{ borderRadius: "50px", background: "rgba(255,255,255,0.12)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)" }}><RefreshCw size={16} />Làm mới</Button>
         </div>
       </div>
 
-      {/* ── Thẻ thống kê ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <AdminStatCard
-              key={card.title}
-              title={card.title}
-              value={card.value}
-              icon={card.icon}
-              iconGradient={`from-${card.color.split('-')[1]}-500 to-${card.color.split('-')[1]}-600`}
-              bgTint={card.light}
-              borderColor={`border-${card.color.split('-')[1]}-100 dark:border-${card.color.split('-')[1]}-900/50`}
-            />
-          );
-        })}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <AdminStatCard 
+          title="Tổng giao dịch" 
+          value={transactionStats?.totalTransactions.toString() || totalTransactions.toString()} 
+          icon={Receipt} 
+          iconGradient="from-blue-500 to-blue-600" 
+          bgTint="bg-blue-50 dark:bg-blue-950/20" 
+          borderColor="border-blue-100 dark:border-blue-900/50" 
+        />
+        <AdminStatCard 
+          title="Thành công" 
+          value={transactionStats?.successTransactions.toString() || stats.completed.toString()} 
+          icon={CheckCircle2} 
+          iconGradient="from-green-500 to-green-600" 
+          bgTint="bg-green-50 dark:bg-green-950/20" 
+          borderColor="border-green-100 dark:border-green-900/50" 
+        />
+        <AdminStatCard 
+          title="Tổng thu nhập" 
+          value={transactionStats?.totalIncome || formatCompact(stats.totalIn)} 
+          icon={ArrowUpDown} 
+          iconGradient="from-emerald-500 to-emerald-600" 
+          bgTint="bg-emerald-50 dark:bg-emerald-950/20" 
+          borderColor="border-emerald-100 dark:border-emerald-900/50" 
+        />
+        <AdminStatCard 
+          title="Tổng hoàn tiền" 
+          value={transactionStats?.totalRefund || "0 ₫"} 
+          icon={ArrowRightLeft} 
+          iconGradient="from-orange-500 to-orange-600" 
+          bgTint="bg-orange-50 dark:bg-orange-950/20" 
+          borderColor="border-orange-100 dark:border-orange-900/50" 
+        />
       </div>
 
-      {/* ── Thanh tìm kiếm & bộ lọc ───────────────────────────────────────── */}
       <div className="bg-card rounded-xl shadow-sm border border-border p-5 space-y-4">
-        {/* Dòng 1: Tìm kiếm */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <Input
-            type="text"
-            placeholder="Tìm theo mã giao dịch, tên người dùng, bãi đỗ, email..."
-            value={filters.search}
-            onChange={(e) => handleFilterChange("search", e.target.value)}
-            className="pl-10 h-11 bg-muted border-border focus:bg-card text-foreground"
-          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+          <Input placeholder="Tìm theo ID, mã ref, tên người dùng, email..." value={filters.search} onChange={e => handleFilter("search", e.target.value)} className="pl-10 h-11 bg-muted border-border focus:ring-primary" />
         </div>
-        
-        {/* Dòng 2: Bộ lọc */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-12 gap-3 items-end">
-          {/* Trạng thái */}
-          <div className="lg:col-span-2">
-            <Select value={filters.status || "all"} onValueChange={(val) => handleFilterChange("status", val === "all" ? "" : val)}>
-              <SelectTrigger className="h-10 w-full border-border bg-muted text-foreground text-sm">
-                <SelectValue placeholder="Trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="success">Thành công</SelectItem>
-                <SelectItem value="pending">Đang xử lý</SelectItem>
-                <SelectItem value="failed">Thất bại</SelectItem>
-                <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
-              </SelectContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+          <div className="lg:col-span-1">
+            <Select value={filters.status || "all"} onValueChange={v => handleFilter("status", v === "all" ? "" : v)}>
+              <SelectTrigger className="w-full h-10 bg-muted border-border text-sm"><SelectValue placeholder="Trạng thái" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Tất cả trạng thái</SelectItem><SelectItem value="COMPLETED">Hoàn thành</SelectItem><SelectItem value="SUCCESS">Thành công</SelectItem><SelectItem value="PENDING">Đang xử lý</SelectItem><SelectItem value="FAILED">Thất bại</SelectItem><SelectItem value="CANCELLED">Đã hủy</SelectItem></SelectContent>
             </Select>
           </div>
-
-          {/* Loại giao dịch */}
-          <div className="lg:col-span-2">
-            <Select value={filters.type || "all"} onValueChange={(val) => handleFilterChange("type", val === "all" ? "" : val)}>
-              <SelectTrigger className="h-10 w-full border-border bg-muted text-foreground text-sm">
-                <SelectValue placeholder="Loại GD" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tất cả loại GD</SelectItem>
-                <SelectItem value="top_up">Nộp tiền vào ví</SelectItem>
-                <SelectItem value="withdrawal">Rút tiền từ ví</SelectItem>
-                <SelectItem value="booking_payment">Thanh toán đặt chỗ</SelectItem>
-                <SelectItem value="subscription">Gói dịch vụ</SelectItem>
-                <SelectItem value="refund">Hoàn tiền</SelectItem>
-                <SelectItem value="penalty">Phạt đỗ quá giờ</SelectItem>
-              </SelectContent>
+          <div className="lg:col-span-1">
+            <Select value={filters.type || "all"} onValueChange={v => handleFilter("type", v === "all" ? "" : v)}>
+              <SelectTrigger className="w-full h-10 bg-muted border-border text-sm"><SelectValue placeholder="Loại GD" /></SelectTrigger>
+              <SelectContent><SelectItem value="all">Tất cả loại</SelectItem><SelectItem value="TOP_UP">Nạp tiền vào ví</SelectItem><SelectItem value="WITHDRAW">Rút tiền từ ví</SelectItem><SelectItem value="BOOKING_PAYMENT">Thanh toán đặt chỗ</SelectItem><SelectItem value="BOOKING_REFUND">Hoàn tiền đặt chỗ</SelectItem><SelectItem value="PENALTY">Phạt quá giờ</SelectItem><SelectItem value="TRANSFER_IN">Chuyển tiền vào</SelectItem><SelectItem value="TRANSFER_OUT">Chuyển tiền ra</SelectItem><SelectItem value="EARN_PARKING_FEE">Tiền gửi xe</SelectItem><SelectItem value="PAYMENT">Thanh toán</SelectItem></SelectContent>
             </Select>
           </div>
-
-          {/* Phương thức */}
-          <div className="lg:col-span-2">
-            <Select value={filters.paymentMethod || "all"} onValueChange={(val) => handleFilterChange("paymentMethod", val === "all" ? "" : val)}>
-              <SelectTrigger className="h-10 w-full border-border bg-muted text-foreground text-sm">
-                <SelectValue placeholder="Phương thức" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Phương thức</SelectItem>
-                <SelectItem value="momo">MoMo</SelectItem>
-                <SelectItem value="vnpay">VNPay</SelectItem>
-                <SelectItem value="zalopay">ZaloPay</SelectItem>
-                <SelectItem value="bank_transfer">Chuyển khoản</SelectItem>
-                <SelectItem value="wallet">Ví GoPark</SelectItem>
-                <SelectItem value="cash">Tiền mặt</SelectItem>
-                <SelectItem value="credit_card">Thẻ tín dụng</SelectItem>
-              </SelectContent>
+          <div className="lg:col-span-2 flex items-center gap-2 bg-muted border border-border rounded-md px-3 h-10">
+            <div className="flex-1 flex items-center gap-2">
+              <Calendar size={14} className="text-muted-foreground" />
+              <Input type="date" value={filters.dateFrom} onChange={e => handleFilter("dateFrom", e.target.value)} className="h-8 border-0 bg-transparent text-xs p-0 w-full focus-visible:ring-0" />
+            </div>
+            <span className="text-muted-foreground/50">|</span>
+            <div className="flex-1 flex items-center gap-2 text-right justify-end">
+              <Input type="date" value={filters.dateTo} onChange={e => handleFilter("dateTo", e.target.value)} className="h-8 border-0 bg-transparent text-xs p-0 w-full focus-visible:ring-0 text-right" />
+              <Calendar size={14} className="text-muted-foreground" />
+            </div>
+          </div>
+          <div className="lg:col-span-1">
+            <Select value={filters.sortBy} onValueChange={v => handleFilter("sortBy", v)}>
+              <SelectTrigger className="w-full h-10 bg-muted border-border text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="newest">Mới nhất</SelectItem><SelectItem value="oldest">Cũ nhất</SelectItem><SelectItem value="amount-high">Số tiền ↓</SelectItem><SelectItem value="amount-low">Số tiền ↑</SelectItem></SelectContent>
             </Select>
           </div>
-
-          {/* Khoảng ngày */}
-          <div className="lg:col-span-3 flex items-center gap-2 bg-muted border border-border rounded-md px-2 h-10">
-            <Input 
-              type="date" 
-              value={filters.dateFrom} 
-              onChange={(e) => handleFilterChange("dateFrom", e.target.value)} 
-              className="h-8 border-0 bg-transparent text-xs p-1 w-full focus-visible:ring-0" 
-            />
-            <span className="text-gray-400 text-xs">→</span>
-            <Input 
-              type="date" 
-              value={filters.dateTo} 
-              onChange={(e) => handleFilterChange("dateTo", e.target.value)} 
-              className="h-8 border-0 bg-transparent text-xs p-1 w-full focus-visible:ring-0" 
-            />
-          </div>
-
-          {/* Sắp xếp */}
-          <div className="lg:col-span-2">
-            <Select value={filters.sortBy} onValueChange={(val) => handleFilterChange("sortBy", val)}>
-              <SelectTrigger className="h-10 w-full border-border bg-muted text-foreground text-sm">
-                <SelectValue placeholder="Sắp xếp" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Mới nhất</SelectItem>
-                <SelectItem value="oldest">Cũ nhất</SelectItem>
-                <SelectItem value="amount-high">Số tiền ↓</SelectItem>
-                <SelectItem value="amount-low">Số tiền ↑</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Xóa lọc */}
-          <div className="lg:col-span-1 flex justify-end">
-            {(filters.search || filters.status || filters.type || filters.paymentMethod || filters.dateFrom || filters.dateTo || filters.sortBy !== "newest") && (
-              <Button variant="default" onClick={clearFilters} className="h-10 w-10 p-0 text-red-500 hover:text-red-600 hover:bg-red-200 bg-red-50" title="Xóa tất cả bộ lọc">
-                <X size={18} />
-              </Button>
+          <div className="lg:col-span-1 flex justify-end gap-2">
+            {(filters.search || filters.status || filters.type || filters.dateFrom || filters.dateTo || filters.sortBy !== "newest") && (
+              <Button variant="ghost" onClick={clearFilters} className="h-10 w-full lg:w-10 p-0 text-red-500 hover:bg-red-50 hover:text-red-600" title="Xóa bộ lọc"><XCircle size={18} /></Button>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Bảng giao dịch ─────────────────────────────────────────────────── */}
       <div className="overflow-hidden admin-content-card">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-muted/80 border-b border-border">
-                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mã GD</th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Người dùng</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">ID Giao dịch</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Người dùng / Ví</th>
                 <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Loại</th>
                 <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Số tiền</th>
-                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Phương thức</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Số dư trước/sau</th>
+                <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tham chiếu</th>
                 <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Trạng thái</th>
                 <th className="px-5 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Thời gian</th>
-                <th className="px-5 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-10" />
+                <th className="px-5 py-4 w-10" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredTxns.map((txn) => {
-                const stConf = statusConfig[txn.status] || statusConfig.success;
-                const tConf = typeConfig[txn.type];
+              {filtered.map(txn => {
+                const stConf = getStatusConf(txn.status);
+                const tConf = getTypeConf(txn.type);
                 const TIcon = tConf.icon;
-                const pmConf = paymentMethodConfig[txn.paymentMethod];
-                // Giao dịch hoàn/rút là tiền ra, còn lại là tiền vào
-                const isOutgoing = txn.type === "refund" || txn.type === "withdrawal";
-
+                const user = txn.wallet?.user;
                 return (
-                  <tr key={txn._id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => openDetail(txn)}>
-                    {/* Mã giao dịch */}
+                  <tr key={txn.id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => { setSelectedTxn(txn); setDetailOpen(true); }}>
                     <td className="px-5 py-3.5">
-                      <span className="text-xs font-mono font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
-                        {txn.transactionCode.split("-").slice(-1)[0]}
-                      </span>
+                      <span className="text-xs font-mono font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">{txn.id.split("-")[0]}</span>
                     </td>
-
-                    {/* Người dùng */}
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarColor(txn.user._id)} flex items-center justify-center flex-shrink-0`}>
-                          <span className="text-white text-[10px] font-bold">{getInitials(txn.user.userName)}</span>
-                        </div>
+                      {user ? (
                         <div>
-                          <p className="text-sm font-medium text-foreground truncate max-w-[140px]">{txn.user.userName}</p>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">{roleLabels[txn.user.role]}</Badge>
+                          <p className="text-sm font-medium text-foreground">{user.userName}</p>
+                          <p className="text-xs text-muted-foreground">{user.email}</p>
                         </div>
-                      </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground font-mono">{txn.wallet_id ? txn.wallet_id.split("-")[0] + "..." : "—"}</span>
+                      )}
                     </td>
-
-                    {/* Loại giao dịch */}
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1.5">
-                        <div className={`w-6 h-6 rounded ${tConf.bgColor} flex items-center justify-center`}>
-                          <TIcon className={`w-3.5 h-3.5 ${tConf.color}`} />
-                        </div>
+                        <div className={`w-6 h-6 rounded ${tConf.bgColor} flex items-center justify-center`}><TIcon className={`w-3.5 h-3.5 ${tConf.color}`} /></div>
                         <span className="text-xs text-muted-foreground">{tConf.label}</span>
                       </div>
                     </td>
-
-                    {/* Số tiền */}
                     <td className="px-5 py-3.5">
-                      <span className={`text-sm font-bold ${isOutgoing ? "text-red-600" : "text-green-600"}`}>
-                        {isOutgoing ? "−" : "+"}{formatCurrency(txn.amount)}
-                      </span>
+                      <span className={`text-sm font-bold ${tConf.isOutgoing ? "text-red-600" : "text-green-600"}`}>{tConf.isOutgoing ? "−" : "+"}{formatCurrency(txn.amount)}</span>
                     </td>
-
-                    {/* Phương thức */}
                     <td className="px-5 py-3.5">
-                      <span className={`text-xs font-medium ${pmConf.color}`}>{pmConf.label}</span>
+                      <div className="text-xs space-y-0.5">
+                        <p className="text-muted-foreground">Trước: <span className="font-medium text-foreground">{formatCurrency(txn.balance_before)}</span></p>
+                        <p className="text-muted-foreground">Sau: <span className="font-medium text-foreground">{formatCurrency(txn.balance_after)}</span></p>
+                      </div>
                     </td>
-
-                    {/* Trạng thái */}
+                    <td className="px-5 py-3.5">
+                      {txn.ref_type ? (
+                        <div className="text-xs">
+                          <span className="bg-violet-100 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 px-1.5 py-0.5 rounded text-[10px] font-medium">{txn.ref_type}</span>
+                          {txn.ref_id && <p className="text-muted-foreground mt-0.5 font-mono">{txn.ref_id.slice(0, 8)}...</p>}
+                        </div>
+                      ) : <span className="text-muted-foreground text-xs">—</span>}
+                    </td>
                     <td className="px-5 py-3.5">
                       <Badge variant="outline" className={`text-xs font-medium ${stConf.className}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${stConf.dot} mr-1.5 inline-block`} />
-                        {stConf.label}
+                        <span className={`w-1.5 h-1.5 rounded-full ${stConf.dot} mr-1.5 inline-block`} />{stConf.label}
                       </Badge>
                     </td>
-
-                    {/* Thời gian */}
                     <td className="px-5 py-3.5">
-                      <p className="text-xs text-muted-foreground">{timeAgo(txn.createdAt)}</p>
+                      <p className="text-xs text-muted-foreground">{timeAgo(txn.created_at)}</p>
                     </td>
-
-                    {/* Menu */}
-                    <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><MoreVertical size={14} /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem onClick={() => openDetail(txn)}><Eye size={14} className="mr-2" />Xem chi tiết</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <td className="px-5 py-3.5 text-right" onClick={e => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setSelectedTxn(txn); setDetailOpen(true); }}><Eye size={14} /></Button>
                     </td>
                   </tr>
                 );
@@ -732,164 +301,105 @@ export default function TransactionsPage() {
             </tbody>
           </table>
         </div>
-
-        {/* Trạng thái trống */}
-        {filteredTxns.length === 0 && (
-          <div className="text-center py-16">
-            <div className="bg-muted rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
-              <Receipt className="h-10 w-10 text-gray-400" />
+        {totalTransactions > 0 && (
+          <div className="px-5 py-4 border-t border-border flex items-center justify-between bg-card">
+            <div className="text-sm text-muted-foreground">
+              Hiển thị <span className="font-medium text-foreground">{Math.min(totalTransactions, (currentPage - 1) * pageSize + 1)}-{Math.min(totalTransactions, currentPage * pageSize)}</span> trong <span className="font-medium text-foreground">{totalTransactions}</span> giao dịch
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Không tìm thấy giao dịch nào</h3>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">Thử điều chỉnh bộ lọc hoặc từ khóa tìm kiếm</p>
-            <Button onClick={clearFilters} variant="outline">Xóa tất cả bộ lọc</Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="h-8 w-8 p-0">
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              {(() => {
+                const totalPages = Math.ceil(totalTransactions / pageSize);
+                const pages = [];
+                for (let i = 1; i <= totalPages; i++) {
+                  if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) pages.push(i);
+                  else if (i === currentPage - 2 || i === currentPage + 2) pages.push("...");
+                }
+                return pages.filter((p, idx, arr) => p !== "..." || arr[idx - 1] !== "...").map((page, idx) => (
+                  typeof page === "number" ? (
+                    <Button key={idx} variant={currentPage === page ? "default" : "outline"} size="sm" onClick={() => setCurrentPage(page)} className={`h-8 w-8 p-0 text-xs ${currentPage === page ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}>
+                      {page}
+                    </Button>
+                  ) : <span key={idx} className="text-gray-400 px-1">...</span>
+                ));
+              })()}
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalTransactions / pageSize), p + 1))} disabled={currentPage >= Math.ceil(totalTransactions / pageSize)} className="h-8 w-8 p-0">
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ── Dialog chi tiết giao dịch ──────────────────────────────────────── */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Chi tiết giao dịch</DialogTitle>
-          </DialogHeader>
-
-          {selectedTxn && (() => {
-            const stConf = statusConfig[selectedTxn.status] || statusConfig.success;
-            const tConf = typeConfig[selectedTxn.type];
-            const TIcon = tConf.icon;
-            const pmConf = paymentMethodConfig[selectedTxn.paymentMethod];
-            const isOutgoing = selectedTxn.type === "refund" || selectedTxn.type === "withdrawal";
-            const StIcon = stConf.icon;
-
-            return (
-              <div className="space-y-5 mt-2">
-
-                {/* Phần đầu — Số tiền & trạng thái */}
-                <div className={`p-6 rounded-xl text-center ${isOutgoing ? "bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30" : "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30"}`}>
-                  <p className={`text-4xl font-bold ${isOutgoing ? "text-red-600" : "text-green-600"}`}>
-                    {isOutgoing ? "−" : "+"}{formatCurrency(selectedTxn.amount)}
-                  </p>
-                  <div className="flex items-center justify-center gap-2 mt-3">
-                    <Badge variant="outline" className={`text-xs font-medium ${stConf.className}`}>
-                      <StIcon size={12} className="mr-1" />
-                      {stConf.label}
-                    </Badge>
-                    <Badge variant="outline" className={`text-xs ${tConf.bgColor} ${tConf.color} border-0`}>
-                      <TIcon size={12} className="mr-1" />
-                      {tConf.label}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Thông tin giao dịch */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <Hash size={18} className="text-blue-500" />
-                    <div>
-                      <p className="text-xs text-gray-400">Mã giao dịch</p>
-                      <p className="text-sm font-mono font-semibold text-foreground">{selectedTxn.transactionCode}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <Wallet size={18} className="text-indigo-500" />
-                    <div>
-                      <p className="text-xs text-gray-400">Phương thức</p>
-                      <p className={`text-sm font-semibold ${pmConf.color}`}>{pmConf.label}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <Calendar size={18} className="text-green-500" />
-                    <div>
-                      <p className="text-xs text-gray-400">Thời gian tạo</p>
-                      <p className="text-sm font-medium text-foreground">{formatDateTime(selectedTxn.createdAt)}</p>
-                    </div>
-                  </div>
-                  {selectedTxn.completedAt && (
-                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                      <CheckCircle2 size={18} className="text-emerald-500" />
-                      <div>
-                        <p className="text-xs text-gray-400">Hoàn thành lúc</p>
-                        <p className="text-sm font-medium text-foreground">{formatDateTime(selectedTxn.completedAt)}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Mô tả */}
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Mô tả</h4>
-                  <p className="text-sm text-foreground/80 leading-relaxed bg-card border border-border rounded-lg p-4">
-                    {selectedTxn.description}
-                  </p>
-                </div>
-
-                {/* Người dùng */}
-                <div className="p-4 bg-muted rounded-xl">
-                  <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Người thực hiện</h4>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(selectedTxn.user._id)} flex items-center justify-center shadow-sm`}>
-                      <span className="text-white text-sm font-semibold">{getInitials(selectedTxn.user.userName)}</span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">{selectedTxn.user.userName}</p>
-                        <Badge variant="outline" className="text-xs">{roleLabels[selectedTxn.user.role]}</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{selectedTxn.user.email}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bãi đỗ liên quan */}
-                {selectedTxn.parkingLotName && (
-                  <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-lg">
-                    <MapPin size={18} className="text-violet-500" />
-                    <div>
-                      <p className="text-xs text-violet-400">Bãi đỗ xe</p>
-                      <p className="text-sm font-medium text-foreground">{selectedTxn.parkingLotName}</p>
-                      {selectedTxn.parkingLotAddress && <p className="text-xs text-muted-foreground">{selectedTxn.parkingLotAddress}</p>}
-                    </div>
-                  </div>
-                )}
-
-                {/* Mã booking */}
-                {selectedTxn.bookingId && (
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                    <Receipt size={18} className="text-blue-500" />
-                    <div>
-                      <p className="text-xs text-blue-400">Mã đặt chỗ</p>
-                      <p className="text-sm font-mono font-semibold text-foreground">{selectedTxn.bookingId}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Lý do thất bại */}
-                {selectedTxn.failedReason && (
-                  <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                    <h4 className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <XCircle size={14} />Lý do thất bại
-                    </h4>
-                    <p className="text-sm text-red-700">{selectedTxn.failedReason}</p>
-                  </div>
-                )}
-
-                {/* Lý do hoàn tiền */}
-                {selectedTxn.refundReason && (
-                  <div className="p-4 bg-orange-50 rounded-xl border border-orange-100">
-                    <h4 className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                      <ArrowRightLeft size={14} />Lý do hoàn tiền
-                    </h4>
-                    <p className="text-sm text-orange-700">{selectedTxn.refundReason}</p>
-                  </div>
-                )}
-
-                {/* Nút đóng */}
-                <div className="flex justify-end pt-2 border-t border-border">
-                  <Button variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>
+          <DialogHeader><DialogTitle className="text-xl">Chi tiết giao dịch</DialogTitle></DialogHeader>
+          {selectedTxn && (
+            <div className="space-y-5 mt-2">
+              <div className={`p-6 rounded-xl text-center ${getTypeConf(selectedTxn.type).isOutgoing ? "bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30" : "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30"}`}>
+                <p className={`text-4xl font-bold ${getTypeConf(selectedTxn.type).isOutgoing ? "text-red-600" : "text-green-600"}`}>{getTypeConf(selectedTxn.type).isOutgoing ? "−" : "+"}{formatCurrency(selectedTxn.amount)}</p>
+                <div className="flex items-center justify-center gap-2 mt-3">
+                  <Badge variant="outline" className={`text-xs font-medium ${getStatusConf(selectedTxn.status).className}`}>{getStatusConf(selectedTxn.status).label}</Badge>
+                  <Badge variant="outline" className={`text-xs ${getTypeConf(selectedTxn.type).bgColor} ${getTypeConf(selectedTxn.type).color} border-0`}>{getTypeConf(selectedTxn.type).label}</Badge>
                 </div>
               </div>
-            );
-          })()}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                  <Hash size={18} className="text-blue-500" />
+                  <div><p className="text-xs text-muted-foreground">ID Giao dịch</p><p className="text-sm font-mono font-semibold text-foreground break-all">{selectedTxn.id}</p></div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                  <Wallet size={18} className="text-indigo-500" />
+                  <div><p className="text-xs text-muted-foreground">Wallet ID</p><p className="text-sm font-mono text-foreground break-all">{selectedTxn.wallet_id || "—"}</p></div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                  <Calendar size={18} className="text-green-500" />
+                  <div><p className="text-xs text-muted-foreground">Thời gian tạo</p><p className="text-sm font-medium text-foreground">{formatDateTime(selectedTxn.created_at)}</p></div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                  <Calendar size={18} className="text-orange-500" />
+                  <div><p className="text-xs text-muted-foreground">Cập nhật lúc</p><p className="text-sm font-medium text-foreground">{formatDateTime(selectedTxn.updated_at)}</p></div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-4 bg-muted rounded-xl text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Số dư trước</p>
+                  <p className="text-lg font-bold text-foreground">{formatCurrency(selectedTxn.balance_before)}</p>
+                </div>
+                <div className="p-4 bg-muted rounded-xl text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Số dư sau</p>
+                  <p className="text-lg font-bold text-foreground">{formatCurrency(selectedTxn.balance_after)}</p>
+                </div>
+              </div>
+
+              {(selectedTxn.ref_type || selectedTxn.ref_id) && (
+                <div className="p-4 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/30">
+                  <h4 className="text-xs font-semibold text-violet-500 uppercase tracking-wider mb-2">Tham chiếu</h4>
+                  {selectedTxn.ref_type && <p className="text-sm font-medium text-foreground">Loại: <span className="text-violet-600">{selectedTxn.ref_type}</span></p>}
+                  {selectedTxn.ref_id && <p className="text-sm text-muted-foreground font-mono mt-1">ID: {selectedTxn.ref_id}</p>}
+                </div>
+              )}
+
+              {selectedTxn.wallet?.user && (
+                <div className="p-4 bg-muted rounded-xl">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1"><User size={12} />Người dùng</h4>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">{selectedTxn.wallet.user.userName}</p>
+                    <p className="text-xs text-muted-foreground">{selectedTxn.wallet.user.email}</p>
+                    {selectedTxn.wallet.user.phoneNumber && <p className="text-xs text-muted-foreground">{selectedTxn.wallet.user.phoneNumber}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2 border-t border-border">
+                <Button variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

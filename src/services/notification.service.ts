@@ -26,8 +26,10 @@ export const notificationService = {
    * Get all sent notifications for table view
    * GET /api/v1/admin/notifications/table/list
    */
-  getAll: (): Promise<{ data: { items: SentNotification[] } }> =>
-    get<{ data: { items: SentNotification[] } }>("/admin/notifications/table/list"),
+  getAll: (page?: number, limit?: number): Promise<{ data: { items: SentNotification[], meta: any } }> => {
+    const url = page && limit ? `/admin/notifications/table/list?page=${page}&limit=${limit}` : "/admin/notifications/table/list";
+    return get<{ data: { items: SentNotification[], meta: any } }>(url);
+  },
 
   /**
    * Send a notification to specific roles
