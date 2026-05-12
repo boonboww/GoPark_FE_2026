@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+DESIGN.md
+fix_admin_ui.js
+fix-text.js
+fix-ui.js

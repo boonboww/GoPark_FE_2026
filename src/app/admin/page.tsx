@@ -170,11 +170,9 @@ export default function AdminDashboard() {
         (stats?.userChangePercent || 0) >= 0 ? "positive" : "negative",
       icon: Users,
       description: "So với tháng trước",
-      iconGradient: "from-blue-500 to-indigo-600",
-      bgTint:
-        "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
-      borderColor: "border-blue-100 dark:border-blue-900/50",
-      accentColor: "text-primary",
+      iconGradient: "from-[#006241] to-[#00754A]",
+      bgTint: "bg-white",
+      borderColor: "border-[#d4e9e2]",
     },
     {
       title: "Bãi đỗ xe",
@@ -183,11 +181,9 @@ export default function AdminDashboard() {
       changeType: "positive",
       icon: MapPin,
       description: "Bãi mới trong tháng",
-      iconGradient: "from-emerald-500 to-teal-600",
-      bgTint:
-        "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
-      borderColor: "border-emerald-100 dark:border-emerald-900/50",
-      accentColor: "text-emerald-600",
+      iconGradient: "from-[#1E3932] to-[#2b5148]",
+      bgTint: "bg-white",
+      borderColor: "border-[#d4e9e2]",
     },
     {
       title: "Đặt chỗ hôm nay",
@@ -197,11 +193,9 @@ export default function AdminDashboard() {
         (stats?.bookingChangePercent || 0) >= 0 ? "positive" : "negative",
       icon: Receipt,
       description: "So với hôm qua",
-      iconGradient: "from-violet-500 to-purple-600",
-      bgTint:
-        "from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20",
-      borderColor: "border-violet-100 dark:border-violet-900/50",
-      accentColor: "text-violet-600",
+      iconGradient: "from-[#00754A] to-[#006241]",
+      bgTint: "bg-white",
+      borderColor: "border-[#d4e9e2]",
     },
     {
       title: "Doanh thu tháng",
@@ -211,53 +205,77 @@ export default function AdminDashboard() {
         (stats?.revenueChangePercent || 0) >= 0 ? "positive" : "negative",
       icon: TrendingUp,
       description: "So với tháng trước",
-      iconGradient: "from-amber-500 to-orange-600",
-      bgTint:
-        "from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20",
-      borderColor: "border-amber-100 dark:border-amber-900/50",
-      accentColor: "text-amber-600",
+      iconGradient: "from-[#cba258] to-[#dfc49d]",
+      bgTint: "bg-white",
+      borderColor: "border-[#d4e9e2]",
     },
   ];
 
   return (
     <RoleGuard allowedRole="admin">
       {loading ? (
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="min-h-[60vh] flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Đang tải dashboard admin...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Đang tải dữ liệu Dashboard...</p>
           </div>
         </div>
       ) : error ? (
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">
+            <AlertCircle className="w-12 h-12 mx-auto mb-4" style={{ color: '#c82014' }} />
+            <h3 className="text-lg font-semibold mb-2" style={{ color: '#006241' }}>
               Lỗi server không hoạt động
             </h3>
-            <Button onClick={() => window.location.reload()}>Thử lại</Button>
+            <Button
+              onClick={() => window.location.reload()}
+              className="rounded-[50px] transition-all duration-200 active:scale-95"
+              style={{ background: '#00754A', color: '#fff', border: '1px solid #00754A' }}
+            >
+              Thử lại
+            </Button>
           </div>
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl p-6 md:px-8 md:py-6 shadow-lg gap-4">
+          {/* ── Header — House Green feature band ── */}
+          <div
+            className="flex flex-col md:flex-row justify-between items-start md:items-center rounded-2xl p-6 md:px-8 md:py-6 gap-4"
+            style={{
+              backgroundColor: '#1E3932',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07)',
+            }}
+          >
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight" style={{ color: '#ffffff', letterSpacing: '-0.16px' }}>
                 Dashboard Admin
               </h1>
-              <p className="text-primary-foreground/70 mt-1 text-xs md:text-sm">
+              <p className="mt-1 text-xs md:text-sm" style={{ color: 'rgba(255,255,255,0.70)' }}>
                 Tổng quan hệ thống GoPark
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 md:gap-3">
-              <Badge className="bg-amber-400/15 text-amber-300 border border-amber-400/30 backdrop-blur-sm px-2.5 py-1 md:px-3 md:py-1 text-[10px] md:text-xs">
-                <AlertCircle className="w-3 h-3 md:w-3.5 md:h-3.5 mr-1 md:mr-1.5 text-red-500/80" />
+              <Badge
+                className="px-3 py-1 text-[10px] md:text-xs font-bold"
+                style={{
+                  background: 'rgba(203,162,88,0.15)',
+                  color: '#cba258',
+                  border: '1px solid rgba(203,162,88,0.35)',
+                  borderRadius: '50px',
+                }}
+              >
+                <AlertCircle className="w-3 h-3 md:w-3.5 md:h-3.5 mr-1 md:mr-1.5" style={{ color: '#cba258' }} />
                 {stats?.pendingApprovals || 0} chờ duyệt
               </Badge>
               <Button
                 size="sm"
-                className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none text-xs h-8 md:h-9"
+                className="text-xs transition-all duration-200 active:scale-95"
+                style={{
+                  borderRadius: '50px',
+                  background: 'rgba(255,255,255,0.12)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                }}
               >
                 Xuất báo cáo
               </Button>
@@ -288,12 +306,18 @@ export default function AdminDashboard() {
           {/* Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Recent Activities */}
-            <Card className="lg:col-span-2 border-border dark:border-slate-800 shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+            <Card
+              className="lg:col-span-2"
+              style={{
+                borderRadius: '12px',
+                boxShadow: '0 0 0.5px rgba(0,0,0,0.14), 0 1px 1px rgba(0,0,0,0.24)',
+              }}
+            >
               <CardHeader className="pb-3 px-6 pt-6 mb-2">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-6 bg-gradient-to-b from-primary to-primary/80 rounded-full" />
-                    <CardTitle className="text-lg font-bold text-foreground dark:text-slate-100 uppercase tracking-wide">
+                    <div className="w-1 h-6 rounded-full" style={{ background: '#1E3932' }} />
+                    <CardTitle className="text-base font-bold uppercase tracking-wider text-primary" style={{ letterSpacing: '0.05em' }}>
                       Hoạt động hệ thống
                     </CardTitle>
                   </div>
@@ -404,7 +428,7 @@ export default function AdminDashboard() {
                             error: {
                               label: "Lỗi",
                               class:
-                                "text-rose-700 bg-rose-50 border-rose-100 dark:bg-rose-950/30 dark:border-rose-900/50",
+                                "text-rose-700 dark:text-rose-400 bg-rose-50 border-rose-100 dark:bg-rose-950/30 dark:border-rose-900/50",
                             },
                           };
 
@@ -420,13 +444,13 @@ export default function AdminDashboard() {
                               <TableCell className="py-3">
                                 <div className="flex items-center gap-2">
                                   <div
-                                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-border dark:border-slate-800 group-hover:scale-110 transition-transform duration-300`}
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-border bg-muted group-hover:scale-110 transition-transform duration-300`}
                                   >
                                     <Icon
                                       className={`w-4 h-4 text-${colorClass}-500`}
                                     />
                                   </div>
-                                  <span className="text-[11px] font-bold uppercase text-slate-400 group-hover:text-muted-foreground transition-colors tracking-tight">
+                                  <span className="text-[11px] font-bold uppercase text-muted-foreground group-hover:text-foreground transition-colors tracking-tight">
                                     {activity.type}
                                   </span>
                                 </div>
@@ -507,29 +531,6 @@ export default function AdminDashboard() {
                       kết quả
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex items-center gap-2 mr-2 md:mr-4 border-r border-border dark:border-slate-700 pr-2 md:pr-4">
-                        <span className="text-sm text-muted-foreground dark:text-slate-400">
-                          Dòng mỗi trang:
-                        </span>
-                        <Select
-                          value={itemsPerPage.toString()}
-                          onValueChange={(val) => {
-                            setItemsPerPage(Number(val));
-                            setCurrentPage(1);
-                          }}
-                        >
-                          <SelectTrigger className="h-8 w-[70px] bg-muted dark:bg-slate-800 border-border dark:border-slate-700 text-sm shadow-none">
-                            <SelectValue placeholder="5" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="2">2</SelectItem>
-                            <SelectItem value="5">5</SelectItem>
-                            <SelectItem value="10">10</SelectItem>
-                            <SelectItem value="20">20</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
                       <Button
                         variant="outline"
                         size="sm"
@@ -612,11 +613,17 @@ export default function AdminDashboard() {
             </Card>
 
             {/* System Status */}
-            <Card className="border-border dark:border-slate-800 shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+            <Card
+              className="bg-card border border-border"
+              style={{
+                borderRadius: '12px',
+                boxShadow: '0 0 0.5px rgba(0,0,0,0.14), 0 1px 1px rgba(0,0,0,0.24)',
+              }}
+            >
               <CardHeader className="pb-3 px-6 pt-6">
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-5 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full" />
-                  <CardTitle className="text-base font-bold text-foreground dark:text-slate-100">
+                  <div className="w-1 h-5 rounded-full" style={{ background: '#00754A' }} />
+                  <CardTitle className="text-base font-bold text-foreground">
                     Trạng thái hệ thống
                   </CardTitle>
                 </div>

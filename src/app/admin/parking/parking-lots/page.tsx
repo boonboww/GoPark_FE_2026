@@ -82,22 +82,22 @@ interface Filters {
 const statusConfig: Record<ParkingLotStatus, { label: string; className: string; dot: string }> = {
   ACTIVE: {
     label: "Hoạt động",
-    className: "bg-green-100 text-green-800 border-green-200",
+    className: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
     dot: "bg-green-500",
   },
   PENDING: {
     label: "Chờ duyệt",
-    className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    className: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800",
     dot: "bg-yellow-500",
   },
   INACTIVE: {
     label: "Ngưng hoạt động",
-    className: "bg-orange-100 text-orange-800 border-orange-200",
+    className: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800",
     dot: "bg-orange-500",
   },
   CLOSED: {
     label: "Đã đóng",
-    className: "bg-red-100 text-red-800 border-red-200",
+    className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
     dot: "bg-red-500",
   },
 };
@@ -282,7 +282,7 @@ export default function ParkingLotsPage() {
   // ── Thẻ thống kê ───────────────────────────────────────────────────────────
 
   const statCards = [
-    { title: "Tổng bãi đỗ", value: parkingLotStats?.totalParkingLots.toString() || "0", icon: ParkingSquare, color: "bg-blue-600", light: "bg-blue-50 dark:bg-blue-950/20" },
+    { title: "Tổng bãi đỗ", value: parkingLotStats?.totalParkingLots.toString() || "0", icon: ParkingSquare, color: "bg-[#006241]", light: "border-[#d4e9e2]" },
     { title: "Đang hoạt động", value: parkingLotStats?.activeParkingLots.toString() || "0", icon: Activity, color: "bg-emerald-600", light: "bg-emerald-50 dark:bg-emerald-950/20" },
     { title: "Chỗ trống / Tổng chỗ đỗ", value: parkingLotStats?.availableSpacesParkingSlot || "0/0", icon: ParkingCircle, color: "bg-violet-600", light: "bg-violet-50 dark:bg-violet-950/20" },
     { title: "Đánh giá TB", value: `${parkingLotStats?.averageRating || "0.0"}`, icon: Star, color: "bg-amber-500", light: "bg-amber-50 dark:bg-amber-950/20" },
@@ -307,24 +307,24 @@ export default function ParkingLotsPage() {
     <div className="space-y-6">
 
       {/* ── Tiêu đề ───────────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl p-6 md:px-8 md:py-6 shadow-lg gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center rounded-2xl p-6 md:px-8 md:py-6 gap-4" style={{ backgroundColor: '#1E3932', boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07)' }}>
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-3" style={{ color: '#ffffff', letterSpacing: '-0.16px' }}>
             <ParkingSquare className="w-5 h-5 md:w-6 md:h-6" />
             Tất cả Bãi đỗ xe
           </h1>
-          <p className="text-primary-foreground/70 mt-1 text-xs md:text-sm">
+          <p className="mt-1 text-xs md:text-sm" style={{ color: 'rgba(255,255,255,0.70)' }}>
             Tìm thấy {filteredLots.length} bãi đỗ xe
             {usingMockData && <span className="ml-2 text-orange-300 text-[10px] md:text-xs">(Dữ liệu mẫu)</span>}
           </p>
           {error && <p className="text-red-300 text-[10px] md:text-xs mt-1">Lỗi kết nối: {error}</p>}
         </div>
         <div className="flex flex-wrap gap-2 md:gap-3">
-          <Button onClick={fetchParkingLots} size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+          <Button onClick={fetchParkingLots} size="sm" className="gap-2 text-xs transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
             <RefreshCw size={14} className="md:w-4 md:h-4" />
             Làm mới
           </Button>
-          <Button size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+          <Button size="sm" className="gap-2 text-xs transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
             <Download size={14} className="md:w-4 md:h-4" />
             Xuất Excel
           </Button>
@@ -350,7 +350,7 @@ export default function ParkingLotsPage() {
       </div>
 
       {/* ── Thanh tìm kiếm & lọc ──────────────────────────────────────────── */}
-      <div className="bg-card rounded-xl shadow-sm border border-border p-5">
+      <div className="p-5 admin-content-card">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Ô tìm kiếm */}
           <div className="relative flex-1">
@@ -398,7 +398,7 @@ export default function ParkingLotsPage() {
       </div>
 
       {/* ── Bảng danh sách bãi đỗ ──────────────────────────────────────────── */}
-      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+      <div className="overflow-hidden admin-content-card">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -412,7 +412,7 @@ export default function ParkingLotsPage() {
                 <th className="px-6 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-border">
               {paginatedLots.map((lot) => {
                 const currentStatus = lot.status.toUpperCase() as ParkingLotStatus;
                 const stConf = statusConfig[currentStatus] || statusConfig.ACTIVE;
@@ -422,7 +422,7 @@ export default function ParkingLotsPage() {
                 return (
                   <tr
                     key={lot.id}
-                    className="hover:bg-gray-200/50 transition-colors cursor-pointer"
+                    className="hover:bg-muted/50 transition-colors cursor-pointer"
                     onClick={() => openDetail(lot)}
                   >
                     {/* Thông tin bãi đỗ */}
@@ -434,7 +434,7 @@ export default function ParkingLotsPage() {
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-foreground truncate max-w-[220px]">{lot.name}</p>
-                          <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                             <MapPin size={10} className="flex-shrink-0" />
                             <span className="truncate max-w-[200px]">{lot.location}</span>
                           </p>
@@ -618,10 +618,10 @@ export default function ParkingLotsPage() {
               <div className="space-y-5 mt-2">
 
                 {/* Phần đầu — Tên + trạng thái */}
-                <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+                <div className="p-5 rounded-xl bg-gradient-to-r from-primary/10 to-muted border border-border">
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <ParkingSquare className="w-7 h-7 text-blue-600" />
+                    <div className="w-14 h-14 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                      <ParkingSquare className="w-7 h-7 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-xl font-bold text-foreground">{lot.name}</h3>
@@ -644,34 +644,34 @@ export default function ParkingLotsPage() {
 
                 {/* Thống kê nhanh */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                  <div className="text-center p-4 bg-blue-50 rounded-xl">
-                    <Car className="w-5 h-5 text-blue-600 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-blue-700">{lot.totalSpaces}</p>
-                    <p className="text-[10px] text-blue-500 uppercase font-bold tracking-wider">Tổng chỗ đỗ</p>
+                  <div className="text-center p-4 rounded-xl bg-muted">
+                    <Car className="w-5 h-5 text-blue-600 dark:text-blue-400 mx-auto mb-1" />
+                    <p className="text-2xl font-bold text-primary">{lot.totalSpaces}</p>
+                    <p className="text-[10px] text-blue-500 dark:text-blue-400 uppercase font-bold tracking-wider">Tổng chỗ đỗ</p>
                   </div>
-                  <div className="text-center p-4 bg-green-50 rounded-xl">
-                    <IconCash className="w-5 h-5 text-green-600 mx-auto mb-1" />
-                    <p className="text-lg font-bold text-green-700">
+                  <div className="text-center p-4 rounded-xl bg-muted">
+                    <IconCash className="w-5 h-5 text-green-600 dark:text-green-400 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-primary">
                       {lot.pricePerHour && lot.pricePerHour.length > 0 
                         ? formatCurrency(Math.min(...lot.pricePerHour.map(p => p.pricePerHour)))
                         : "—"}
                     </p>
-                    <p className="text-[10px] text-green-500 uppercase font-bold tracking-wider">Giá thấp nhất</p>
+                    <p className="text-[10px] text-green-500 dark:text-green-400 uppercase font-bold tracking-wider">Giá thấp nhất</p>
                   </div>
-                  <div className="text-center p-4 bg-amber-50 rounded-xl">
-                    <Star className="w-5 h-5 text-amber-600 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-amber-700">{parseFloat(lot.averageRating) > 0 ? lot.averageRating : "—"}</p>
-                    <p className="text-[10px] text-amber-500 uppercase font-bold tracking-wider">Đánh giá TB</p>
+                  <div className="text-center p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
+                    <Star className="w-5 h-5 text-amber-600 dark:text-amber-400 mx-auto mb-1" />
+                    <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">{parseFloat(lot.averageRating) > 0 ? lot.averageRating : "—"}</p>
+                    <p className="text-[10px] text-amber-500 dark:text-amber-400 uppercase font-bold tracking-wider">Đánh giá TB</p>
                   </div>
-                  <div className="text-center p-4 bg-emerald-50 rounded-xl">
-                    <TrendingUp className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
-                    <p className="text-lg font-bold text-emerald-700">{lot.totalRevenue}</p>
-                    <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-wider">Tổng doanh thu</p>
+                  <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+                    <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400">{lot.totalRevenue}</p>
+                    <p className="text-[10px] text-emerald-500 dark:text-emerald-400 uppercase font-bold tracking-wider">Tổng doanh thu</p>
                   </div>
-                  <div className="text-center p-4 bg-indigo-50 rounded-xl">
-                    <Car className="w-5 h-5 text-indigo-600 mx-auto mb-1" />
-                    <p className="text-lg font-bold text-indigo-700">{formatNumber(lot.totalBookings)}</p>
-                    <p className="text-[10px] text-indigo-500 uppercase font-bold tracking-wider">Tổng đơn đặt</p>
+                  <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
+                    <Car className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mx-auto mb-1" />
+                    <p className="text-lg font-bold text-indigo-700 dark:text-indigo-400">{formatNumber(lot.totalBookings)}</p>
+                    <p className="text-[10px] text-indigo-500 dark:text-indigo-400 uppercase font-bold tracking-wider">Tổng đơn đặt</p>
                   </div>
                 </div>
 
@@ -726,7 +726,7 @@ export default function ParkingLotsPage() {
                           <th className="px-4 py-2 text-right font-semibold text-muted-foreground">Theo ngày</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-border">
                         {lot.pricePerHour.map((price, idx) => (
                           <tr key={idx} className="hover:bg-muted/50">
                             <td className="px-4 py-2 text-foreground/80 font-medium">{price.zonename}</td>
@@ -774,7 +774,7 @@ export default function ParkingLotsPage() {
                   <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Tiện ích</h4>
                   <div className="flex flex-wrap gap-2">
                     {lot.amenities.map((item) => (
-                      <Badge key={item} variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100">
+                      <Badge key={item} variant="secondary" className="bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
                         {item}
                       </Badge>
                     ))}

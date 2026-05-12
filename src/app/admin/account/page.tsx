@@ -5,7 +5,7 @@ export default function AdminAccountPage() {
         <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
           Quản lý tài khoản Admin
         </h1>
-        <p className="text-primary-foreground/70 mt-1 text-xs md:text-sm">Quản lý người dùng và phân quyền hệ thống</p>
+        <p className="mt-1 text-xs md:text-sm" style={{ color: 'rgba(255,255,255,0.70)' }}>Quản lý người dùng và phân quyền hệ thống</p>
       </div>
       <div className="bg-card rounded-lg shadow-sm p-6">
         <p className="text-muted-foreground">

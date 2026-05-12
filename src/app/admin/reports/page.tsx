@@ -76,7 +76,7 @@ const PERIODS = [
 ];
 
 /** Màu cho biểu đồ tròn */
-const PIE_COLORS = ["#3B82F6", "#8B5CF6", "#F59E0B", "#EF4444", "#10B981", "#EC4899"];
+const PIE_COLORS = ["#006241", "#00754A", "#1E3932", "#2b5148", "#cba258", "#d4e9e2"];
 
 // ─── Dữ liệu mẫu ────────────────────────────────────────────────────────────
 
@@ -249,13 +249,13 @@ export default function RevenueReportPage() {
     <div className="space-y-6">
 
       {/* ── Tiêu đề + chọn khoảng thời gian ──────────────────────────────── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gradient-to-r from-primary via-primary/90 to-primary/80 rounded-2xl p-6 md:px-8 md:py-6 shadow-lg gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center rounded-2xl p-6 md:px-8 md:py-6 gap-4" style={{ backgroundColor: '#1E3932', boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07)' }}>
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-3" style={{ color: '#ffffff', letterSpacing: '-0.16px' }}>
             <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />
             Báo cáo Doanh thu
           </h1>
-          <p className="text-primary-foreground/70 mt-1 text-xs md:text-sm">Thống kê tổng quan doanh thu hệ thống GoPark</p>
+          <p className="mt-1 text-xs md:text-sm" style={{ color: 'rgba(255,255,255,0.70)' }}>Thống kê tổng quan doanh thu hệ thống GoPark</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
           {/* Bộ chọn khoảng thời gian */}
@@ -269,11 +269,11 @@ export default function RevenueReportPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={fetchData} size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+          <Button onClick={fetchData} size="sm" className="gap-2 text-xs transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
             <RefreshCw size={14} className="md:w-4 md:h-4" />
             Làm mới
           </Button>
-          <Button size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+          <Button size="sm" className="gap-2 text-xs transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
             <Download size={14} className="md:w-4 md:h-4" />
             Xuất báo cáo
           </Button>
@@ -290,9 +290,9 @@ export default function RevenueReportPage() {
           change={`${Number(summary.revenueGrowth) >= 0 ? "+" : ""}${Math.abs(Number(summary.revenueGrowth))}%`}
           changeType={Number(summary.revenueGrowth) >= 0 ? "positive" : "negative"}
           description="so với tháng trước"
-          iconGradient="from-blue-500 to-indigo-600"
-          bgTint="from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20"
-          borderColor="border-blue-100 dark:border-blue-900/50"
+          iconGradient="from-[#006241] to-[#00754A]"
+          bgTint="bg-card"
+          borderColor="border-border"
         />
 
         {/* Doanh thu ròng */}
@@ -301,9 +301,9 @@ export default function RevenueReportPage() {
           value={formatCompactCurrency(summary.netRevenue)}
           icon={DollarSign}
           description="Đã trừ hoàn tiền"
-          iconGradient="from-emerald-500 to-teal-600"
-          bgTint="from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20"
-          borderColor="border-emerald-100 dark:border-emerald-900/50"
+          iconGradient="from-[#1E3932] to-[#2b5148]"
+          bgTint="bg-card"
+          borderColor="border-border"
         />
 
         {/* Doanh thu hôm nay */}
@@ -313,9 +313,9 @@ export default function RevenueReportPage() {
           icon={Calendar}
           change="Hôm nay"
           changeType="positive"
-          iconGradient="from-violet-500 to-purple-600"
-          bgTint="from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20"
-          borderColor="border-violet-100 dark:border-violet-900/50"
+          iconGradient="from-[#00754A] to-[#006241]"
+          bgTint="bg-card"
+          borderColor="border-border"
         />
 
         {/* Tổng hoàn tiền */}
@@ -324,9 +324,9 @@ export default function RevenueReportPage() {
           value={formatCompactCurrency(summary.totalRefunds)}
           icon={ArrowDownRight}
           description="Các giao dịch lỗi/hủy"
-          iconGradient="from-amber-500 to-orange-600"
-          bgTint="from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20"
-          borderColor="border-amber-100 dark:border-amber-900/50"
+          iconGradient="from-[#cba258] to-[#dfc49d]"
+          bgTint="bg-card"
+          borderColor="border-border"
         />
       </div>
 
@@ -339,34 +339,34 @@ export default function RevenueReportPage() {
               <p className="text-sm text-muted-foreground mt-0.5">Biểu đồ phân tích doanh thu hệ thống trong năm</p>
             </div>
             <div className="flex items-center gap-4 text-xs">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-500" />Đặt chỗ</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-violet-500" />Gói dịch vụ</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-500" />Phạt</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: "#006241" }} />Đặt chỗ</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: "#00754A" }} />Gói dịch vụ</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: "#cba258" }} />Phạt</span>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={360}>
             <AreaChart data={monthlyRevenue} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="gradBooking" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#006241" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#006241" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gradSubscription" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#00754A" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#00754A" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="gradPenalty" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#cba258" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#cba258" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#9CA3AF" }} />
               <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}Tr`} />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="bookingRevenue" name="Đặt chỗ" stackId="1" stroke="#3B82F6" fill="url(#gradBooking)" strokeWidth={2} />
-              <Area type="monotone" dataKey="subscriptionRevenue" name="Gói dịch vụ" stackId="1" stroke="#8B5CF6" fill="url(#gradSubscription)" strokeWidth={2} />
-              <Area type="monotone" dataKey="penaltyRevenue" name="Phạt" stackId="1" stroke="#F59E0B" fill="url(#gradPenalty)" strokeWidth={2} />
+              <Area type="monotone" dataKey="bookingRevenue" name="Đặt chỗ" stackId="1" stroke="#006241" fill="url(#gradBooking)" strokeWidth={2} />
+              <Area type="monotone" dataKey="subscriptionRevenue" name="Gói dịch vụ" stackId="1" stroke="#00754A" fill="url(#gradSubscription)" strokeWidth={2} />
+              <Area type="monotone" dataKey="penaltyRevenue" name="Phạt" stackId="1" stroke="#cba258" fill="url(#gradPenalty)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
@@ -439,13 +439,14 @@ export default function RevenueReportPage() {
                 <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#9CA3AF" }} />
                 <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} tickFormatter={(v) => `${(v / 1000000).toFixed(1)}Tr`} />
                 <Tooltip formatter={(value: number) => formatCurrency(value)} labelFormatter={(label) => `Ngày ${label}`} />
-                <Bar dataKey="revenue" name="Doanh thu" fill="#3B82F6" radius={[6, 6, 0, 0]} barSize={32} />
+                <Bar dataKey="revenue" name="Doanh thu" fill="#006241" radius={[6, 6, 0, 0]} barSize={32} />
+                <Bar dataKey="revenue" name="Doanh thu" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
             {/* Tổng 7 ngày */}
             <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Tổng 7 ngày</span>
-              <span className="text-lg font-bold text-blue-600">
+              <span className="text-lg font-bold text-primary">
                 {formatCompactCurrency(dailyRevenue.reduce((s, d) => s + d.revenue, 0))}
               </span>
             </div>
@@ -486,7 +487,7 @@ export default function RevenueReportPage() {
                   {/* Doanh thu + phần trăm */}
                   <div className="text-right flex-shrink-0">
                     <p className="text-sm font-bold text-foreground">{formatCompactCurrency(lot.revenue)}</p>
-                    <p className="text-xs text-blue-600">{lot.percentage}%</p>
+                    <p className="text-xs" style={{ color: "#00754A" }}>{lot.percentage}%</p>
                   </div>
                 </div>
               ))}
@@ -541,8 +542,8 @@ export default function RevenueReportPage() {
               <p className="text-sm text-muted-foreground mt-0.5">So sánh doanh thu ròng và hoàn tiền qua từng tháng</p>
             </div>
             <div className="flex items-center gap-4 text-xs">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-500" />Doanh thu ròng</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-400" />Hoàn tiền</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: "#1E3932" }} />Doanh thu ròng</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm" style={{ background: "#c82014" }} />Hoàn tiền</span>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={300}>
@@ -551,8 +552,8 @@ export default function RevenueReportPage() {
               <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#9CA3AF" }} />
               <YAxis tick={{ fontSize: 11, fill: "#9CA3AF" }} tickFormatter={(v) => `${(v / 1000000).toFixed(0)}Tr`} />
               <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="netRevenue" name="Doanh thu ròng" stroke="#10B981" strokeWidth={3} dot={{ r: 4, fill: "#10B981" }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="refunds" name="Hoàn tiền" stroke="#F87171" strokeWidth={2} dot={{ r: 3, fill: "#F87171" }} strokeDasharray="5 5" />
+              <Line type="monotone" dataKey="netRevenue" name="Doanh thu ròng" stroke="#1E3932" strokeWidth={3} dot={{ r: 4, fill: "#10B981" }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="refunds" name="Hoàn tiền" stroke="#c82014" strokeWidth={2} dot={{ r: 3, fill: "#F87171" }} strokeDasharray="5 5" />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>
@@ -578,13 +579,13 @@ export default function RevenueReportPage() {
                   <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase">Doanh thu ròng</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-border">
                 {monthlyRevenue.map((row) => (
                   <tr key={row.month} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3 text-sm font-semibold text-foreground">{row.month}/2026</td>
-                    <td className="px-4 py-3 text-sm text-right text-blue-600">{formatCompactCurrency(row.bookingRevenue)}</td>
-                    <td className="px-4 py-3 text-sm text-right text-violet-600">{formatCompactCurrency(row.subscriptionRevenue)}</td>
-                    <td className="px-4 py-3 text-sm text-right text-amber-600">{formatCompactCurrency(row.penaltyRevenue)}</td>
+                    <td className="px-4 py-3 text-sm text-right" style={{ color: "#006241" }}>{formatCompactCurrency(row.bookingRevenue)}</td>
+                    <td className="px-4 py-3 text-sm text-right" style={{ color: "#00754A" }}>{formatCompactCurrency(row.subscriptionRevenue)}</td>
+                    <td className="px-4 py-3 text-sm text-right" style={{ color: "#cba258" }}>{formatCompactCurrency(row.penaltyRevenue)}</td>
                     <td className="px-4 py-3 text-sm text-right font-bold text-foreground">{formatCompactCurrency(row.totalRevenue)}</td>
                     <td className="px-4 py-3 text-sm text-right text-red-500">−{formatCompactCurrency(row.refunds)}</td>
                     <td className="px-4 py-3 text-sm text-right font-bold text-green-600">{formatCompactCurrency(row.netRevenue)}</td>
@@ -595,13 +596,13 @@ export default function RevenueReportPage() {
               <tfoot>
                 <tr className="bg-muted border-t-2 border-border">
                   <td className="px-4 py-3 text-sm font-bold text-foreground">Tổng cộng</td>
-                  <td className="px-4 py-3 text-sm text-right font-bold text-blue-700">
+                  <td className="px-4 py-3 text-sm text-right font-bold" style={{ color: "#006241" }}>
                     {formatCompactCurrency(monthlyRevenue.reduce((s, m) => s + m.bookingRevenue, 0))}
                   </td>
-                  <td className="px-4 py-3 text-sm text-right font-bold text-violet-700">
+                  <td className="px-4 py-3 text-sm text-right font-bold" style={{ color: "#00754A" }}>
                     {formatCompactCurrency(monthlyRevenue.reduce((s, m) => s + m.subscriptionRevenue, 0))}
                   </td>
-                  <td className="px-4 py-3 text-sm text-right font-bold text-amber-700">
+                  <td className="px-4 py-3 text-sm text-right font-bold" style={{ color: "#cba258" }}>
                     {formatCompactCurrency(monthlyRevenue.reduce((s, m) => s + m.penaltyRevenue, 0))}
                   </td>
                   <td className="px-4 py-3 text-sm text-right font-bold text-foreground">

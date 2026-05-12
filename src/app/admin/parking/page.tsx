@@ -5,7 +5,7 @@ export default function AdminParkingPage() {
         <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
           Quản lý bãi đỗ xe
         </h1>
-        <p className="text-primary-foreground/70 mt-1 text-xs md:text-sm">Quản lý và theo dõi tất cả bãi đỗ xe trong hệ thống</p>
+        <p className="mt-1 text-xs md:text-sm" style={{ color: 'rgba(255,255,255,0.70)' }}>Quản lý và theo dõi tất cả bãi đỗ xe trong hệ thống</p>
       </div>
       <div className="bg-card rounded-lg shadow-sm p-6">
         <p className="text-muted-foreground">

@@ -131,22 +131,22 @@ const statusConfig: Record<
 > = {
   PENDING: {
     label: "Chờ xử lý",
-    className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    className: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800",
     dot: "bg-yellow-50",
   },
   PROCESSING: {
     label: "Đang xử lý",
-    className: "bg-blue-100 text-blue-800 border-blue-200",
+    className: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
     dot: "bg-blue-500",
   },
   APPROVED: {
     label: "Đã duyệt",
-    className: "bg-green-100 text-green-800 border-green-200",
+    className: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
     dot: "bg-green-500",
   },
   REJECTED: {
     label: "Đã từ chối",
-    className: "bg-red-100 text-red-800 border-red-200",
+    className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
     dot: "bg-red-500",
   },
 };
@@ -497,36 +497,36 @@ export default function ApprovalsPage() {
       title: "Tổng đơn",
       value: stats.total,
       icon: ClipboardList,
-      gradient: "from-blue-500 to-indigo-600",
+      gradient: "from-[#006241] to-[#00754A]",
       bgTint:
         "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
-      border: "border-blue-100 dark:border-blue-900/50",
+      border: "border-[#d4e9e2]",
     },
     {
       title: "Chờ xử lý",
       value: stats.pending,
       icon: Clock,
-      gradient: "from-yellow-500 to-orange-500",
+      gradient: "from-[#cba258] to-[#dfc49d]",
       bgTint:
         "from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20",
-      border: "border-yellow-100 dark:border-yellow-900/50",
+      border: "border-[#d4e9e2]",
     },
     {
       title: "Từ chối",
       value: stats.rejected,
       icon: X,
-      gradient: "from-red-500 to-rose-600",
-      bgTint: "from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20",
-      border: "border-red-100 dark:border-red-900/50",
+      gradient: "from-[#c82014] to-[#e05a4a]",
+      bgTint: "bg-white",
+      border: "border-[#ffd4d4]",
     },
     {
       title: "Đã duyệt",
       value: stats.approved,
       icon: CheckCircle,
-      gradient: "from-emerald-500 to-teal-600",
+      gradient: "from-[#1E3932] to-[#2b5148]",
       bgTint:
         "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
-      border: "border-emerald-100 dark:border-emerald-900/50",
+      border: "border-[#d4e9e2]",
     },
   ];
 
@@ -550,13 +550,13 @@ export default function ApprovalsPage() {
   return (
     <div className="space-y-6">
       {/* ── Tiêu đề trang ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl p-6 md:px-8 md:py-6 shadow-lg gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center rounded-2xl p-6 md:px-8 md:py-6 gap-4" style={{ backgroundColor: '#1E3932', boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07)' }}>
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-3" style={{ color: '#ffffff', letterSpacing: '-0.16px' }}>
             <ClipboardList className="w-5 h-5 md:w-6 md:h-6" />
             Quản lý Đơn yêu cầu
           </h1>
-          <p className="text-primary-foreground/70 mt-1 text-xs md:text-sm">
+          <p className="mt-1 text-xs md:text-sm" style={{ color: 'rgba(255,255,255,0.70)' }}>
             Tiếp nhận và xử lý đơn từ người dùng & chủ bãi đỗ
           </p>
           {error && (
@@ -567,12 +567,12 @@ export default function ApprovalsPage() {
           <Button
             onClick={fetchRequests}
             size="sm"
-            className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9"
+            className="gap-2 text-xs transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}
           >
             <RefreshCw size={14} className="md:w-4 md:h-4" />
             Làm mới
           </Button>
-          <Button size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+          <Button size="sm" className="gap-2 text-xs transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
             <Download size={14} className="md:w-4 md:h-4" />
             Xuất Excel
           </Button>
@@ -597,7 +597,7 @@ export default function ApprovalsPage() {
       </div>
 
       {/* ── Thanh tìm kiếm & bộ lọc ───────────────────────────────────────── */}
-      <div className="bg-card rounded-xl shadow-sm border border-border p-5">
+      <div className="p-5 admin-content-card">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Ô tìm kiếm */}
           <div className="relative flex-1">
@@ -697,12 +697,12 @@ export default function ApprovalsPage() {
             <div
               key={request.id}
               onClick={() => openDetail(request)}
-              className="bg-card rounded-xl shadow-sm border border-border p-5 hover:shadow-md hover:bg-gray-200/50 transition-all cursor-pointer group"
+              className="bg-card rounded-xl shadow-sm border border-border p-5 hover:shadow-md hover:bg-muted/50 transition-all cursor-pointer group"
             >
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Icon loại đơn */}
                 <div
-                  className={`w-12 h-12 rounded-xl ${typeConf.bgColor} flex items-center justify-center flex-shrink-0`}
+                  className={`w-12 h-12 rounded-xl ${typeConf.bgColor} dark:bg-opacity-20 flex items-center justify-center flex-shrink-0`}
                 >
                   <TypeIcon className={`w-6 h-6 ${typeConf.color}`} />
                 </div>
@@ -741,7 +741,7 @@ export default function ApprovalsPage() {
                   </p>
 
                   {/* Dòng 3: Thông tin meta */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     {/* Người gửi */}
                     <span className="flex items-center gap-1">
                       <div

@@ -24,7 +24,8 @@ import {
   Search,
   BellDot,
   Sun,
-  Moon
+  Moon,
+  TicketPercent
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
@@ -50,9 +51,9 @@ const sidebarItems: SidebarItem[] = [
     children: [
       { title: "Khách hàng", href: "/admin/account/customers", icon: Users },
       { title: "Chủ bãi đỗ", href: "/admin/account/owners", icon: UserCheck },
-      { title: "Phê duyệt", href: "/admin/account/approvals", icon: Users, badge: "3" },
     ]
   },
+  { title: "Phê duyệt yêu cầu", href: "/admin/account/approvals", icon: Users, badge: "3" },
   {
     title: "Quản lý bãi đỗ",
     icon: MapPin,
@@ -67,15 +68,20 @@ const sidebarItems: SidebarItem[] = [
     ]
   },
   {
-    title: "Báo cáo thống kê",
-    href: "/admin/reports",
-    icon: BarChart3,
+    title: "Ưu Đãi",
+    href: "/admin/promotions",
+    icon: TicketPercent,
   },
   {
     title: "Thông Báo",
     href: "/admin/notifications",
     icon: BellDot,
-  }
+  },
+  {
+    title: "Báo cáo thống kê",
+    href: "/admin/reports",
+    icon: BarChart3,
+  },
   
 ];
 

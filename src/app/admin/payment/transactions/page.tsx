@@ -76,25 +76,25 @@ interface Filters {
 const statusConfig: Record<TransactionStatus, { label: string; className: string; dot: string; icon: typeof CheckCircle2 }> = {
   success: {
     label: "Thành công",
-    className: "bg-green-100 text-green-800 border-green-200",
+    className: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
     dot: "bg-green-500",
     icon: CheckCircle2,
   },
   pending: {
     label: "Đang xử lý",
-    className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    className: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800",
     dot: "bg-yellow-500",
     icon: Clock,
   },
   failed: {
     label: "Thất bại",
-    className: "bg-red-100 text-red-800 border-red-200",
+    className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
     dot: "bg-red-500",
     icon: XCircle,
   },
   refunded: {
     label: "Đã hoàn tiền",
-    className: "bg-blue-100 text-blue-800 border-blue-200",
+    className: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800",
     dot: "bg-blue-500",
     icon: ArrowRightLeft,
   },
@@ -494,10 +494,10 @@ export default function TransactionsPage() {
           {error && <p className="text-red-300 text-xs mt-1">Lỗi kết nối: {error}</p>}
         </div>
         <div className="flex gap-3 mt-4 sm:mt-0">
-          <Button onClick={fetchTransactions} className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2">
+          <Button onClick={fetchTransactions} className="gap-2 transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
             <RefreshCw size={16} />Làm mới
           </Button>
-          <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2">
+          <Button className="gap-2 transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
             <Download size={16} />Xuất Excel
           </Button>
         </div>
@@ -634,7 +634,7 @@ export default function TransactionsPage() {
       </div>
 
       {/* ── Bảng giao dịch ─────────────────────────────────────────────────── */}
-      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+      <div className="overflow-hidden admin-content-card">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -649,7 +649,7 @@ export default function TransactionsPage() {
                 <th className="px-5 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-10" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-border">
               {filteredTxns.map((txn) => {
                 const stConf = statusConfig[txn.status] || statusConfig.success;
                 const tConf = typeConfig[txn.type];
@@ -659,10 +659,10 @@ export default function TransactionsPage() {
                 const isOutgoing = txn.type === "refund" || txn.type === "withdrawal";
 
                 return (
-                  <tr key={txn._id} className="hover:bg-primary/5 transition-colors cursor-pointer" onClick={() => openDetail(txn)}>
+                  <tr key={txn._id} className="hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => openDetail(txn)}>
                     {/* Mã giao dịch */}
                     <td className="px-5 py-3.5">
-                      <span className="text-xs font-mono font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded">
+                      <span className="text-xs font-mono font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
                         {txn.transactionCode.split("-").slice(-1)[0]}
                       </span>
                     </td>
@@ -765,7 +765,7 @@ export default function TransactionsPage() {
               <div className="space-y-5 mt-2">
 
                 {/* Phần đầu — Số tiền & trạng thái */}
-                <div className={`p-6 rounded-xl text-center ${isOutgoing ? "bg-gradient-to-br from-red-50 to-orange-50" : "bg-gradient-to-br from-green-50 to-emerald-50"}`}>
+                <div className={`p-6 rounded-xl text-center ${isOutgoing ? "bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30" : "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30"}`}>
                   <p className={`text-4xl font-bold ${isOutgoing ? "text-red-600" : "text-green-600"}`}>
                     {isOutgoing ? "−" : "+"}{formatCurrency(selectedTxn.amount)}
                   </p>

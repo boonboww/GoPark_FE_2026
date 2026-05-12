@@ -45,77 +45,103 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* ── Starbucks-inspired Design System (DESIGN.md) ── */
+  /* Brand Green Palette */
+  --color-brand-green: #006241;          /* Starbucks Green — headings, primary signal */
+  --color-brand-green-accent: #00754A;   /* Green Accent — CTAs, filled buttons */
+  --color-brand-green-house: #1E3932;    /* House Green — feature bands, footer, header hero */
+  --color-brand-green-uplift: #2b5148;   /* Green Uplift — decorative accents */
+  --color-brand-green-light: #d4e9e2;    /* Green Light — form valid-state */
+
+  /* Canvas */
+  --color-canvas-warm: #f2f0eb;          /* Neutral Warm — primary page canvas */
+  --color-canvas-ceramic: #edebe9;       /* Ceramic — zone separators */
+  --color-canvas-cool: #f9f9f9;          /* Neutral Cool — dropdown, form-card */
+
+  /* Gold (Rewards only) */
+  --color-gold: #cba258;
+  --color-gold-light: #dfc49d;
+  --color-gold-lightest: #faf6ee;
+
+  /* Semantic */
+  --color-error: #c82014;
 }
 
 :root {
   --radius: 0.625rem;
-  /* Light Mode - Nature Theme */
-  --background: #FAFDFA;
-  --foreground: #071A01;
-  --card: #FFFFFF;
-  --card-foreground: #071A01;
-  --popover: #FFFFFF;
-  --popover-foreground: #071A01;
-  --primary: #0F4001;
-  --primary-foreground: #FFFFFF;
-  --secondary: #E2EFE0;
-  --secondary-foreground: #0F4001;
-  --muted: #E2EFE0;
-  --muted-foreground: #5C7A54;
-  --accent: #D1E5CA;
-  --accent-foreground: #0F4001;
-  --destructive: #EF4444;
-  --border: #CBE0C2;
-  --input: #CBE0C2;
-  --ring: #0F4001;
-  --chart-1: #2E5C1A;
-  --chart-2: #4CAF25;
-  --chart-3: #86C166;
-  --chart-4: #B2D2A4;
-  --chart-5: #0F4001;
-  --sidebar: #F2FAF0;
-  --sidebar-foreground: #071A01;
-  --sidebar-primary: #0F4001;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E2EFE0;
-  --sidebar-accent-foreground: #0F4001;
-  --sidebar-border: #CBE0C2;
-  --sidebar-ring: #0F4001;
+
+  /* ── Light Mode — Starbucks/Nature Inspired ── */
+  --background: #f2f0eb;               /* Neutral Warm canvas */
+  --foreground: rgba(0, 0, 0, 0.87);  /* Text Black (warm, not pure) */
+  --card: #ffffff;                     /* White card surface */
+  --card-foreground: rgba(0, 0, 0, 0.87);
+  --popover: #ffffff;
+  --popover-foreground: rgba(0, 0, 0, 0.87);
+  --primary: #006241;                  /* Starbucks Green */
+  --primary-foreground: #ffffff;
+  --secondary: #d4e9e2;               /* Green Light */
+  --secondary-foreground: #1E3932;
+  --muted: #edebe9;                   /* Ceramic */
+  --muted-foreground: rgba(0, 0, 0, 0.58); /* Text Black Soft */
+  --accent: #d4e9e2;
+  --accent-foreground: #006241;
+  --destructive: #c82014;             /* Red — error/destructive */
+  --border: #d6dbde;                  /* Input Border */
+  --input: #d6dbde;
+  --ring: #00754A;                    /* Green Accent for focus rings */
+
+  /* Charts — Green tier system */
+  --chart-1: #006241;
+  --chart-2: #00754A;
+  --chart-3: #1E3932;
+  --chart-4: #d4e9e2;
+  --chart-5: #2b5148;
+
+  /* Sidebar */
+  --sidebar: #edebe9;                 /* Ceramic sidebar bg */
+  --sidebar-foreground: rgba(0, 0, 0, 0.87);
+  --sidebar-primary: #006241;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #d4e9e2;
+  --sidebar-accent-foreground: #1E3932;
+  --sidebar-border: #d6dbde;
+  --sidebar-ring: #00754A;
 }
 
 .dark {
-  /* Dark Mode - Nature Theme */
+  /* ── Dark Mode ── */
   --background: #051201;
-  --foreground: #EBF5E8;
+  --foreground: rgba(255, 255, 255, 0.92);
   --card: #0A1F02;
-  --card-foreground: #EBF5E8;
+  --card-foreground: rgba(255, 255, 255, 0.92);
   --popover: #0A1F02;
-  --popover-foreground: #EBF5E8;
-  --primary: #0F4001;
-  --primary-foreground: #FFFFFF;
+  --popover-foreground: rgba(255, 255, 255, 0.92);
+  --primary: #00754A;                  /* Green Accent as primary in dark */
+  --primary-foreground: #ffffff;
   --secondary: #163606;
-  --secondary-foreground: #EBF5E8;
+  --secondary-foreground: rgba(255, 255, 255, 0.92);
   --muted: #163606;
-  --muted-foreground: #8B9E83;
+  --muted-foreground: rgba(255, 255, 255, 0.70); /* Text White Soft */
   --accent: #1C4508;
-  --accent-foreground: #FFFFFF;
-  --destructive: #EF4444;
+  --accent-foreground: #ffffff;
+  --destructive: #c82014;
   --border: #163606;
   --input: #163606;
-  --ring: #4CAF25;
-  --chart-1: #4CAF25;
-  --chart-2: #86C166;
-  --chart-3: #B2D2A4;
-  --chart-4: #D8EACF;
-  --chart-5: #2E5C1A;
+  --ring: #00754A;
+  --chart-1: #00754A;
+  --chart-2: #006241;
+  --chart-3: #d4e9e2;
+  --chart-4: #1E3932;
+  --chart-5: #2b5148;
   --sidebar: #071701;
-  --sidebar-foreground: #EBF5E8;
-  --sidebar-primary: #0F4001;
-  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-foreground: rgba(255, 255, 255, 0.92);
+  --sidebar-primary: #00754A;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #163606;
-  --sidebar-accent-foreground: #EBF5E8;
+  --sidebar-accent-foreground: rgba(255, 255, 255, 0.92);
   --sidebar-border: #163606;
-  --sidebar-ring: #4CAF25;
+  --sidebar-ring: #00754A;
 }
 
 @layer base {
@@ -124,9 +150,21 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    letter-spacing: -0.01em;
   }
   button {
     @apply cursor-pointer;
+  }
+  h1 {
+    color: #006241; /* Starbucks Green for h1 */
+    font-weight: 600;
+    letter-spacing: -0.16px;
+  }
+  h2 {
+    color: rgba(0, 0, 0, 0.87); /* Text Black for h2 */
+    font-weight: 400;
+    letter-spacing: -0.16px;
   }
   .maplibregl-popup-content {
     @apply bg-transparent! shadow-none! p-0! rounded-none!;
@@ -152,10 +190,132 @@
   .rotate-y-180 {
     transform: rotateY(180deg);
   }
+
+  /* ── Starbucks Design Utilities ── */
+
+  /* Page canvas (warm cream) */
+  .bg-canvas-warm { background-color: #f2f0eb; }
+  .bg-canvas-ceramic { background-color: #edebe9; }
+
+  /* Feature Band (House Green) */
+  .bg-house-green { background-color: #1E3932; }
+  .bg-brand-green { background-color: #006241; }
+  .bg-brand-accent { background-color: #00754A; }
+  .bg-brand-teal-deep { background-color: #1E3932; }
+
+  /* Text utilities */
+  .text-starbucks-green { color: #006241; }
+  .text-green-accent { color: #00754A; }
+  .text-house-green { color: #1E3932; }
+  .text-white-soft { color: rgba(255, 255, 255, 0.70); }
+  .text-black-soft { color: rgba(0, 0, 0, 0.58); }
+
+  /* ── Admin Page Header (House Green feature band) ── */
+  .admin-page-header {
+    background-color: #1E3932;
+    border-radius: 16px;
+    padding: 24px 32px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07);
+  }
+
+  /* ── Pill Button (50px radius, universal) ── */
+  .btn-pill {
+    border-radius: 50px;
+    transition: all 0.2s ease;
+    letter-spacing: -0.01em;
+  }
+  .btn-pill:active { transform: scale(0.95); }
+
+  /* ── Content Card ── */
+  .admin-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 0 0.5px rgba(0,0,0,0.14), 0 1px 1px rgba(0,0,0,0.24);
+  }
+
+  /* ── Stat card tint helpers ── */
+  .stat-tint-green { background: linear-gradient(135deg, #d4e9e2, #f2f0eb); }
+  .stat-tint-house { background: linear-gradient(135deg, #1E3932, #2b5148); }
 }
 
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
   }
+}
+
+/* ── Admin global overrides ── */
+/* All admin buttons use pill shape */
+.admin-pill-btn {
+  border-radius: 50px !important;
+  transition: all 0.2s ease !important;
+}
+.admin-pill-btn:active {
+  transform: scale(0.95) !important;
+}
+
+/* ── Admin content card — dark-mode aware ── */
+/* Use this class on table/filter container divs instead of style={{ background: '#ffffff' }} */
+.admin-content-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #d6dbde;
+  box-shadow: 0 0 0.5px rgba(0,0,0,0.14), 0 1px 1px rgba(0,0,0,0.24);
+}
+.dark .admin-content-card {
+  background-color: var(--card);
+  border-color: var(--border);
+}
+
+/* ── Table divider — dark-mode aware ── */
+.admin-table-divider tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+}
+.dark .admin-table-divider tbody tr {
+  border-bottom-color: var(--border);
+}
+
+/* ── Table row hover — dark-mode aware ── */
+.admin-table-row:hover {
+  background-color: rgba(209, 213, 219, 0.3);
+}
+.dark .admin-table-row:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Status badge dark mode helpers ── */
+.dark .badge-green-light {
+  background-color: rgba(0, 116, 74, 0.2) !important;
+  color: #4ade80 !important;
+  border-color: rgba(0, 116, 74, 0.3) !important;
+}
+.dark .badge-blue-light {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  color: #93c5fd !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+.dark .badge-yellow-light {
+  background-color: rgba(234, 179, 8, 0.2) !important;
+  color: #fde047 !important;
+  border-color: rgba(234, 179, 8, 0.3) !important;
+}
+.dark .badge-red-light {
+  background-color: rgba(200, 32, 20, 0.2) !important;
+  color: #f87171 !important;
+  border-color: rgba(200, 32, 20, 0.3) !important;
+}
+.dark .badge-gray-light {
+  background-color: rgba(107, 114, 128, 0.2) !important;
+  color: #9ca3af !important;
+  border-color: rgba(107, 114, 128, 0.3) !important;
+}
+.dark .badge-orange-light {
+  background-color: rgba(234, 88, 12, 0.2) !important;
+  color: #fb923c !important;
+  border-color: rgba(234, 88, 12, 0.3) !important;
+}
+.dark .badge-purple-light {
+  background-color: rgba(139, 92, 246, 0.2) !important;
+  color: #c4b5fd !important;
+  border-color: rgba(139, 92, 246, 0.3) !important;
 }

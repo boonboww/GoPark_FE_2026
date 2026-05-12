@@ -92,26 +92,26 @@ import { AdminStatCard } from "@/components/admin/AdminStatCard";
 export const statusConfig = {
   ACTIVE: {
     label: "Hoạt động",
-    className: "bg-green-100 text-green-800 border-green-200",
+    className: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
     dot: "bg-green-500",
   },
   BLOCKED: {
     label: "Đã khóa",
-    className: "bg-red-100 text-red-800 border-red-200",
+    className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
     dot: "bg-red-500",
   },
   SPENDING: {
     label: "Chưa xác thực",
-    className: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    className: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800",
     dot: "bg-yellow-500",
   }
 };
 
 const bookingStatusColors: Record<string, string> = {
-  completed: "bg-green-100 text-green-700",
-  confirmed: "bg-blue-100 text-blue-700",
-  pending: "bg-yellow-100 text-yellow-700",
-  cancelled: "bg-red-100 text-red-700",
+  completed: "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400",
+  confirmed: "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
+  pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400",
+  cancelled: "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400",
 };
 
 const bookingStatusLabels: Record<string, string> = {
@@ -350,35 +350,35 @@ const formatNumber = (num: number) => {
       value: formatNumber(stats.total),
       icon: Users,
       description: "Tổng số người dùng",
-      gradient: "from-blue-500 to-indigo-600",
-      bgTint: "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
-      border: "border-blue-100 dark:border-blue-900/50",
+      gradient: "from-[#006241] to-[#00754A]",
+      bgTint: "bg-card",
+      border: "border-border",
     },
     {
       title: "Khách hàng mới",
       value: formatNumber(stats.thisMonth),
       description: apiStats ? "Trong 7 ngày qua" : "Trong tháng này",
       icon: UserPlus,
-      gradient: "from-emerald-500 to-teal-600",
-      bgTint: "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
-      border: "border-emerald-100 dark:border-emerald-900/50",
+      gradient: "from-[#1E3932] to-[#2b5148]",
+      bgTint: "bg-white",
+      border: "border-[#d4e9e2]",
     },
     {
       title: "Đang hoạt động",
       value: formatNumber(stats.active),
       icon: UserCheck,
       description: "Tài khoản khả dụng",
-      gradient: "from-violet-500 to-purple-600",
-      bgTint: "from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20",
-      border: "border-violet-100 dark:border-violet-900/50",
+      gradient: "from-[#00754A] to-[#006241]",
+      bgTint: "bg-white",
+      border: "border-[#d4e9e2]",
     },
     {
       title: "Đã khóa",
       value: formatNumber(stats.banned),
       icon: ShieldBan,
-      gradient: "from-red-500 to-rose-600",
-      bgTint: "from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20",
-      border: "border-red-100 dark:border-red-900/50",
+      gradient: "from-[#c82014] to-[#e05a4a]",
+      bgTint: "bg-white",
+      border: "border-[#ffd4d4]",
     },
   ];
 
@@ -400,23 +400,23 @@ const formatNumber = (num: number) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl p-6 md:px-8 md:py-6 shadow-lg gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center rounded-2xl p-6 md:px-8 md:py-6 gap-4" style={{ backgroundColor: '#1E3932', boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07)' }}>
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-3" style={{ color: '#ffffff', letterSpacing: '-0.16px' }}>
             <Users className="w-5 h-5 md:w-6 md:h-6" />
             Quản lý Khách hàng
           </h1>
-          <p className="text-primary-foreground/70 mt-1 text-xs md:text-sm">
+          <p className="mt-1 text-xs md:text-sm" style={{ color: 'rgba(255,255,255,0.70)' }}>
             Tìm thấy {stats.total} khách hàng
           </p>
           {error && <p className="text-red-300 text-[10px] md:text-xs mt-1">Lỗi kết nối: {error}</p>}
         </div>
         <div className="flex flex-wrap gap-2 md:gap-3">
-          <Button onClick={fetchCustomers} size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+          <Button onClick={fetchCustomers} size="sm" className="gap-2 text-xs transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
             <RefreshCw size={14} className="md:w-4 md:h-4" />
             Làm mới
           </Button>
-          <Button size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+          <Button size="sm" className="gap-2 text-xs transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
             <Download size={14} className="md:w-4 md:h-4" />
             Xuất Excel
           </Button>
@@ -443,7 +443,7 @@ const formatNumber = (num: number) => {
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-card rounded-xl shadow-sm border border-border p-5">
+      <div className="p-5 admin-content-card">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="relative flex-1">
@@ -490,7 +490,7 @@ const formatNumber = (num: number) => {
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+      <div className="overflow-hidden admin-content-card">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -514,14 +514,14 @@ const formatNumber = (num: number) => {
                 <th className="px-6 py-4 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider w-12" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-border">
               {paginatedCustomers.map((customer) => {
                 const statusKey = (customer.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig;
                 const config = statusConfig[statusKey] || statusConfig.ACTIVE;
                 return (
                   <tr
                     key={customer.id}
-                    className="hover:bg-gray-200/50 transition-colors cursor-pointer"
+                    className="hover:bg-muted/50 transition-colors cursor-pointer"
                     onClick={() => openDetail(customer)}
                   >
                     {/* Customer info */}
@@ -558,10 +558,10 @@ const formatNumber = (num: number) => {
                     {/* Bookings count */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="bg-blue-50 rounded-lg px-3 py-1.5">
-                          <span className="text-sm font-bold text-blue-700">{customer.totalBookings}</span>
+                        <div className="rounded-lg px-3 py-1.5 bg-primary/10 dark:bg-primary/20">
+                          <span className="text-sm font-bold text-primary">{customer.totalBookings}</span>
                         </div>
-                        <span className="text-xs text-gray-400">lượt</span>
+                        <span className="text-xs text-muted-foreground">lượt</span>
                       </div>
                     </td>
                     {/* Total spent */}
@@ -704,7 +704,7 @@ const formatNumber = (num: number) => {
           {selectedCustomer && (
             <div className="space-y-6 mt-2">
               {/* Profile header */}
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-r from-primary/10 to-muted">
                 <div
                   className={`w-16 h-16 rounded-full bg-gradient-to-br ${getAvatarColor(selectedCustomer.id)} flex items-center justify-center shadow-md`}
                 >
@@ -756,15 +756,15 @@ const formatNumber = (num: number) => {
 
               {/* Stats */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="text-center p-4 bg-blue-50 rounded-xl">
-                  <Car className="w-5 h-5 text-blue-600 mx-auto mb-1" />
-                  <p className="text-2xl font-bold text-blue-700">{selectedCustomer.totalBookings}</p>
-                  <p className="text-xs text-blue-500">Tổng booking</p>
+                <div className="text-center p-4 rounded-xl bg-muted">
+                  <Car className="w-5 h-5 text-blue-600 dark:text-blue-400 mx-auto mb-1" />
+                  <p className="text-2xl font-bold text-primary">{selectedCustomer.totalBookings}</p>
+                  <p className="text-xs text-blue-500 dark:text-blue-400">Tổng booking</p>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-xl">
-                  <TrendingUp className="w-5 h-5 text-green-600 mx-auto mb-1" />
-                  <p className="text-2xl font-bold text-green-700">{formatCurrency(selectedCustomer.totalSpending)}</p>
-                  <p className="text-xs text-green-500">Đã chi tiêu</p>
+                <div className="text-center p-4 rounded-xl bg-muted">
+                  <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400 mx-auto mb-1" />
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(selectedCustomer.totalSpending)}</p>
+                  <p className="text-xs text-green-500 dark:text-green-400">Đã chi tiêu</p>
                 </div>
                 {/* <div className="text-center p-4 bg-purple-50 rounded-xl">
                   <Clock className="w-5 h-5 text-purple-600 mx-auto mb-1" />

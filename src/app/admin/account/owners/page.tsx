@@ -348,36 +348,36 @@ export default function OwnersPage() {
       value: stats.total,
       icon: Users,
       description: "Tổng số đối tác",
-      gradient: "from-blue-500 to-indigo-600",
-      bgTint: "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
-      border: "border-blue-100 dark:border-blue-900/50",
+      gradient: "from-[#006241] to-[#00754A]",
+      bgTint: "bg-white",
+      border: "border-[#d4e9e2]",
     },
     {
       title: "Đang hoạt động",
       value: stats.active,
       icon: UserCheck,
       description: "Tài khoản khả dụng",
-      gradient: "from-emerald-500 to-teal-600",
-      bgTint: "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
-      border: "border-emerald-100 dark:border-emerald-900/50",
+      gradient: "from-[#1E3932] to-[#2b5148]",
+      bgTint: "bg-white",
+      border: "border-[#d4e9e2]",
     },
     {
       title: "Chủ bãi mới (tháng)",
       value: stats.newLastMonth,
       icon: UserPlus,
       description: "Đăng ký trong tháng",
-      gradient: "from-violet-500 to-purple-600",
-      bgTint: "from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20",
-      border: "border-violet-100 dark:border-violet-900/50",
+      gradient: "from-[#00754A] to-[#006241]",
+      bgTint: "bg-white",
+      border: "border-[#d4e9e2]",
     },
     {
       title: "Đã bị khóa",
       value: stats.blocked,
       icon: ShieldBan,
       description: "Vi phạm quy định",
-      gradient: "from-red-500 to-rose-600",
+      gradient: "from-[#c82014] to-[#e05a4a]",
       bgTint: "from-red-50 to-rose-50 dark:from-red-950/20 dark:to-red-950/20",
-      border: "border-red-100 dark:border-red-900/50",
+      border: "border-[#ffd4d4]",
     },
   ];
 
@@ -400,23 +400,23 @@ export default function OwnersPage() {
     <div className="space-y-6">
 
       {/* ── Tiêu đề trang & nút hành động ──────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl p-6 md:px-8 md:py-6 shadow-lg gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center rounded-2xl p-6 md:px-8 md:py-6 gap-4" style={{ backgroundColor: '#1E3932', boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07)' }}>
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-3" style={{ color: '#ffffff', letterSpacing: '-0.16px' }}>
             <Users className="w-5 h-5 md:w-6 md:h-6" />
             Quản lý Chủ bãi đỗ
           </h1>
-          <p className="text-primary-foreground/70 mt-1 text-xs md:text-sm">
+          <p className="mt-1 text-xs md:text-sm" style={{ color: 'rgba(255,255,255,0.70)' }}>
             Tìm thấy {filteredOwners.length} chủ bãi đỗ 
           </p>
           {error && <p className="text-red-300 text-[10px] md:text-xs mt-1">Lỗi kết nối: {error}</p>}
         </div>
         <div className="flex flex-wrap gap-2 md:gap-3">
-          <Button onClick={fetchOwners} size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+          <Button onClick={fetchOwners} size="sm" className="gap-2 text-xs transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
             <RefreshCw size={14} className="md:w-4 md:h-4" />
             Làm mới
           </Button>
-          <Button size="sm" className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2 text-xs h-8 md:h-9">
+          <Button size="sm" className="gap-2 text-xs transition-all duration-200 active:scale-95" style={{ borderRadius: '50px', background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.25)' }}>
             <Download size={14} className="md:w-4 md:h-4" />
             Xuất Excel
           </Button>
@@ -443,7 +443,7 @@ export default function OwnersPage() {
       </div>
 
       {/* ── Thanh tìm kiếm & bộ lọc ───────────────────────────────────────── */}
-      <div className="bg-card rounded-xl shadow-sm border border-border p-5">
+      <div className="p-5 admin-content-card">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Ô tìm kiếm */}
           <div className="relative flex-1">
@@ -490,7 +490,7 @@ export default function OwnersPage() {
       </div>
 
       {/* ── Bảng danh sách chủ bãi đỗ ──────────────────────────────────────── */}
-      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+      <div className="overflow-hidden admin-content-card">
         <div className="overflow-x-auto">
           <table className="w-full">
             {/* Tiêu đề bảng */}
@@ -519,14 +519,14 @@ export default function OwnersPage() {
             </thead>
 
             {/* Nội dung bảng */}
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-border">
               {paginatedOwners.map((owner) => {
                 const statusKey = (owner.status || "ACTIVE").toUpperCase() as keyof typeof statusConfig;
                 const config = statusConfig[statusKey] || statusConfig.ACTIVE;
                 return (
                   <tr
                     key={owner.id}
-                    className="hover:bg-gray-200/50 transition-colors cursor-pointer"
+                    className="hover:bg-muted/50 transition-colors cursor-pointer"
                     onClick={() => openDetail(owner)}
                   >
                     {/* Thông tin chủ bãi */}
@@ -587,8 +587,8 @@ export default function OwnersPage() {
                     {/* Tổng số booking */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="bg-blue-50 rounded-lg px-3 py-1.5">
-                          <span className="text-sm font-bold text-blue-700">{owner.totalBookings}</span>
+                        <div className="rounded-lg px-3 py-1.5" style={{ background: "#d4e9e2" }}>
+                          <span className="text-sm font-bold" style={{ color: "#006241" }}>{owner.totalBookings}</span>
                         </div>
                         <span className="text-xs text-gray-400">lượt</span>
                       </div>
@@ -790,14 +790,14 @@ export default function OwnersPage() {
                   <p className="text-2xl font-bold text-violet-700">{selectedOwner.totalParkingLots}</p>
                   <p className="text-xs text-violet-500">Bãi đỗ xe</p>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-xl">
+                <div className="text-center p-4 rounded-xl" style={{ background: "#d4e9e2" }}>
                   <TrendingUp className="w-5 h-5 text-green-600 mx-auto mb-1" />
                   <p className="text-lg font-bold text-green-700">{selectedOwner.totalRevenue}</p>
                   <p className="text-xs text-green-500">Doanh thu</p>
                 </div>
-                <div className="text-center p-4 bg-blue-50 rounded-xl">
+                <div className="text-center p-4 rounded-xl" style={{ background: "#f2f0eb" }}>
                   <Car className="w-5 h-5 text-blue-600 mx-auto mb-1" />
-                  <p className="text-2xl font-bold text-blue-700">{selectedOwner.totalBookings}</p>
+                  <p className="text-2xl font-bold" style={{ color: "#006241" }}>{selectedOwner.totalBookings}</p>
                   <p className="text-xs text-blue-500">Tổng booking</p>
                 </div>
               </div>

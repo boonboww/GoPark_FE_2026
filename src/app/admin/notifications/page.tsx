@@ -55,9 +55,9 @@ import { AdminStatCard } from "@/components/admin/AdminStatCard";
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const typeConfig: Record<string, { label: string; color: string; bgColor: string; icon: string }> = {
-  PROMOTION: { label: "Khuyến mãi", color: "text-purple-700", bgColor: "bg-purple-50 border-purple-200", icon: "🎉" },
-  ALERT: { label: "Cảnh báo", color: "text-amber-700", bgColor: "bg-amber-50 border-amber-200", icon: "⚠️" },
-  REMINDER: { label: "Nhắc nhở", color: "text-blue-700", bgColor: "bg-blue-50 border-blue-200", icon: "⏰" },
+  PROMOTION: { label: "Khuyến mãi", color: "text-purple-700 dark:text-purple-400", bgColor: "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800", icon: "🎉" },
+  ALERT: { label: "Cảnh báo", color: "text-amber-700 dark:text-amber-400", bgColor: "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800", icon: "⚠️" },
+  REMINDER: { label: "Nhắc nhở", color: "text-blue-700 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800", icon: "⏰" },
   SYSTEM: { label: "Hệ thống", color: "text-foreground/80", bgColor: "bg-muted border-border", icon: "⚙️" },
 };
 
@@ -69,15 +69,15 @@ const targetConfig: Record<string, { label: string; color: string; bgColor: stri
 };
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  SENT: { label: "Đã gửi", color: "text-emerald-700", bg: "bg-emerald-100" },
-  sent: { label: "Đã gửi", color: "text-emerald-700", bg: "bg-emerald-100" },
-  SCHEDULED: { label: "Đã lên lịch", color: "text-blue-700", bg: "bg-blue-100" },
-  scheduled: { label: "Đã lên lịch", color: "text-blue-700", bg: "bg-blue-100" },
+  SENT: { label: "Đã gửi", color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/20" },
+  sent: { label: "Đã gửi", color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/20" },
+  SCHEDULED: { label: "Đã lên lịch", color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/20" },
+  scheduled: { label: "Đã lên lịch", color: "text-blue-700 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/20" },
   DRAFT: { label: "Bản nháp", color: "text-foreground/80", bg: "bg-muted" },
   draft: { label: "Bản nháp", color: "text-foreground/80", bg: "bg-muted" },
-  FAILED: { label: "Thất bại", color: "text-red-700", bg: "bg-red-100" },
-  failed: { label: "Thất bại", color: "text-red-700", bg: "bg-red-100" },
-  "Đã gửi": { label: "Đã gửi", color: "text-emerald-700", bg: "bg-emerald-100" },
+  FAILED: { label: "Thất bại", color: "text-red-700 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/20" },
+  failed: { label: "Thất bại", color: "text-red-700 dark:text-red-400", bg: "bg-red-100 dark:bg-red-900/20" },
+  "Đã gửi": { label: "Đã gửi", color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/20" },
 };
 
 
@@ -261,46 +261,60 @@ export default function NotificationsPage() {
       title: "Tổng thông báo",
       value: notifications.length,
       icon: Bell,
-      gradient: "from-blue-500 to-indigo-600",
-      bgTint: "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20",
-      border: "border-blue-100 dark:border-blue-900/50",
+      gradient: "from-[#006241] to-[#00754A]",
+      bgTint: "bg-card",
+      border: "border-border",
     },
     {
       title: "Đã gửi thành công",
       value: totalSent,
       icon: CheckCircle2,
-      gradient: "from-emerald-500 to-teal-600",
-      bgTint: "from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20",
-      border: "border-emerald-100 dark:border-emerald-900/50",
+      gradient: "from-[#1E3932] to-[#2b5148]",
+      bgTint: "bg-card",
+      border: "border-border",
     },
     {
       title: "Tổng người nhận",
       value: totalTargeted.toLocaleString("vi-VN"),
       icon: Users,
-      gradient: "from-violet-500 to-purple-600",
-      bgTint: "from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20",
-      border: "border-violet-100 dark:border-violet-900/50",
+      gradient: "from-[#00754A] to-[#006241]",
+      bgTint: "bg-card",
+      border: "border-border",
     },
     {
       title: "Đã đọc",
       value: totalRead.toLocaleString("vi-VN"),
       icon: Eye,
-      gradient: "from-amber-500 to-orange-600",
-      bgTint: "from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20",
-      border: "border-amber-100 dark:border-amber-900/50",
+      gradient: "from-[#cba258] to-[#dfc49d]",
+      bgTint: "bg-card",
+      border: "border-border",
     },
   ];
+
+  if(loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Đang tải dữ liệu thông báo...</p>
+        </div>
+      </div>
+    )
+  } 
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center bg-gradient-to-r from-primary via-primary/95 to-primary/90 rounded-2xl px-8 py-6 shadow-lg">
+      <div className="flex justify-between items-center rounded-2xl px-8 py-6" style={{ backgroundColor: '#1E3932', boxShadow: '0 1px 3px rgba(0,0,0,0.1), 0 2px 2px rgba(0,0,0,0.06), 0 0 2px rgba(0,0,0,0.07)' }}>
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+          <h1
+            className="text-2xl font-bold flex items-center gap-3"
+            style={{ color: '#ffffff', letterSpacing: '-0.16px' }}
+          >
             <Megaphone className="w-6 h-6" />
             Quản lý Thông báo
           </h1>
-          <p className="text-primary-foreground/70 mt-1 text-sm">
+          <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.70)' }}>
             Tạo và quản lý thông báo gửi đến người dùng
           </p>
         </div>
@@ -310,7 +324,7 @@ export default function NotificationsPage() {
               resetForm();
               setIsCreateOpen(true);
             }}
-            className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm shadow-none gap-2"
+            className="bg-white text-primary hover:bg-white/90 shadow-sm gap-2 font-semibold"
           >
             <BellPlus className="w-4 h-4" />
             Tạo thông báo
@@ -448,7 +462,7 @@ export default function NotificationsPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-border">
                 {paginatedNotifications.map((notif: SentNotification) => {
                   const tc = typeConfig[notif.type] || typeConfig.SYSTEM;
                   const sc = statusConfig[notif.status] || statusConfig.sent;
@@ -460,7 +474,7 @@ export default function NotificationsPage() {
                   return (
                     <tr
                       key={notif.id}
-                      className="hover:bg-gray-200/50 transition-colors cursor-pointer group"
+                      className="hover:bg-muted/50 transition-colors cursor-pointer group"
                       onClick={() => {
                         setSelectedNotification(notif);
                         setIsDetailOpen(true);
@@ -474,7 +488,7 @@ export default function NotificationsPage() {
                             <p className="text-sm font-semibold text-foreground truncate">
                               {notif.title}
                             </p>
-                            <p className="text-xs text-gray-400 truncate mt-0.5">
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
                               {notif.content}
                             </p>
                           </div>
@@ -984,8 +998,8 @@ export default function NotificationsPage() {
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="w-5 h-5 text-blue-600" />
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <Eye className="w-5 h-5 text-green-600" />
               Chi tiết thông báo
             </DialogTitle>
           </DialogHeader>
