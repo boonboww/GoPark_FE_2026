@@ -29,7 +29,23 @@ const WELCOME_MSG: Message = {
 function speakText(text: string, onEnd?: () => void) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const clean = text.replace(/[🔹🔸💰⭐📅📋💳🚗❓🔍✅❌⚠️💡📊📈🏆🎉👤🏢\*#]/gu, "").trim();
+
+  // Convert số tiền sang chữ tiếng Việt để đọc tự nhiên
+  const convertMoney = (t: string) =>
+    t.replace(/(\d[\d,.]*)đ/g, (_, num) => {
+      const n = parseInt(num.replace(/[,.]/g, ""), 10);
+      if (isNaN(n)) return num + " đồng";
+      if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(".0","") + " tỷ đồng";
+      if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(".0","") + " triệu đồng";
+      if (n >= 1_000) return (n / 1_000).toFixed(0) + " nghìn đồng";
+      return n + " đồng";
+    });
+
+  const clean = convertMoney(text)
+    .replace(/[🔹🔸💰⭐📅📋💳🚗❓🔍✅❌⚠️💡📊📈🏆🎉👤🏢\*#\*\*]/gu, "")
+    .replace(/\*\*/g, "")
+    .trim();
+
   const utt = new SpeechSynthesisUtterance(clean);
   utt.lang = "vi-VN"; utt.rate = 1.05; utt.pitch = 1;
   const voices = window.speechSynthesis.getVoices();
@@ -67,6 +83,7 @@ export default function UserChatbot() {
   const [hasUnread, setHasUnread] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+  const [userVehicles, setUserVehicles] = useState<any[]>([]);
 
   // Draggable / resizable state
   const [panelPos, setPanelPos] = useState<{ right: number; bottom: number }>({ right: 24, bottom: 24 });
@@ -235,6 +252,28 @@ export default function UserChatbot() {
     return () => clearInterval(t);
   }, [checkStatus]);
 
+  // Fetch danh sách xe của user
+  useEffect(() => {
+    if (!accessToken) return;
+    fetch(`${API_BASE_URL}/chatbot/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+      body: JSON.stringify({ messages: [{ role: "user", content: "xe cua toi" }] }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        // Parse danh sách xe từ text response
+        const text: string = data?.data?.text || "";
+        const lines = text.split("\n").filter(l => /^\d+\./.test(l.trim()));
+        const vehicles = lines.map((l, i) => {
+          const match = l.match(/\d+\.\s*(.+?)\s*\((.+?)\)/);
+          return match ? { label: `🚗 Xe ${i+1}: ${match[1]}`, msg: `xe ${i+1}` } : null;
+        }).filter(Boolean);
+        setUserVehicles(vehicles as any[]);
+      })
+      .catch(() => {});
+  }, [accessToken]);
+
   async function sendMessage(text?: string) {
     const content = (text ?? input).trim();
     if (!content || loading) return;
@@ -266,10 +305,15 @@ export default function UserChatbot() {
         setMessages([...messagesRef.current, msg]); messagesRef.current = [...messagesRef.current, msg];
         setLoading(false); return;
       }
-      if (response?.action === "redirect" && response?.redirectUrl) {
-        const msg: Message = { role: "assistant", content: response.message || "🔄 Đang chuyển sang trang đặt chỗ..." };
+      // Xử lý redirect - check cả data.action và action (BE có thể trả ở 2 chỗ)
+      const redirectAction = response?.data?.action === "redirect" ? response.data : (response?.action === "redirect" ? response : null);
+      if (redirectAction) {
+        const redirectUrl = redirectAction.redirectUrl || redirectAction.data?.url;
+        const redirectMsg = redirectAction.text || redirectAction.message || "🔄 Đang chuyển sang trang đặt chỗ...";
+        const msg: Message = { role: "assistant", content: redirectMsg };
         setMessages([...messagesRef.current, msg]); messagesRef.current = [...messagesRef.current, msg];
-        setTimeout(() => { window.location.href = response.redirectUrl; }, 1500);
+        if (voiceModeRef.current) speakText(redirectMsg);
+        setTimeout(() => { if (redirectUrl) window.location.href = redirectUrl; }, 1800);
         setLoading(false); return;
       }
       const text2 = response?.data?.text || response?.text || response?.message || "Không có phản hồi";
@@ -646,6 +690,12 @@ export default function UserChatbot() {
               <div className="uc-chips">
                 {QUICK_CHIPS.map(label => (
                   <button key={label} className="uc-chip" onClick={() => sendMessage(label)}>{label}</button>
+                ))}
+                {userVehicles.length > 0 && userVehicles.map((v: any) => (
+                  <button key={v.msg} className="uc-chip" style={{ borderColor: "rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.12)" }}
+                    onClick={() => sendMessage(`đặt bãi với ${v.msg}`)}>
+                    {v.label}
+                  </button>
                 ))}
               </div>
             </div>
