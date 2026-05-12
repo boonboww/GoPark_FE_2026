@@ -71,12 +71,7 @@ export default function UserChatbot() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const { accessToken, user } = useAuthStore();
-  const [messages, setMessages] = useState<Message[]>(() => {
-    try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem("gopark_user_chat") : null;
-      return raw ? JSON.parse(raw) : [WELCOME_MSG];
-    } catch { return [WELCOME_MSG]; }
-  });
+  const [messages, setMessages] = useState<Message[]>([WELCOME_MSG]);
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState<Status>("unknown");
@@ -84,6 +79,11 @@ export default function UserChatbot() {
   const [voiceMode, setVoiceMode] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [userVehicles, setUserVehicles] = useState<any[]>([]);
+
+  // Session management
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [showSessions, setShowSessions] = useState(false);
 
   // Draggable / resizable state
   const [panelPos, setPanelPos] = useState<{ right: number; bottom: number }>({ right: 24, bottom: 24 });
@@ -105,7 +105,6 @@ export default function UserChatbot() {
   useEffect(() => { voiceStateRef.current = voiceState; }, [voiceState]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") localStorage.setItem("gopark_user_chat", JSON.stringify(messages));
     window.requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }));
     if (!open && messages[messages.length - 1]?.role === "assistant") setHasUnread(true);
   }, [messages]);
@@ -262,7 +261,6 @@ export default function UserChatbot() {
     })
       .then(r => r.json())
       .then(data => {
-        // Parse danh sách xe từ text response
         const text: string = data?.data?.text || "";
         const lines = text.split("\n").filter(l => /^\d+\./.test(l.trim()));
         const vehicles = lines.map((l, i) => {
@@ -274,6 +272,93 @@ export default function UserChatbot() {
       .catch(() => {});
   }, [accessToken]);
 
+  // Session functions
+  const loadSessions = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const r = await fetch(`${API_BASE_URL}/chatbot/sessions`, {
+        headers: { "Authorization": `Bearer ${accessToken}` },
+      });
+      const data = await r.json();
+      setSessions(data?.data || []);
+    } catch {}
+  }, [accessToken]);
+
+  const createNewSession = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const r = await fetch(`${API_BASE_URL}/chatbot/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
+        body: JSON.stringify({ title: `Cuộc trò chuyện ${new Date().toLocaleString("vi-VN")}` }),
+      });
+      const data = await r.json();
+      const newSession = data?.data;
+      if (newSession?.id) {
+        setCurrentSessionId(newSession.id);
+        setMessages([WELCOME_MSG]);
+        messagesRef.current = [WELCOME_MSG];
+        setSessions(prev => [newSession, ...prev]);
+        setShowSessions(false);
+      }
+    } catch {}
+  }, [accessToken]);
+
+  const loadSessionMessages = useCallback(async (sessionId: string) => {
+    if (!accessToken) return;
+    try {
+      const r = await fetch(`${API_BASE_URL}/chatbot/sessions/${sessionId}`, {
+        headers: { "Authorization": `Bearer ${accessToken}` },
+      });
+      const data = await r.json();
+      const session = data?.data;
+      if (session?.messages?.length) {
+        const msgs: Message[] = [
+          WELCOME_MSG,
+          ...session.messages.map((m: any) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+            type: m.type,
+            data: m.data,
+          })),
+        ];
+        setMessages(msgs);
+        messagesRef.current = msgs;
+      } else {
+        setMessages([WELCOME_MSG]);
+        messagesRef.current = [WELCOME_MSG];
+      }
+      setCurrentSessionId(sessionId);
+      setShowSessions(false);
+    } catch {}
+  }, [accessToken]);
+
+  const deleteSessionById = useCallback(async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!accessToken) return;
+    try {
+      await fetch(`${API_BASE_URL}/chatbot/sessions/${sessionId}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${accessToken}` },
+      });
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      if (currentSessionId === sessionId) {
+        setCurrentSessionId(null);
+        setMessages([WELCOME_MSG]);
+        messagesRef.current = [WELCOME_MSG];
+      }
+    } catch {}
+  }, [accessToken, currentSessionId]);
+
+  // Load sessions khi mở chatbot
+  useEffect(() => {
+    if (open && accessToken) {
+      loadSessions();
+      // Tạo session mới nếu chưa có
+      if (!currentSessionId) createNewSession();
+    }
+  }, [open, accessToken]);
+
   async function sendMessage(text?: string) {
     const content = (text ?? input).trim();
     if (!content || loading) return;
@@ -284,15 +369,18 @@ export default function UserChatbot() {
     try {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
-      // Lấy GPS nếu câu hỏi liên quan đến gần tôi
       let context: any = {};
       if (/gần|nearby|gan/i.test(content)) {
         const loc = await getUserLocation();
         if (loc) context = { userLat: loc.lat, userLng: loc.lng };
       }
-      const resp = await fetch(API_URL, {
+      // Dùng session endpoint nếu có sessionId, ngược lại dùng chat thường
+      const url = currentSessionId
+        ? `${API_BASE_URL}/chatbot/sessions/${currentSessionId}/chat`
+        : API_URL;
+      const resp = await fetch(url, {
         method: "POST", headers,
-        body: JSON.stringify({ messages: messagesRef.current.filter(m => m.role === "user"), context }),
+        body: JSON.stringify({ messages: [{ role: "user", content }], context }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const response = await resp.json();
@@ -366,7 +454,9 @@ export default function UserChatbot() {
 
   function clearHistory() {
     setMessages([WELCOME_MSG]);
-    if (typeof window !== "undefined") localStorage.removeItem("gopark_user_chat");
+    messagesRef.current = [WELCOME_MSG];
+    // Tạo session mới thay vì xóa
+    if (accessToken) createNewSession();
   }
   function removeMessage(index: number) {
     setMessages(prev => { const u = prev.filter((_, i) => i !== index); messagesRef.current = u; return u; });
@@ -582,6 +672,22 @@ export default function UserChatbot() {
         .uc-wave span:nth-child(3){animation-delay:.3s;height:14px;}
         .uc-wave span:nth-child(4){animation-delay:.15s;height:10px;}
         .uc-wave span:nth-child(5){animation-delay:0s;height:6px;}
+        /* Sessions panel */
+        .uc-sessions-overlay { position:absolute; inset:0; background:#070f1c; z-index:10; display:flex; flex-direction:column; border-radius:20px; overflow:hidden; }
+        .uc-sessions-hdr { padding:12px 14px; background:linear-gradient(160deg,#022c1a,#053d28); border-bottom:1px solid rgba(34,197,94,0.14); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+        .uc-sessions-title { font-size:14px; font-weight:700; color:#f0fdf4; }
+        .uc-sessions-list { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px; }
+        .uc-sessions-list::-webkit-scrollbar { width:4px; }
+        .uc-sessions-list::-webkit-scrollbar-thumb { background:rgba(34,197,94,.3); border-radius:4px; }
+        .uc-session-item { display:flex; align-items:center; gap:8px; padding:10px 12px; background:rgba(255,255,255,.04); border:1px solid rgba(34,197,94,.1); border-radius:10px; cursor:pointer; transition:all 0.15s; }
+        .uc-session-item:hover { background:rgba(34,197,94,.08); border-color:rgba(34,197,94,.25); }
+        .uc-session-item.active { background:rgba(34,197,94,.12); border-color:rgba(34,197,94,.4); }
+        .uc-session-info { flex:1; min-width:0; }
+        .uc-session-name { font-size:12px; font-weight:600; color:#dff5ea; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .uc-session-date { font-size:10px; color:#3a6b4a; margin-top:2px; }
+        .uc-session-del { background:transparent; border:none; color:#3a6b4a; cursor:pointer; padding:3px; border-radius:4px; flex-shrink:0; }
+        .uc-session-del:hover { color:#ef4444; background:rgba(239,68,68,.1); }
+        .uc-new-session-btn { margin:10px; padding:10px; background:linear-gradient(135deg,#16a34a,#22c55e); border:none; border-radius:10px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; flex-shrink:0; }
       `}</style>
 
       <div className="uc">
@@ -593,6 +699,53 @@ export default function UserChatbot() {
           >
             {/* Resize handle (góc trên trái) */}
             <div className="uc-resize-handle" onMouseDown={onResizeMouseDown} title="Kéo để thay đổi kích thước" />
+
+            {/* Sessions overlay */}
+            {showSessions && (
+              <div className="uc-sessions-overlay">
+                <div className="uc-sessions-hdr">
+                  <span className="uc-sessions-title">💬 Lịch sử trò chuyện</span>
+                  <button className="uc-ibtn" onClick={() => setShowSessions(false)}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+                <div className="uc-sessions-list">
+                  {sessions.length === 0 && (
+                    <div style={{ textAlign: "center", color: "#3a6b4a", fontSize: 12, padding: 20 }}>
+                      Chưa có cuộc trò chuyện nào
+                    </div>
+                  )}
+                  {sessions.map(s => (
+                    <div
+                      key={s.id}
+                      className={`uc-session-item${s.id === currentSessionId ? " active" : ""}`}
+                      onClick={() => loadSessionMessages(s.id)}
+                    >
+                      <div style={{ fontSize: 16 }}>💬</div>
+                      <div className="uc-session-info">
+                        <div className="uc-session-name">{s.title}</div>
+                        <div className="uc-session-date">
+                          {new Date(s.updatedAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
+                        </div>
+                      </div>
+                      <button className="uc-session-del" onClick={e => deleteSessionById(s.id, e)} title="Xóa">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button className="uc-new-session-btn" onClick={createNewSession}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  Cuộc trò chuyện mới
+                </button>
+              </div>
+            )}
 
             {/* Header - drag handle */}
             <div className="uc-hdr uc-drag-handle" onMouseDown={onDragMouseDown}>
@@ -614,9 +767,14 @@ export default function UserChatbot() {
                     <div className="uc-dot" style={{ background: statusDot[status] }} />
                     {statusLabel[status]}
                   </div>
-                  <button className="uc-ibtn" onClick={clearHistory} title="Xóa lịch sử">
+                  <button className="uc-ibtn" title="Lịch sử chat" onClick={() => setShowSessions(true)}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </button>
+                  <button className="uc-ibtn" onClick={clearHistory} title="Cuộc trò chuyện mới">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
                   </button>
                   <button className="uc-ibtn" onClick={() => setOpen(false)} title="Đóng">
