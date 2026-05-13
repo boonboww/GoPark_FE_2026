@@ -20,7 +20,14 @@ export function useOwnerParkingLots() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const raw = res as any;
       const list = raw?.data ?? raw;
-      return (Array.isArray(list) ? list : []) as ParkingLotType[];
+      const lots = (Array.isArray(list) ? list : []) as ParkingLotType[];
+      // Chỉ lấy các bãi có status là ACTIVE hoặc OPEN (đang hoạt động)
+      // Loại bỏ các bãi PENDING (chờ duyệt)
+      return lots.filter(
+        (lot) =>
+          lot.status.toUpperCase() === "ACTIVE" ||
+          lot.status.toUpperCase() === "OPEN",
+      );
     },
   });
 }
