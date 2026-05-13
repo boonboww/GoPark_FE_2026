@@ -1,15 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { X, Maximize2, Minimize2, ChevronRight, ChevronLeft, Loader2, Route, Clock, ArrowLeft, LocateFixed, Search, MapPin, Ticket, Info, ShoppingCart } from "lucide-react"
+import { X, Maximize2, Minimize2, ChevronRight, ChevronLeft, Loader2, Route, Clock, ArrowLeft, LocateFixed, Search, MapPin, Ticket, Info, ShoppingCart, Navigation, CornerUpRight, CornerUpLeft, ArrowUp, Navigation2, CheckCircle2 } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
 import Link from "next/link"
 
 import { useConfigStore } from "@/stores/config.store"
 import { toast } from "sonner"
 
-export function ParkingList({ parkingLots = [], loading = false, onSelectLot, selectedLotId, onRouteFound, onClearRoute, isNavigating, onStartNavigation }: { parkingLots?: any[], loading?: boolean, onSelectLot?: (lot: any) => void, selectedLotId?: number, onRouteFound?: (route: any) => void, onClearRoute?: () => void, isNavigating?: boolean, onStartNavigation?: () => void }) {
+export function ParkingList({ parkingLots = [], suggestedParkingLots = [], loading = false, onSelectLot, selectedLotId, onRouteFound, onClearRoute, isNavigating, onStartNavigation }: { parkingLots?: any[], suggestedParkingLots?: any[], loading?: boolean, onSelectLot?: (lot: any) => void, selectedLotId?: number, onRouteFound?: (route: any) => void, onClearRoute?: () => void, isNavigating?: boolean, onStartNavigation?: () => void }) {
   const { locationEnabled } = useConfigStore();
   const [isOpen, setIsOpen] = useState(true);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -20,6 +22,11 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
   const [directionLot, setDirectionLot] = useState<any | null>(null);
   const [routeInfo, setRouteInfo] = useState<{distance: number, duration: number, startName: string, endName: string, steps: any[]} | null>(null);
   const [isRouting, setIsRouting] = useState(false);
+
+  // Reset trang về 1 khi danh sách bãi đỗ thay đổi (ví dụ: thực hiện search)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [parkingLots.length]);
 
   const viewMode = isFullScreen ? "grid" : "list";
   const itemsPerPage = isFullScreen ? 12 : 4; // 12 items for 3x4 grid
@@ -58,10 +65,28 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
       async (position) => {
         try {
           const { longitude, latitude } = position.coords;
-          const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${longitude},${latitude};${lot.lng},${lot.lat}?overview=full&geometries=geojson&steps=true`);
+          const mapboxToken = (window as any).mapboxgl?.accessToken || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+          
+          let url = `https://router.project-osrm.org/route/v1/driving/${longitude},${latitude};${lot.lng},${lot.lat}?overview=full&geometries=geojson&steps=true`;
+          
+          if (mapboxToken) {
+            url = `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${longitude},${latitude};${lot.lng},${lot.lat}?overview=full&geometries=geojson&steps=true&annotations=congestion,duration,distance&access_token=${mapboxToken}`;
+          }
+
+          const res = await fetch(url);
           const data = await res.json();
           if (data.routes && data.routes.length > 0) {
             const route = data.routes[0];
+            
+            // MÔ PHỎNG KẸT XE: Tạo dữ liệu ngẫu nhiên
+            let congestionData = route.annotation?.congestion;
+            if (!congestionData) {
+              const levels = ['low', 'low', 'low', 'moderate', 'heavy', 'severe'];
+              congestionData = Array.from({ length: route.geometry.coordinates.length - 1 }, () => 
+                levels[Math.floor(Math.random() * levels.length)]
+              );
+            }
+
             setRouteInfo({
               distance: route.distance,
               duration: route.duration,
@@ -70,7 +95,10 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
               steps: route.legs && route.legs[0] ? route.legs[0].steps : []
             });
             if (onRouteFound) {
-              onRouteFound({ coordinates: route.geometry.coordinates });
+              onRouteFound({ 
+                coordinates: route.geometry.coordinates,
+                congestion: congestionData
+              });
             }
           }
         } catch (error) {
@@ -113,6 +141,32 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
       </Button>
     );
   }
+
+  const getManeuverIcon = (maneuver: any) => {
+    if (!maneuver) return <Navigation2 className="w-6 h-6" />;
+    const modifier = maneuver.modifier;
+    const type = maneuver.type;
+
+    if (type === 'arrive') return <CheckCircle2 className="w-8 h-8 text-emerald-500" />;
+    if (type === 'depart') return <LocateFixed className="w-6 h-6" />;
+    
+    switch (modifier) {
+      case 'left':
+      case 'slight left':
+      case 'sharp left':
+        return <CornerUpLeft className="w-8 h-8" />;
+      case 'right':
+      case 'slight right':
+      case 'sharp right':
+        return <CornerUpRight className="w-8 h-8" />;
+      case 'uturn':
+        return <Navigation2 className="w-8 h-8 rotate-180" />;
+      case 'straight':
+        return <ArrowUp className="w-8 h-8" />;
+      default:
+        return <Navigation className="w-8 h-8" />;
+    }
+  };
 
   const getManeuverTranslation = (maneuver: any) => {
     if (!maneuver) return 'Di chuyển';
@@ -244,20 +298,78 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
 
                       {!isNavigating && onStartNavigation ? (
                         <Button 
-                          className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-6 text-lg rounded-xl shadow-lg" 
+                          className="w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-6 text-lg rounded-2xl shadow-lg shadow-emerald-500/10 group transition-all" 
                           onClick={(e) => {
                             e.stopPropagation();
                             onStartNavigation();
                           }}
                         >
-                          <LocateFixed className="w-5 h-5 mr-2" />
-                          Bắt đầu đi
+                          <LocateFixed className="w-5 h-5 mr-2 group-hover:animate-pulse" />
+                          Bắt đầu di chuyển
                         </Button>
                       ) : isNavigating ? (
-                        <div className="mt-4 p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400 rounded-xl text-center font-medium animate-pulse flex items-center justify-center gap-2">
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Đang điều hướng...
-                        </div>
+                        <Card className="mt-4 overflow-hidden border-2 border-primary/10 shadow-xl bg-background/80 backdrop-blur-md rounded-2xl animate-in fade-in slide-in-from-top-2 duration-500">
+                          <CardContent className="p-3">
+                            <div className="flex items-center gap-3">
+                              {/* Small Icon Box */}
+                              <div className="h-12 w-12 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/5">
+                                {getManeuverIcon(routeInfo.steps && routeInfo.steps[0] ? routeInfo.steps[0].maneuver : null)}
+                              </div>
+
+                              {/* Compact Text Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <Badge variant="destructive" className="h-4 px-1.5 text-[8px] font-black uppercase tracking-tighter rounded-sm animate-pulse">
+                                    LIVE
+                                  </Badge>
+                                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest truncate">GoPark Nav</span>
+                                </div>
+                                <h4 className="text-base font-black text-foreground leading-tight truncate">
+                                  {routeInfo.steps && routeInfo.steps[0] ? (
+                                    <>
+                                      {getManeuverTranslation(routeInfo.steps[0].maneuver)}
+                                      {routeInfo.steps[0].name && <span className="text-primary ml-1">vào {routeInfo.steps[0].name}</span>}
+                                    </>
+                                  ) : "Đang tính..."}
+                                </h4>
+                                <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground">
+                                  <span>{formatDistance(routeInfo.steps && routeInfo.steps[0] ? routeInfo.steps[0].distance : 0)}</span>
+                                  <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDuration(routeInfo.duration)}</span>
+                                </div>
+                              </div>
+
+                              {/* Tiny Control Buttons */}
+                              <div className="flex flex-col gap-1">
+                                <Button 
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onClearRoute) onClearRoute();
+                                  }}
+                                  title="Dừng"
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toast.success("Đã đến nơi!");
+                                    if (onClearRoute) onClearRoute();
+                                  }}
+                                  title="Xong"
+                                >
+                                  <CheckCircle2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
                       ) : null}
                     </>
                   ) : (
@@ -274,10 +386,91 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : parkingLots.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-20 text-center bg-white/50 dark:bg-stone-900/20 rounded-[2rem] border-2 border-dashed border-gray-200 dark:border-stone-800">
-            <Search className="h-12 w-12 text-gray-300 mb-4" />
-            <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">Không tìm thấy thông tin bãi đỗ xe</h3>
-            <p className="text-xs text-gray-500 max-w-[200px]">Hãy thử tìm kiếm với từ khóa khác hoặc thay đổi phạm vi tìm kiếm của bạn nhé.</p>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col items-center justify-center p-8 lg:p-14 text-center bg-white/50 dark:bg-stone-900/20 rounded-[2rem] border-2 border-dashed border-gray-200 dark:border-stone-800">
+              <Search className="h-12 w-12 text-gray-300 mb-4" />
+              <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">Không tìm thấy bãi đỗ nào phù hợp</h3>
+              <p className="text-xs text-gray-500 max-w-[200px]">Hãy thử tìm kiếm với từ khóa khác hoặc tham khảo các bãi đỗ gợi ý dưới đây.</p>
+            </div>
+            
+            {suggestedParkingLots && suggestedParkingLots.length > 0 && (
+              <div className="mt-4 flex flex-col gap-4">
+                <h4 className="font-bold text-sm text-gray-800 dark:text-gray-200 uppercase tracking-wider flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-emerald-500" />
+                  Bãi đỗ xe gợi ý cho bạn
+                </h4>
+                {suggestedParkingLots.map((lot) => (
+                  <div key={lot.id} className="flex justify-center w-full" id={`parking-card-suggested-${lot.id}`}>
+                    <Card 
+                      className={`overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 group flex flex-row h-40 w-full min-w-0 ${selectedLotId === lot.id ? "border-green-600 bg-green-50/5" : "border-green-900/30 dark:border-white/10 dark:bg-stone-900/40"}`}
+                      style={{ border: '2px solid #14532d', borderRadius: '1.25rem' }}
+                      onClick={() => {
+                        if (onSelectLot) onSelectLot(lot);
+                        if (isFullScreen) setShowQuickView(lot);
+                      }}
+                    >
+                      {/* Image Section */}
+                      <div className="relative w-28 sm:w-32 h-full shrink-0 overflow-hidden border-r dark:border-white/10">
+                        <img
+                          src={lot.imageUrl || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=400&h=200&q=80"}
+                          alt={lot.name}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <div className="absolute top-2 left-2 z-10">
+                          <Badge className={`${lot.available_slots > 0 ? "bg-green-600" : "bg-red-600"} text-white text-[8px] uppercase font-black py-0.5 px-1.5 border-none rounded-sm shadow-sm`}>
+                            {lot.available_slots > 0 ? "Còn chỗ" : "Hết chỗ"}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Content Section */}
+                      <CardContent className="p-3 flex-1 flex flex-col justify-between min-w-0 bg-white dark:bg-transparent">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <h3 className="font-black text-sm text-black dark:text-white truncate" title={lot.name}>
+                              {lot.name}
+                            </h3>
+                            {(lot.distanceKm !== undefined && lot.distanceKm !== null) || (lot.nearMeDistanceKm !== undefined && lot.nearMeDistanceKm !== null) || (lot.userDistanceKm !== undefined && lot.userDistanceKm !== null) ? (
+                              <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-1 py-0.5 rounded whitespace-nowrap">
+                                {formatDistance((lot.distanceKm ?? lot.nearMeDistanceKm ?? lot.userDistanceKm) * 1000)}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="text-[9px] font-medium text-gray-500 dark:text-stone-400 line-clamp-2 leading-tight" title={lot.address}>
+                            {lot.address}
+                          </p>
+                        </div>
+
+                        <div className="flex items-end justify-between gap-1 mt-1">
+                          <div className="flex flex-col">
+                            <span className="text-[8px] text-gray-400 uppercase font-black tracking-widest block">Trống</span>
+                            <div className="flex items-baseline gap-0.5">
+                              <span className="font-black text-xl text-green-600 leading-none">
+                                {lot.available_slots || 0}
+                              </span>
+                              <span className="text-gray-400 font-bold text-[10px]">/ {lot.total_slots || 0}</span>
+                            </div>
+                          </div>
+                          
+                          <Button
+                            id="get-directions-btn-suggested"
+                            variant="secondary"
+                            className="bg-gray-100 hover:bg-gray-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-black dark:text-white font-bold rounded-lg h-7 px-2 text-[9px] border-none transition-all flex items-center gap-1 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleGetDirections(lot);
+                            }}
+                          >
+                            <Route className="w-3 h-3" />
+                            Chỉ đường
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           displayedLots.map((lot) => (
@@ -311,6 +504,11 @@ export function ParkingList({ parkingLots = [], loading = false, onSelectLot, se
                       <h3 className="font-black text-sm text-black dark:text-white truncate" title={lot.name}>
                         {lot.name}
                       </h3>
+                      {(lot.distanceKm !== undefined && lot.distanceKm !== null) || (lot.nearMeDistanceKm !== undefined && lot.nearMeDistanceKm !== null) || (lot.userDistanceKm !== undefined && lot.userDistanceKm !== null) ? (
+                        <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-1 py-0.5 rounded whitespace-nowrap">
+                          {formatDistance((lot.distanceKm ?? lot.nearMeDistanceKm ?? lot.userDistanceKm) * 1000)}
+                        </span>
+                      ) : null}
                       {lot.name && lot.name.length > 20 && (
                         <button 
                           className="text-[10px] text-blue-500 hover:underline shrink-0 font-bold"

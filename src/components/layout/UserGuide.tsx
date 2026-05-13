@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { toast } from "sonner";
 import {
   HelpCircle,
   X,
@@ -8,7 +9,8 @@ import {
   Layout,
   Flag,
   ChevronRight,
-  Info
+  Info,
+  MessageCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -17,9 +19,38 @@ import { useRouter, usePathname } from "next/navigation";
 
 export function UserGuide() {
   const [showOptions, setShowOptions] = useState(false);
-  const { startTour, isTourActive } = useTourStore();
-  const router = useRouter();
   const pathname = usePathname();
+  const { startTour, isTourActive, stopTour, tourType, steps, currentStep } = useTourStore();
+  const router = useRouter();
+
+  // Tự động dừng tour nếu là 'page tour' và chuyển sang trang khác
+  React.useEffect(() => {
+    if (isTourActive && tourType === "page") {
+      stopTour();
+    }
+  }, [pathname]);
+
+  // Xử lý chuyển trang tự động cho 'Toàn bộ quy trình' (Full Tour)
+  React.useEffect(() => {
+    if (isTourActive && tourType === "full") {
+      // Khi đến bước 3 (index 2) là bắt đầu giới thiệu trong trang Profile
+      if (currentStep === 2 && pathname !== "/users/profile") {
+        router.push("/users/profile");
+      }
+      // Khi đến bước 9 (index 8) là quay về trang chủ để giới thiệu các menu khác
+      if (currentStep === 8 && pathname !== "/") {
+        router.push("/");
+      }
+    }
+
+    if (isTourActive && tourType === "booking") {
+      // Khi đến bước cuối cùng (Xem vé QR), tự động chuyển sang trang Vé-QR
+      const isLastStep = currentStep === steps.length - 1;
+      if (isLastStep && steps[currentStep]?.targetId === "header-qr-link" && pathname !== "/users/Ve-QR") {
+        router.push("/users/Ve-QR");
+      }
+    }
+  }, [currentStep, isTourActive, tourType, pathname, steps]);
 
   const handleStartFullTour = () => {
     setShowOptions(false);
@@ -74,15 +105,9 @@ export function UserGuide() {
         placement: "top" as const
       },
       {
-        targetId: "header-logo-link",
-        title: "Về trang chủ",
-        content: "Bây giờ bạn đã có xe, hãy quay lại trang chủ để bắt đầu trải nghiệm nhé!",
-        placement: "bottom" as const
-      },
-      {
         targetId: "find-parking-nav-link",
         title: "Tìm bãi đỗ xe",
-        content: "Bấm vào đây để đến trang bản đồ và bắt đầu tìm kiếm bãi đỗ xe phù hợp nhất!",
+        content: "Bây giờ bạn đã có xe, hãy bấm vào đây để đến trang bản đồ và bắt đầu tìm kiếm bãi đỗ xe phù hợp nhất!",
         placement: "bottom" as const
       }
     ];
@@ -186,6 +211,12 @@ export function UserGuide() {
         title: "Xác nhận đặt chỗ",
         content: "Cuối cùng, nhấn 'Xác nhận' để hoàn tất quy trình giữ chỗ.",
         placement: "top" as const
+      },
+      {
+        targetId: "header-qr-link",
+        title: "Xem vé QR",
+        content: "Chúc mừng! Bạn đã đặt chỗ thành công. Hãy bấm vào đây để xem mã QR của bạn bất cứ lúc nào.",
+        placement: "bottom" as const
       }
     ];
 
@@ -210,7 +241,7 @@ export function UserGuide() {
         {
           targetId: "home-nav-link",
           title: "Trang chủ",
-          content: "Quay lại màn hình chính bất cứ lúc nào để xem các bãi đỗ mới nhất.",
+          content: "Chào mừng bạn đến với GoPark! Đây là nơi cập nhật các bãi đỗ mới nhất.",
           placement: "bottom"
         },
         {
@@ -222,61 +253,37 @@ export function UserGuide() {
         {
           targetId: "header-promotions-link",
           title: "Ưu đãi hấp dẫn",
-          content: "Đừng bỏ lỡ các mã giảm giá và chương trình khuyến mãi đặc biệt từ GoPark.",
+          content: "Đừng bỏ lỡ các mã giảm giá và chương trình khuyến mãi đặc biệt.",
           placement: "bottom"
         },
         {
           targetId: "header-history-link",
           title: "Lịch sử đặt chỗ",
-          content: "Xem lại các giao dịch, trạng thái đặt chỗ và vé QR của bạn tại đây.",
+          content: "Xem lại các giao dịch và vé QR của bạn tại đây.",
           placement: "bottom"
         },
         {
           targetId: "header-notification-btn",
           title: "Trung tâm thông báo",
-          content: "Cập nhật nhanh nhất các thông báo về trạng thái đơn hàng và hệ thống.",
+          content: "Cập nhật nhanh nhất trạng thái đơn hàng và hệ thống.",
           placement: "bottom"
         },
         {
           targetId: "header-avatar-btn",
-          title: "Quản lý tài khoản",
-          content: "Truy cập hồ sơ cá nhân, nạp tiền vào ví và cài đặt tài khoản của bạn.",
+          title: "Tài khoản của bạn",
+          content: "Quản lý hồ sơ, ví tiền và cài đặt cá nhân.",
           placement: "bottom"
-        },
-        {
-          targetId: "header-profile-link",
-          title: "Thông tin cá nhân",
-          content: "Cập nhật thông tin cá nhân, số điện thoại và ảnh đại diện của bạn.",
-          placement: "left"
-        },
-        {
-          targetId: "header-wallet-link",
-          title: "Ví điện tử GoPark",
-          content: "Quản lý số dư, nạp tiền và kiểm tra lịch sử giao dịch thanh toán.",
-          placement: "left"
-        },
-        {
-          targetId: "header-chat-link",
-          title: "Trò chuyện trực tuyến",
-          content: "Liên hệ trực tiếp với chủ bãi đỗ xe để được hỗ trợ nhanh nhất.",
-          placement: "left"
-        },
-        {
-          targetId: "header-report-link",
-          title: "Báo cáo & Khiếu nại",
-          content: "Gửi phản hồi hoặc báo cáo các vấn đề gặp phải trong quá trình sử dụng dịch vụ.",
-          placement: "left"
         },
         {
           targetId: "nearby-tab-btn",
           title: "Bãi đỗ gần đây",
-          content: "Khám phá nhanh các bãi đỗ xe quanh vị trí của bạn ngay trên trang chủ.",
+          content: "Khám phá nhanh các bãi đỗ xe quanh vị trí của bạn.",
           placement: "bottom"
         },
         {
           targetId: "hero-booking-btn",
-          title: "Đặt nhanh ngay",
-          content: "Bạn có thể nhấn đặt chỗ ngay từ màn hình chính để tiết kiệm thời gian.",
+          title: "Đặt nhanh",
+          content: "Bắt đầu đặt chỗ ngay lập tức với các bãi đỗ gợi ý.",
           placement: "right"
         }
       ];
@@ -285,37 +292,31 @@ export function UserGuide() {
         {
           targetId: "top-search-input",
           title: "Tìm kiếm thông minh",
-          content: "Nhập tên bãi đỗ hoặc địa chỉ để tìm kiếm vị trí đỗ xe mong muốn.",
+          content: "Nhập địa chỉ hoặc tên bãi đỗ để tìm vị trí mong muốn.",
           placement: "bottom"
         },
         {
           targetId: "near-me-btn",
           title: "Định vị bãi đỗ",
-          content: "Hệ thống sẽ gợi ý các bãi đỗ trong bán kính bạn chọn.",
+          content: "Tìm kiếm các bãi đỗ xung quanh vị trí hiện tại của bạn.",
           placement: "bottom"
         },
         {
           targetId: "parking-list-sidebar",
           title: "Danh sách kết quả",
-          content: "Tất cả các bãi đỗ xe phù hợp sẽ được liệt kê chi tiết tại đây.",
+          content: "Các bãi đỗ phù hợp sẽ được hiển thị chi tiết tại đây.",
           placement: "right"
         },
         {
           targetId: "get-directions-btn",
-          title: "Chỉ đường thông minh",
-          content: "Bấm vào đây để hệ thống tính toán lộ trình từ vị trí của bạn đến bãi đỗ.",
+          title: "Chỉ đường",
+          content: "Tính toán lộ trình ngắn nhất đến bãi đỗ đã chọn.",
           placement: "right"
         },
         {
-          targetId: "[id^='parking-marker-']",
-          title: "Bản đồ trực quan",
-          content: "Bạn cũng có thể chọn bãi đỗ trực tiếp bằng cách nhấn vào các biểu tượng trên bản đồ.",
-          placement: "left"
-        },
-        {
           targetId: "parking-book-now-btn",
-          title: "Sẵn sàng đặt chỗ",
-          content: "Sau khi đã tìm được vị trí ưng ý, hãy nhấn 'Đặt ngay' để giữ chỗ cho phương tiện của mình.",
+          title: "Đặt chỗ ngay",
+          content: "Giữ chỗ cho phương tiện của mình sau khi tìm được vị trí ưng ý.",
           placement: "top"
         }
       ];
@@ -436,15 +437,14 @@ export function UserGuide() {
           placement: "top"
         }
       ];
-    } else {
-      steps = [
-        {
-          targetId: "home-nav-link",
-          title: "Khám phá trang",
-          content: "Chào mừng bạn đến với " + (pathname === "/" ? "Trang chủ" : pathname) + ". Hãy khám phá các tính năng tại đây.",
-          placement: "bottom"
-        }
-      ];
+    }
+
+    if (steps.length === 0) {
+      toast.info("Không có hướng dẫn cho trang này", {
+        description: "Chúng tôi đang cập nhật hướng dẫn cho tính năng này. Vui lòng quay lại sau!",
+        icon: <Info className="w-5 h-5 text-blue-500" />
+      });
+      return;
     }
 
     startTour("page", steps);
@@ -487,6 +487,13 @@ export function UserGuide() {
                     title="Toàn bộ quy trình"
                     onClick={handleStartFullTour}
                     color="text-green-600 bg-green-50 dark:bg-green-900/20"
+                  />
+                  <div className="h-px w-full bg-gray-50 dark:bg-stone-800 my-2" />
+                  <OptionButton
+                    icon={MessageCircle}
+                    title="Câu hỏi thường gặp"
+                    onClick={() => { setShowOptions(false); router.push("/users/contact"); }}
+                    color="text-purple-600 bg-purple-50 dark:bg-purple-900/20"
                   />
                 </div>
               </motion.div>

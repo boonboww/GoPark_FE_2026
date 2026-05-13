@@ -1565,6 +1565,151 @@ function MapClusterLayer<
   return null;
 }
 
+type MapTrafficRouteProps = {
+  id?: string;
+  coordinates: [number, number][];
+  congestion: string[];
+  width?: number;
+  opacity?: number;
+  onSegmentClick?: (congestion: string, point: [number, number]) => void;
+};
+
+function MapTrafficRoute({
+  id: propId,
+  coordinates,
+  congestion,
+  width = 6,
+  opacity = 1,
+  onSegmentClick,
+}: MapTrafficRouteProps) {
+  const { map, isLoaded } = useMap();
+  const autoId = useId();
+  const id = propId ?? autoId;
+  const sourceId = `traffic-route-source-${id}`;
+  const layerId = `traffic-route-layer-${id}`;
+
+  const congestionColors: Record<string, string> = {
+    'low': '#2ecc71',
+    'moderate': '#f1c40f',
+    'heavy': '#e67e22',
+    'severe': '#e74c3c',
+    'unknown': '#4285F4'
+  };
+
+  useEffect(() => {
+    if (!isLoaded || !map || coordinates.length < 2) return;
+
+    const features = [];
+    for (let i = 0; i < coordinates.length - 1; i++) {
+      features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [coordinates[i], coordinates[i+1]]
+        },
+        properties: {
+          congestion: congestion[i] || 'unknown',
+          index: i
+        }
+      });
+    }
+
+    if (!map.getSource(sourceId)) {
+      map.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: features as any
+        }
+      });
+
+      map.addLayer({
+        id: layerId,
+        type: 'line',
+        source: sourceId,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': [
+            'match',
+            ['get', 'congestion'],
+            'low', congestionColors.low,
+            'moderate', congestionColors.moderate,
+            'heavy', congestionColors.heavy,
+            'severe', congestionColors.severe,
+            congestionColors.unknown
+          ],
+          'line-width': width,
+          'line-opacity': opacity
+        }
+      });
+
+      // Thêm layer trong suốt phía trên để dễ click hơn
+      map.addLayer({
+        id: `${layerId}-hit`,
+        type: 'line',
+        source: sourceId,
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': 'transparent',
+          'line-width': width * 3,
+        }
+      });
+    } else {
+      const source = map.getSource(sourceId) as MapLibreGL.GeoJSONSource;
+      source.setData({
+        type: 'FeatureCollection',
+        features: features as any
+      });
+    }
+  }, [isLoaded, map, coordinates, congestion, sourceId, layerId, width, opacity]);
+
+  useEffect(() => {
+    if (!isLoaded || !map) return;
+
+    const hitLayerId = `${layerId}-hit`;
+
+    const handleClick = (e: any) => {
+      const feature = e.features?.[0];
+      if (feature && onSegmentClick) {
+        onSegmentClick(feature.properties.congestion, [e.lngLat.lng, e.lngLat.lat]);
+      }
+    };
+
+    const handleMouseEnter = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
+
+    const handleMouseLeave = () => {
+      map.getCanvas().style.cursor = '';
+    };
+
+    map.on('click', hitLayerId, handleClick);
+    map.on('mouseenter', hitLayerId, handleMouseEnter);
+    map.on('mouseleave', hitLayerId, handleMouseLeave);
+
+    return () => {
+      map.off('click', hitLayerId, handleClick);
+      map.off('mouseenter', hitLayerId, handleMouseEnter);
+      map.off('mouseleave', hitLayerId, handleMouseLeave);
+    };
+  }, [isLoaded, map, layerId, onSegmentClick]);
+
+  useEffect(() => {
+    return () => {
+      if (map) {
+        try {
+          const hitLayerId = `${layerId}-hit`;
+          if (map.getLayer(layerId)) map.removeLayer(layerId);
+          if (map.getLayer(hitLayerId)) map.removeLayer(hitLayerId);
+          if (map.getSource(sourceId)) map.removeSource(sourceId);
+        } catch (e) {}
+      }
+    };
+  }, [map, sourceId, layerId]);
+
+  return null;
+}
+
 export {
   Map,
   useMap,
@@ -1576,6 +1721,7 @@ export {
   MapPopup,
   MapControls,
   MapRoute,
+  MapTrafficRoute, // Export mới
   MapArea,
   MapClusterLayer,
 };

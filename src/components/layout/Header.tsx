@@ -71,10 +71,8 @@ const Header = () => {
         "header-chat-link",
         "header-report-link",
         "header-logout-btn",
-        "header-history-link",
-        "find-parking-nav-link",
-        "home-nav-link",
-        "header-promotions-link"
+        "header-history-link-dropdown", // ID mới cho link trong dropdown
+        "header-promotions-link-dropdown" // ID mới cho link trong dropdown
       ];
       
       const isInDropdown = dropdownItems.includes(targetId);
@@ -289,6 +287,7 @@ const Header = () => {
             </Link>
             <Link
               href="/users/Ve-QR"
+              id="header-qr-link"
               className="transition-colors hover:text-primary hover:font-semibold"
             >
               <Ticket className="h-5 w-5 inline-block mr-1" />

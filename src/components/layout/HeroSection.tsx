@@ -904,47 +904,35 @@ const HeroSection = () => {
 
                   {/* Thông tin & Bảng giá Card */}
                   <div className="bg-white/70 dark:bg-stone-800/70 backdrop-blur-2xl p-5 rounded-[2rem] shadow-xl border border-white/40 dark:border-white/10 flex flex-col delay-500 animate-in fade-in slide-in-from-right-8 duration-700 fill-mode-both">
-                    <h3 className="font-bold text-base mb-3 flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-blue-500" /> Thông tin nhanh
+                    <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-blue-500" /> Thông tin nhanh
                     </h3>
 
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       {currentParkingData?.amenities.map((item: any, idx: number) => (
                         <div key={`${currentIndex}-${idx}`} className="flex items-center gap-2 bg-gray-50 dark:bg-black/20 p-2 rounded-xl">
-                          <item.icon className={`w-4 h-4 ${item.color}`} />
+                          <item.icon className={`w-5 h-5 ${item.color}`} />
                           <div>
-                            <p className="text-[9px] text-gray-500 uppercase font-semibold leading-tight">{item.label}</p>
-                            <p className="text-xs font-bold leading-tight">{item.sub}</p>
+                            <p className="text-[11px] text-gray-500 uppercase font-semibold leading-tight">{item.label}</p>
+                            <p className="text-sm font-bold leading-tight">{item.sub}</p>
                           </div>
                         </div>
                       ))}
                     </div>
 
-                    <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-3 border border-emerald-100 dark:border-emerald-800/30">
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">Giá giờ đầu</span>
-                        <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300">{currentParkingData?.pricing.firstHour}</span>
-                      </div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-[11px] text-gray-600 dark:text-gray-400">Giờ tiếp theo</span>
-                        <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">{currentParkingData?.pricing.nextHour}</span>
+                    <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-xl p-4 border border-emerald-100 dark:border-emerald-800/30 gap-y-2 flex flex-col">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Giá giờ đầu</span>
+                        <span className="text-base font-bold text-emerald-800 dark:text-emerald-300">{currentParkingData?.pricing.firstHour}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-[11px] text-gray-600 dark:text-gray-400">Gửi qua đêm</span>
-                        <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">{currentParkingData?.pricing.overnight}</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">Giờ tiếp theo</span>
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{currentParkingData?.pricing.nextHour}</span>
                       </div>
-                    </div>
-
-                    {/* AI Input Area */}
-                    <div className="mt-3 bg-gray-100 dark:bg-black/30 p-1.5 rounded-xl flex items-center shadow-inner">
-                      <input
-                        type="text"
-                        placeholder="Hỏi AI về bãi đỗ..."
-                        className="bg-transparent border-none outline-none px-3 flex-1 text-xs text-gray-700 dark:text-gray-200"
-                      />
-                      <button className="w-8 h-8 rounded-lg bg-blue-500 hover:bg-blue-600 text-white flex justify-center items-center shadow-md transition">
-                        <Send className="w-3.5 h-3.5 ml-0.5" />
-                      </button>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">Gửi qua đêm</span>
+                        <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{currentParkingData?.pricing.overnight}</span>
+                      </div>
                     </div>
                   </div>
 

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { notificationService } from "@/services/notification.service";
-import { SentNotification } from "@/stores/notification.store";
+import { promotionService, Voucher, VoucherDiscountType } from "@/services/promotion.service";
 import {
   Ticket,
   Clock,
@@ -15,13 +14,15 @@ import {
   Zap,
   Gift,
   ArrowRight,
-  Info
+  Info,
+  Lock,
+  BookmarkPlus,
+  Check
 } from "lucide-react";
 import { differenceInDays, format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,23 +30,32 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
-type TabType = "all" | "my" | "expiring" | "used";
+type TabType = "all" | "my" | "eligible" | "expiring";
 
 export default function PromotionsPage() {
-  const [promotions, setPromotions] = useState<SentNotification[]>([]);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [claimedIds, setClaimedIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("all");
 
   useEffect(() => {
+    // Load claimed vouchers from localStorage
+    const saved = localStorage.getItem("gopark_claimed_vouchers");
+    if (saved) {
+      try {
+        setClaimedIds(JSON.parse(saved));
+      } catch (e) {
+        console.error("Lỗi khi tải voucher đã lưu:", e);
+      }
+    }
+
     const fetchPromotions = async () => {
       try {
-        const res = await notificationService.getForUser();
-        const filtered = (res.data || []).filter(
-          (n: SentNotification) => n.type === "PROMOTION" || n.type === "PROMOTIONAL"
-        );
-        setPromotions(filtered);
+        const data = await promotionService.getAllWithEligibility();
+        setVouchers(data || []);
       } catch (error) {
         console.error("Lỗi khi tải ưu đãi:", error);
       } finally {
@@ -56,42 +66,41 @@ export default function PromotionsPage() {
     fetchPromotions();
   }, []);
 
-  const handleClaim = async (id: string) => {
-    try {
-      await notificationService.markRead(id);
-      setPromotions(prev => prev.map(p => {
-        if (p.id === id) return { ...p, isRead: true };
-        return p;
-      }));
-    } catch (error) {
-      console.error("Lỗi khi nhận ưu đãi:", error);
-    }
+  const handleClaim = (id: string) => {
+    const newClaimedIds = [...claimedIds, id];
+    setClaimedIds(newClaimedIds);
+    localStorage.setItem("gopark_claimed_vouchers", JSON.stringify(newClaimedIds));
+    toast.success("Đã lưu ưu đãi vào kho của bạn!", {
+      description: "Bạn có thể sử dụng ưu đãi này khi đặt chỗ.",
+      icon: <Gift className="w-4 h-4 text-green-500" />
+    });
   };
 
   const filteredPromotions = useMemo(() => {
-    let list = [...promotions];
+    let list = [...vouchers];
 
     if (searchTerm) {
       list = list.filter(p =>
-        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.content?.toLowerCase().includes(searchTerm.toLowerCase())
+        p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.ineligibility_reason?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     switch (activeTab) {
       case "my":
-        return list.filter(p => p.isRead);
+        return list.filter(v => claimedIds.includes(v.id));
+      case "eligible":
+        // Hiển thị những cái dùng được nhưng CHƯA lưu (để người dùng lưu)
+        return list.filter(v => v.is_eligible && !claimedIds.includes(v.id));
       case "expiring":
-        return list.filter(p => {
-            const days = differenceInDays(new Date(), new Date(p.createdAt));
-            return days > 5 && days < 10;
+        return list.filter(v => {
+            const days = differenceInDays(new Date(v.end_time), new Date());
+            return days >= 0 && days <= 5;
         });
-      case "used":
-        return list.filter(p => differenceInDays(new Date(), new Date(p.createdAt)) >= 10);
       default:
         return list;
     }
-  }, [promotions, searchTerm, activeTab]);
+  }, [vouchers, searchTerm, activeTab, claimedIds]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-stone-950 font-sans selection:bg-green-100 selection:text-green-900">
@@ -119,7 +128,7 @@ export default function PromotionsPage() {
                         Đỉnh Cao Tại GoPark
                     </h1>
                     <p className="text-lg md:text-xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto font-medium mb-12 leading-relaxed">
-                        Khám phá hàng ngàn mã giảm giá, ưu đãi đặt chỗ và quà tặng đặc biệt dành riêng cho bạn. Đỗ xe thông minh, tiết kiệm tối đa.
+                        Lưu voucher vào kho của bạn và tận hưởng ưu đãi khi đặt chỗ đậu xe. Tiết kiệm hơn, đỗ xe thông minh hơn.
                     </p>
                 </motion.div>
 
@@ -134,7 +143,7 @@ export default function PromotionsPage() {
                         <Search className="absolute left-6 h-6 w-6 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Tìm kiếm mã giảm giá, bãi đỗ..."
+                            placeholder="Nhập mã voucher để tìm kiếm..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full h-full pl-14 pr-32 bg-transparent border-none outline-none text-gray-700 dark:text-white font-bold text-lg placeholder:text-gray-400 placeholder:font-normal"
@@ -154,9 +163,9 @@ export default function PromotionsPage() {
             <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TabType)} className="w-full md:w-auto">
                 <TabsList className="bg-transparent h-auto p-0 flex gap-2 sm:gap-6 flex-wrap justify-center md:justify-start">
                     <TabTrigger value="all" label="Tất cả" icon={Filter} active={activeTab === "all"} />
-                    <TabTrigger value="my" label="Ưu đãi của tôi" icon={Gift} active={activeTab === "my"} />
+                    <TabTrigger value="my" label="Ưu đãi của tôi" icon={Gift} active={activeTab === "my"} count={claimedIds.length} />
+                    <TabTrigger value="eligible" label="Có thể lưu" icon={Zap} active={activeTab === "eligible"} />
                     <TabTrigger value="expiring" label="Sắp hết hạn" icon={AlertCircle} active={activeTab === "expiring"} />
-                    <TabTrigger value="used" label="Đã sử dụng" icon={CheckCircle2} active={activeTab === "used"} />
                 </TabsList>
             </Tabs>
             
@@ -190,7 +199,12 @@ export default function PromotionsPage() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.4 }}
                 >
-                    <VoucherCard promo={promo} onClaim={() => handleClaim(promo.id)} isMyTab={activeTab === "my"} />
+                    <VoucherCard 
+                      voucher={promo} 
+                      isClaimed={claimedIds.includes(promo.id)}
+                      onClaim={() => handleClaim(promo.id)}
+                      showUseButton={activeTab === "my"}
+                    />
                 </motion.div>
                 ))}
             </AnimatePresence>
@@ -204,9 +218,13 @@ export default function PromotionsPage() {
             <div className="w-32 h-32 bg-gray-100 dark:bg-stone-900 rounded-[3rem] flex items-center justify-center mb-8 rotate-12">
               <Ticket className="w-16 h-16 text-gray-300" />
             </div>
-            <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-4">Không tìm thấy ưu đãi nào</h3>
+            <h3 className="text-3xl font-black text-gray-900 dark:text-white mb-4">
+              {activeTab === "my" ? "Kho ưu đãi đang trống" : "Không tìm thấy ưu đãi nào"}
+            </h3>
             <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto font-medium">
-              Bạn có thể thử đổi từ khóa tìm kiếm hoặc kiểm tra lại các danh mục khác nhé!
+              {activeTab === "my" 
+                ? "Hãy quay lại tab Tất cả để lưu những ưu đãi hấp dẫn nhất về kho của bạn nhé!"
+                : "Bạn có thể thử đổi từ khóa tìm kiếm hoặc kiểm tra lại các danh mục khác nhé!"}
             </p>
             <Button 
                 variant="outline" 
@@ -275,7 +293,7 @@ export default function PromotionsPage() {
   );
 }
 
-const TabTrigger = ({ value, label, icon: Icon, active }: { value: string; label: string; icon: any; active: boolean }) => (
+const TabTrigger = ({ value, label, icon: Icon, active, count }: { value: string; label: string; icon: any; active: boolean, count?: number }) => (
   <TabsTrigger 
     value={value} 
     className={`relative px-6 py-4 rounded-full transition-all duration-300 border-none bg-transparent group ${active ? 'text-green-600' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
@@ -283,6 +301,11 @@ const TabTrigger = ({ value, label, icon: Icon, active }: { value: string; label
     <div className="flex items-center gap-2.5 relative z-10">
         <Icon className={`w-4 h-4 transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
         <span className="font-black text-sm">{label}</span>
+        {count !== undefined && count > 0 && (
+          <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] rounded-full">
+            {count}
+          </span>
+        )}
     </div>
     {active && (
         <motion.div 
@@ -294,28 +317,47 @@ const TabTrigger = ({ value, label, icon: Icon, active }: { value: string; label
   </TabsTrigger>
 );
 
-const VoucherCard = ({ promo, onClaim, isMyTab }: { promo: SentNotification; onClaim: () => void; isMyTab: boolean }) => {
-    const daysRemaining = 30 - differenceInDays(new Date(), new Date(promo.createdAt));
-    const isExpiring = daysRemaining < 7;
+const VoucherCard = ({ 
+  voucher, 
+  isClaimed, 
+  onClaim, 
+  showUseButton,
+  setActiveTab
+}: { 
+  voucher: Voucher; 
+  isClaimed: boolean; 
+  onClaim: () => void;
+  showUseButton: boolean;
+  setActiveTab?: (val: TabType) => void;
+}) => {
+    const daysRemaining = differenceInDays(new Date(voucher.end_time), new Date());
+    const isExpiring = daysRemaining >= 0 && daysRemaining < 7;
+    const isEligible = voucher.is_eligible ?? true;
+
+    const title = voucher.discount_type === VoucherDiscountType.PERCENTAGE 
+        ? `GIẢM ${voucher.discount_value}%`
+        : `GIẢM ${Number(voucher.discount_value).toLocaleString('vi-VN')}đ`;
+
+    const description = `Áp dụng cho đơn hàng từ ${Number(voucher.min_booking_value).toLocaleString('vi-VN')}đ. ${voucher.max_discount_amount ? `Giảm tối đa ${Number(voucher.max_discount_amount).toLocaleString('vi-VN')}đ.` : ''}`;
 
     return (
         <div className="relative group">
             {/* TICKET CONTAINER */}
-            <div className="flex bg-white dark:bg-stone-900 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-stone-800 overflow-hidden h-52 group-hover:shadow-2xl group-hover:shadow-green-500/10 transition-all duration-500 group-hover:-translate-y-1">
+            <div className={`flex bg-white dark:bg-stone-900 rounded-[2.5rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-stone-800 overflow-hidden h-52 group-hover:shadow-2xl group-hover:shadow-green-500/10 transition-all duration-500 group-hover:-translate-y-1 ${!isEligible ? 'opacity-75' : ''}`}>
                 
                 {/* LEFT SIDE: VALUE/ICON */}
-                <div className={`w-32 sm:w-40 flex flex-col items-center justify-center relative overflow-hidden ${promo.isRead ? 'bg-gray-50 dark:bg-stone-800/50' : 'bg-linear-to-br from-green-600 to-emerald-500 text-white'}`}>
+                <div className={`w-32 sm:w-40 flex flex-col items-center justify-center relative overflow-hidden ${!isEligible ? 'bg-gray-200 dark:bg-stone-800 text-gray-500' : isClaimed ? 'bg-stone-900 text-white' : 'bg-linear-to-br from-green-600 to-emerald-500 text-white'}`}>
                     <div className="absolute inset-0 opacity-10 pointer-events-none">
                         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] from-white/20" />
                         <Ticket className="absolute -bottom-4 -left-4 w-24 h-24 rotate-12" />
                     </div>
                     
-                    <div className="relative z-10 flex flex-col items-center">
-                        <div className={`p-4 rounded-2xl mb-3 shadow-lg ${promo.isRead ? 'bg-white dark:bg-stone-700 text-gray-400' : 'bg-white/20 text-white backdrop-blur-sm'}`}>
-                            <Zap className="w-8 h-8 fill-current" />
+                    <div className="relative z-10 flex flex-col items-center px-2 text-center">
+                        <div className={`p-3 rounded-2xl mb-2 shadow-lg ${isClaimed ? 'bg-white/10 backdrop-blur-sm text-green-500' : isEligible ? 'bg-white/20 text-white backdrop-blur-sm' : 'bg-white dark:bg-stone-700 text-gray-400'}`}>
+                            {isClaimed ? <Check className="w-8 h-8" /> : isEligible ? <Zap className="w-8 h-8 fill-current" /> : <Lock className="w-8 h-8" />}
                         </div>
-                        <p className={`text-xs font-black uppercase tracking-tighter ${promo.isRead ? 'text-gray-400' : 'text-white/80'}`}>GoPark</p>
-                        <p className={`text-xl font-black ${promo.isRead ? 'text-gray-700 dark:text-gray-300' : 'text-white'}`}>VOUCHER</p>
+                        <p className={`text-[10px] font-black uppercase tracking-tighter ${!isEligible ? 'text-gray-400' : 'text-white/80'}`}>GoPark</p>
+                        <p className={`text-lg font-black leading-tight ${!isEligible ? 'text-gray-700 dark:text-gray-300' : 'text-white'}`}>{voucher.code}</p>
                     </div>
 
                     {/* Dotted Border */}
@@ -326,24 +368,32 @@ const VoucherCard = ({ promo, onClaim, isMyTab }: { promo: SentNotification; onC
                 <div className="flex-1 p-6 flex flex-col justify-between relative bg-white dark:bg-stone-900">
                     <div className="space-y-2">
                         <div className="flex justify-between items-start gap-2">
-                            <h4 className="font-black text-gray-900 dark:text-white leading-tight line-clamp-2 text-base group-hover:text-green-600 transition-colors">
-                                {promo.title}
+                            <h4 className={`font-black leading-tight line-clamp-2 text-base transition-colors ${isClaimed ? 'text-stone-900 dark:text-white' : 'text-gray-900 dark:text-white group-hover:text-green-600'}`}>
+                                {title}
                             </h4>
-                            {!promo.isRead && (
-                                <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0 mt-1" />
+                            {isEligible && !isClaimed && (
+                                <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse shrink-0 mt-1" />
+                            )}
+                            {isClaimed && (
+                                <div className="h-2 w-2 rounded-full bg-green-500 shrink-0 mt-1" />
                             )}
                         </div>
-                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                            {promo.content}
+                        <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed">
+                            {description}
                         </p>
+                        {!isEligible && voucher.ineligibility_reason && (
+                             <p className="text-[10px] font-bold text-red-500 mt-1 flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" /> {voucher.ineligibility_reason}
+                             </p>
+                        )}
                     </div>
 
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Clock className={`w-3.5 h-3.5 ${isExpiring ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />
                                 <span className={`text-[10px] font-black ${isExpiring ? 'text-red-500' : 'text-gray-400'}`}>
-                                    {isExpiring ? `CÒN ${daysRemaining} NGÀY` : `HSD: ${format(new Date(promo.createdAt), "dd/MM/yyyy")}`}
+                                    {daysRemaining < 0 ? 'ĐÃ HẾT HẠN' : isExpiring ? `CÒN ${daysRemaining} NGÀY` : `HSD: ${format(new Date(voucher.end_time), "dd/MM/yyyy")}`}
                                 </span>
                             </div>
                             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-gray-400 hover:text-green-600 transition-colors">
@@ -352,19 +402,33 @@ const VoucherCard = ({ promo, onClaim, isMyTab }: { promo: SentNotification; onC
                         </div>
 
                         <div className="flex items-center gap-2">
-                            {!promo.isRead ? (
-                                <Button 
-                                    onClick={(e) => { e.preventDefault(); onClaim(); }}
-                                    className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-black rounded-xl text-xs shadow-lg shadow-green-600/20 active:scale-[0.98] transition-all"
-                                >
-                                    Nhận Voucher Ngay
-                                </Button>
-                            ) : (
+                            {showUseButton && isClaimed ? (
                                 <Link href="/users/findParking" className="flex-1">
                                     <Button className="w-full h-11 bg-stone-900 dark:bg-stone-800 hover:bg-black text-white font-black rounded-xl text-xs shadow-lg active:scale-[0.98] transition-all">
                                         Sử dụng ngay <ArrowRight className="w-3.5 h-3.5 ml-2" />
                                     </Button>
                                 </Link>
+                            ) : isClaimed ? (
+                                <Button 
+                                    className="flex-1 h-11 bg-stone-900 hover:bg-black text-white font-black rounded-xl text-xs shadow-lg active:scale-[0.98] transition-all"
+                                    onClick={(e) => { e.preventDefault(); setActiveTab?.("my"); }}
+                                >
+                                    Đã lưu ưu đãi <Check className="w-3.5 h-3.5 ml-2" />
+                                </Button>
+                            ) : isEligible ? (
+                                <Button 
+                                    onClick={(e) => { e.preventDefault(); onClaim(); }}
+                                    className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-black rounded-xl text-xs shadow-lg shadow-green-600/20 active:scale-[0.98] transition-all"
+                                >
+                                    <BookmarkPlus className="w-3.5 h-3.5 mr-2" /> Lưu ưu đãi
+                                </Button>
+                            ) : (
+                                <Button 
+                                    disabled
+                                    className="flex-1 h-11 bg-gray-100 dark:bg-stone-800 text-gray-400 font-black rounded-xl text-xs border border-gray-200 dark:border-stone-700"
+                                >
+                                    Chưa đủ điều kiện
+                                </Button>
                             )}
                         </div>
                     </div>
