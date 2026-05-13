@@ -10,11 +10,14 @@ type Message = {
   data?: any;
 };
 type Status = "unknown" | "connected" | "disconnected";
-type VoiceState = "idle" | "wake-listening" | "prompted" | "question-listening" | "speaking";
+type VoiceState =
+  | "idle"
+  | "wake-listening"
+  | "prompted"
+  | "question-listening"
+  | "speaking";
 
-const OWNER_API_URL =
-  process.env.NEXT_PUBLIC_OWNER_CHATBOT_API ||
-  `${API_BASE_URL}/chatbot/owner/chat`;
+const OWNER_API_URL = `${API_BASE_URL}/chatbot/owner/chat`;
 
 const QUICK_CHIPS = [
   "📊 Doanh thu tuần này",
@@ -40,18 +43,26 @@ function speakText(text: string, onEnd?: () => void) {
     t.replace(/(\d[\d,.]*)đ/g, (_, num) => {
       const n = parseInt(num.replace(/[,.]/g, ""), 10);
       if (isNaN(n)) return num + " đồng";
-      if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(".0","") + " tỷ đồng";
-      if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(".0","") + " triệu đồng";
+      if (n >= 1_000_000_000)
+        return (n / 1_000_000_000).toFixed(1).replace(".0", "") + " tỷ đồng";
+      if (n >= 1_000_000)
+        return (n / 1_000_000).toFixed(1).replace(".0", "") + " triệu đồng";
       if (n >= 1_000) return (n / 1_000).toFixed(0) + " nghìn đồng";
       return n + " đồng";
     });
   const clean = convertMoney(text)
     .replace(/[🔹🔸💰⭐📅📋💳🚗❓🔍✅❌⚠️💡📊📈🏆🎉👤🏢]/gu, "")
-    .replace(/\*\*/g, "").trim();
+    .replace(/\*\*/g, "")
+    .trim();
   const utt = new SpeechSynthesisUtterance(clean);
-  utt.lang = "vi-VN"; utt.rate = 1.05; utt.pitch = 1;
+  utt.lang = "vi-VN";
+  utt.rate = 1.05;
+  utt.pitch = 1;
   const voices = window.speechSynthesis.getVoices();
-  const googleVi = voices.find(v => v.lang === "vi-VN" && v.name.toLowerCase().includes("google")) || voices.find(v => v.lang === "vi-VN");
+  const googleVi =
+    voices.find(
+      (v) => v.lang === "vi-VN" && v.name.toLowerCase().includes("google"),
+    ) || voices.find((v) => v.lang === "vi-VN");
   if (googleVi) utt.voice = googleVi;
   if (onEnd) utt.onend = onEnd;
   window.speechSynthesis.speak(utt);
@@ -63,9 +74,14 @@ export default function OwnerChatbot() {
   const { accessToken, user } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem("gopark_owner_chat") : null;
+      const raw =
+        typeof window !== "undefined"
+          ? localStorage.getItem("gopark_owner_chat")
+          : null;
       return raw ? JSON.parse(raw) : [WELCOME_MSG];
-    } catch { return [WELCOME_MSG]; }
+    } catch {
+      return [WELCOME_MSG];
+    }
   });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<Status>("unknown");
@@ -79,34 +95,54 @@ export default function OwnerChatbot() {
   const voiceModeRef = useRef(false);
   const voiceStateRef = useRef<VoiceState>("idle");
 
-  useEffect(() => { voiceModeRef.current = voiceMode; }, [voiceMode]);
-  useEffect(() => { voiceStateRef.current = voiceState; }, [voiceState]);
+  useEffect(() => {
+    voiceModeRef.current = voiceMode;
+  }, [voiceMode]);
+  useEffect(() => {
+    voiceStateRef.current = voiceState;
+  }, [voiceState]);
 
   useEffect(() => {
-    if (typeof window !== "undefined") localStorage.setItem("gopark_owner_chat", JSON.stringify(messages));
-    window.requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }));
-    if (!open && messages[messages.length - 1]?.role === "assistant") setHasUnread(true);
+    if (typeof window !== "undefined")
+      localStorage.setItem("gopark_owner_chat", JSON.stringify(messages));
+    window.requestAnimationFrame(() =>
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }),
+    );
+    if (!open && messages[messages.length - 1]?.role === "assistant")
+      setHasUnread(true);
   }, [messages]);
 
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
-  useEffect(() => { if (open) setHasUnread(false); }, [open]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+  useEffect(() => {
+    if (open) setHasUnread(false);
+  }, [open]);
 
   const startQuestionListener = useCallback(() => {
     const win: any = typeof window !== "undefined" ? window : {};
     const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
     if (!SR) return;
     const r = new SR();
-    r.lang = "vi-VN"; r.interimResults = false; r.continuous = false;
+    r.lang = "vi-VN";
+    r.interimResults = false;
+    r.continuous = false;
     setVoiceState("question-listening");
     r.onresult = async (ev: any) => {
-      const question = Array.from(ev.results).map((x: any) => x[0].transcript).join("").trim();
+      const question = Array.from(ev.results)
+        .map((x: any) => x[0].transcript)
+        .join("")
+        .trim();
       if (question) {
         setVoiceState("speaking");
         await sendMessageVoice(question);
       }
     };
     r.onend = () => {
-      if (voiceModeRef.current && voiceStateRef.current === "question-listening") {
+      if (
+        voiceModeRef.current &&
+        voiceStateRef.current === "question-listening"
+      ) {
         setVoiceState("wake-listening");
         startWakeListener();
       }
@@ -119,11 +155,19 @@ export default function OwnerChatbot() {
     const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
     if (!SR) return;
     const r = new SR();
-    r.lang = "vi-VN"; r.interimResults = false; r.continuous = true;
+    r.lang = "vi-VN";
+    r.interimResults = false;
+    r.continuous = true;
     r.onresult = (ev: any) => {
       const transcript = Array.from(ev.results)
-        .map((x: any) => x[0].transcript).join(" ").toLowerCase();
-      if (transcript.includes("hey gopark") || transcript.includes("hey go park") || transcript.includes("hê gopark")) {
+        .map((x: any) => x[0].transcript)
+        .join(" ")
+        .toLowerCase();
+      if (
+        transcript.includes("hey gopark") ||
+        transcript.includes("hey go park") ||
+        transcript.includes("hê gopark")
+      ) {
         r.stop();
         setVoiceState("prompted");
         voiceStateRef.current = "prompted";
@@ -134,7 +178,9 @@ export default function OwnerChatbot() {
     };
     r.onend = () => {
       if (voiceModeRef.current && voiceStateRef.current === "wake-listening") {
-        try { r.start(); } catch {}
+        try {
+          r.start();
+        } catch {}
       }
     };
     r.start();
@@ -148,7 +194,9 @@ export default function OwnerChatbot() {
       startWakeListener();
     } else {
       window.speechSynthesis?.cancel();
-      try { wakeRecognitionRef.current?.stop(); } catch {}
+      try {
+        wakeRecognitionRef.current?.stop();
+      } catch {}
       setVoiceState("idle");
     }
   }, [voiceMode, startWakeListener]);
@@ -158,8 +206,14 @@ export default function OwnerChatbot() {
       const res = await fetch(`${API_BASE_URL}/chatbot/status`);
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setStatus(data?.data?.running || data?.data?.models?.groq?.ok ? "connected" : "disconnected");
-    } catch { setStatus("disconnected"); }
+      setStatus(
+        data?.data?.running || data?.data?.models?.groq?.ok
+          ? "connected"
+          : "disconnected",
+      );
+    } catch {
+      setStatus("disconnected");
+    }
   }, []);
 
   useEffect(() => {
@@ -183,13 +237,18 @@ export default function OwnerChatbot() {
       const resp = await fetch(OWNER_API_URL, {
         method: "POST",
         headers,
-        body: JSON.stringify({ messages: messagesRef.current.filter(m => m.role === "user") }),
+        body: JSON.stringify({
+          messages: messagesRef.current.filter((m) => m.role === "user"),
+        }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const response = await resp.json();
 
       // Revenue chart data
-      if (response?.data?.action === "revenue_chart" && response?.data?.chartData) {
+      if (
+        response?.data?.action === "revenue_chart" &&
+        response?.data?.chartData
+      ) {
         const msg: Message = {
           role: "assistant",
           type: "revenue-chart",
@@ -198,18 +257,28 @@ export default function OwnerChatbot() {
         };
         setMessages([...messagesRef.current, msg]);
         messagesRef.current = [...messagesRef.current, msg];
-        setLoading(false); return;
+        setLoading(false);
+        return;
       }
 
-      const text2 = response?.data?.text || response?.text || response?.message || "Không có phản hồi";
+      const text2 =
+        response?.data?.text ||
+        response?.text ||
+        response?.message ||
+        "Không có phản hồi";
       const assistantMsg: Message = { role: "assistant", content: text2 };
       setMessages([...messagesRef.current, assistantMsg]);
       messagesRef.current = [...messagesRef.current, assistantMsg];
     } catch {
-      const errMsg: Message = { role: "assistant", content: "❌ Lỗi kết nối. Vui lòng thử lại." };
+      const errMsg: Message = {
+        role: "assistant",
+        content: "❌ Lỗi kết nối. Vui lòng thử lại.",
+      };
       setMessages([...messagesRef.current, errMsg]);
       messagesRef.current = [...messagesRef.current, errMsg];
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function sendMessageVoice(content: string) {
@@ -225,11 +294,17 @@ export default function OwnerChatbot() {
       const resp = await fetch(OWNER_API_URL, {
         method: "POST",
         headers,
-        body: JSON.stringify({ messages: messagesRef.current.filter(m => m.role === "user") }),
+        body: JSON.stringify({
+          messages: messagesRef.current.filter((m) => m.role === "user"),
+        }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const response = await resp.json();
-      const text2 = response?.data?.text || response?.text || response?.message || "Không có phản hồi";
+      const text2 =
+        response?.data?.text ||
+        response?.text ||
+        response?.message ||
+        "Không có phản hồi";
       const assistantMsg: Message = { role: "assistant", content: text2 };
       setMessages([...messagesRef.current, assistantMsg]);
       messagesRef.current = [...messagesRef.current, assistantMsg];
@@ -244,25 +319,40 @@ export default function OwnerChatbot() {
         }
       });
     } catch {
-      const errMsg: Message = { role: "assistant", content: "❌ Lỗi kết nối. Vui lòng thử lại." };
+      const errMsg: Message = {
+        role: "assistant",
+        content: "❌ Lỗi kết nối. Vui lòng thử lại.",
+      };
       setMessages([...messagesRef.current, errMsg]);
       messagesRef.current = [...messagesRef.current, errMsg];
       setLoading(false);
-      if (voiceModeRef.current) { setVoiceState("wake-listening"); startWakeListener(); }
+      if (voiceModeRef.current) {
+        setVoiceState("wake-listening");
+        startWakeListener();
+      }
     }
   }
 
   function clearHistory() {
     setMessages([WELCOME_MSG]);
-    if (typeof window !== "undefined") localStorage.removeItem("gopark_owner_chat");
+    if (typeof window !== "undefined")
+      localStorage.removeItem("gopark_owner_chat");
   }
 
-  const statusDot: Record<Status, string> = { connected: "#f59e0b", disconnected: "#ef4444", unknown: "#94a3b8" };
-  const statusLabel: Record<Status, string> = { connected: "Đã kết nối", disconnected: "Mất kết nối", unknown: "Đang kiểm tra" };
+  const statusDot: Record<Status, string> = {
+    connected: "#f59e0b",
+    disconnected: "#ef4444",
+    unknown: "#94a3b8",
+  };
+  const statusLabel: Record<Status, string> = {
+    connected: "Đã kết nối",
+    disconnected: "Mất kết nối",
+    unknown: "Đang kiểm tra",
+  };
 
   const voiceStateLabel: Record<VoiceState, string> = {
     idle: "",
-    "wake-listening": "🎙️ Đang chờ \"Hey GoPark\"...",
+    "wake-listening": '🎙️ Đang chờ "Hey GoPark"...',
     prompted: "🤖 Bạn muốn hỏi gì?",
     "question-listening": "👂 Đang nghe câu hỏi...",
     speaking: "🔊 Đang trả lời...",
@@ -355,31 +445,69 @@ export default function OwnerChatbot() {
               <div className="ow-hdr-row">
                 <div className="ow-brand">
                   <div className="ow-av">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                      <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="2"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M3 9h18M9 21V9" />
                     </svg>
                   </div>
                   <div>
                     <div className="ow-bname">GoPark Analytics</div>
                     <div className="ow-bsub">
-                      {user?.profile?.name ? `Chào, ${user.profile.name}` : "Phân tích doanh thu chủ bãi"}
+                      {user?.profile?.name
+                        ? `Chào, ${user.profile.name}`
+                        : "Phân tích doanh thu chủ bãi"}
                     </div>
                   </div>
                 </div>
                 <div className="ow-acts">
                   <span className="ow-role-badge">🏢 OWNER</span>
                   <div className="ow-pill">
-                    <div className="ow-dot" style={{ background: statusDot[status] }} />
+                    <div
+                      className="ow-dot"
+                      style={{ background: statusDot[status] }}
+                    />
                     {statusLabel[status]}
                   </div>
-                  <button className="ow-ibtn" onClick={clearHistory} title="Xóa lịch sử">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
+                  <button
+                    className="ow-ibtn"
+                    onClick={clearHistory}
+                    title="Xóa lịch sử"
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14H6L5 6" />
+                      <path d="M10 11v6M14 11v6" />
                     </svg>
                   </button>
-                  <button className="ow-ibtn" onClick={() => setOpen(false)} title="Đóng">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  <button
+                    className="ow-ibtn"
+                    onClick={() => setOpen(false)}
+                    title="Đóng"
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
                   </button>
                 </div>
@@ -387,22 +515,39 @@ export default function OwnerChatbot() {
               {/* Voice AI toggle */}
               <div className="ow-voice-row">
                 <span className="ow-voice-label">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
                   </svg>
                   Chế độ giọng nói AI
                 </span>
                 <label className="ow-toggle">
-                  <input type="checkbox" checked={voiceMode} onChange={e => setVoiceMode(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={voiceMode}
+                    onChange={(e) => setVoiceMode(e.target.checked)}
+                  />
                   <span className="ow-toggle-slider" />
                 </label>
               </div>
               {voiceMode && (
                 <div className="ow-voice-status">
-                  {(voiceState === "wake-listening" || voiceState === "question-listening") && (
+                  {(voiceState === "wake-listening" ||
+                    voiceState === "question-listening") && (
                     <span className="ow-wave">
-                      <span style={{height:6}} /><span /><span /><span /><span style={{height:6}} />
+                      <span style={{ height: 6 }} />
+                      <span />
+                      <span />
+                      <span />
+                      <span style={{ height: 6 }} />
                     </span>
                   )}{" "}
                   {voiceStateLabel[voiceState]}
@@ -413,11 +558,22 @@ export default function OwnerChatbot() {
             {/* Messages */}
             <div className="ow-msgs">
               {messages.map((m, i) => (
-                <div key={i} className={`ow-row${m.role === "user" ? " u" : ""}`}>
+                <div
+                  key={i}
+                  className={`ow-row${m.role === "user" ? " u" : ""}`}
+                >
                   {m.role === "assistant" && (
                     <div className="ow-mav">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#fff"
+                        strokeWidth="2"
+                      >
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <path d="M3 9h18M9 21V9" />
                       </svg>
                     </div>
                   )}
@@ -426,43 +582,81 @@ export default function OwnerChatbot() {
                       <div>
                         <div>{m.content}</div>
                         <div className="ow-revenue-card">
-                          <div className="ow-revenue-title">📊 {m.data.title || "Báo cáo doanh thu"}</div>
+                          <div className="ow-revenue-title">
+                            📊 {m.data.title || "Báo cáo doanh thu"}
+                          </div>
                           <table className="ow-revenue-table">
                             <thead>
                               <tr>
-                                {m.data.chartData.headers?.map((h: string) => <th key={h}>{h}</th>)}
+                                {m.data.chartData.headers?.map((h: string) => (
+                                  <th key={h}>{h}</th>
+                                ))}
                               </tr>
                             </thead>
                             <tbody>
-                              {m.data.chartData.rows?.map((row: any[], idx: number) => (
-                                <tr key={idx}>
-                                  {row.map((cell: any, ci: number) => (
-                                    <td key={ci} className={ci === row.length - 1 ? "ow-revenue-highlight" : ""}>{cell}</td>
-                                  ))}
-                                </tr>
-                              ))}
+                              {m.data.chartData.rows?.map(
+                                (row: any[], idx: number) => (
+                                  <tr key={idx}>
+                                    {row.map((cell: any, ci: number) => (
+                                      <td
+                                        key={ci}
+                                        className={
+                                          ci === row.length - 1
+                                            ? "ow-revenue-highlight"
+                                            : ""
+                                        }
+                                      >
+                                        {cell}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ),
+                              )}
                             </tbody>
                           </table>
                           {m.data.suggestion && (
-                            <div style={{ marginTop: 10, padding: "8px 10px", background: "rgba(245,158,11,0.08)", borderRadius: 8, fontSize: 12, color: "#fde68a" }}>
+                            <div
+                              style={{
+                                marginTop: 10,
+                                padding: "8px 10px",
+                                background: "rgba(245,158,11,0.08)",
+                                borderRadius: 8,
+                                fontSize: 12,
+                                color: "#fde68a",
+                              }}
+                            >
                               💡 {m.data.suggestion}
                             </div>
                           )}
                         </div>
                       </div>
-                    ) : m.content}
+                    ) : (
+                      m.content
+                    )}
                   </div>
                 </div>
               ))}
               {loading && (
                 <div className="ow-row">
                   <div className="ow-mav">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                      <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="2"
+                    >
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M3 9h18M9 21V9" />
                     </svg>
                   </div>
                   <div className="ow-bub b">
-                    <div className="ow-tdots"><div className="ow-td"/><div className="ow-td"/><div className="ow-td"/></div>
+                    <div className="ow-tdots">
+                      <div className="ow-td" />
+                      <div className="ow-td" />
+                      <div className="ow-td" />
+                    </div>
                   </div>
                 </div>
               )}
@@ -473,8 +667,14 @@ export default function OwnerChatbot() {
             <div className="ow-chips-wrap">
               <div className="ow-clabel">📊 Phân tích nhanh</div>
               <div className="ow-chips">
-                {QUICK_CHIPS.map(label => (
-                  <button key={label} className="ow-chip" onClick={() => sendMessage(label)}>{label}</button>
+                {QUICK_CHIPS.map((label) => (
+                  <button
+                    key={label}
+                    className="ow-chip"
+                    onClick={() => sendMessage(label)}
+                  >
+                    {label}
+                  </button>
                 ))}
               </div>
             </div>
@@ -483,14 +683,33 @@ export default function OwnerChatbot() {
             <div className="ow-inp-area">
               <div className="ow-inp-box">
                 <textarea
-                  className="ow-ta" rows={1} value={input}
+                  className="ow-ta"
+                  rows={1}
+                  value={input}
                   placeholder="Hỏi về doanh thu, so sánh, gợi ý tăng trưởng..."
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
                 />
-                <button className="ow-send" disabled={loading || !input.trim()} onClick={() => sendMessage()}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3">
-                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                <button
+                  className="ow-send"
+                  disabled={loading || !input.trim()}
+                  onClick={() => sendMessage()}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#fff"
+                    strokeWidth="2.3"
+                  >
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
                   </svg>
                 </button>
               </div>
@@ -499,10 +718,21 @@ export default function OwnerChatbot() {
           </div>
         )}
 
-        <button className={`ow-fab${open ? " hidden" : ""}`} onClick={() => setOpen(true)}>
+        <button
+          className={`ow-fab${open ? " hidden" : ""}`}
+          onClick={() => setOpen(true)}
+        >
           {hasUnread && <span className="ow-badge">!</span>}
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#fff"
+            strokeWidth="2"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <path d="M3 9h18M9 21V9" />
           </svg>
         </button>
       </div>

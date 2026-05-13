@@ -10,20 +10,31 @@ type Message = {
   data?: any;
 };
 type Status = "unknown" | "connected" | "disconnected";
-type VoiceState = "idle" | "wake-listening" | "prompted" | "question-listening" | "speaking";
+type VoiceState =
+  | "idle"
+  | "wake-listening"
+  | "prompted"
+  | "question-listening"
+  | "speaking";
 
-const API_URL = process.env.NEXT_PUBLIC_CHATBOT_API || `${API_BASE_URL}/chatbot/chat`;
-const STATUS_URL = process.env.NEXT_PUBLIC_CHATBOT_STATUS || `${API_BASE_URL}/chatbot/status`;
+const API_URL = `${API_BASE_URL}/chatbot/chat`;
+const STATUS_URL = `${API_BASE_URL}/chatbot/status`;
 
 const QUICK_CHIPS = [
-  "🔍 Tìm bãi gần tôi", "💰 Bãi giá rẻ nhất", "⭐ Bãi phù hợp nhất",
-  "📅 Đặt bãi", "📋 Lịch sử đặt của tôi", "💳 Số dư ví GoPark",
-  "🚗 Xe đã đăng ký", "❓ Hướng dẫn thanh toán",
+  "🔍 Tìm bãi gần tôi",
+  "💰 Bãi giá rẻ nhất",
+  "⭐ Bãi phù hợp nhất",
+  "📅 Đặt bãi",
+  "📋 Lịch sử đặt của tôi",
+  "💳 Số dư ví GoPark",
+  "🚗 Xe đã đăng ký",
+  "❓ Hướng dẫn thanh toán",
 ];
 
 const WELCOME_MSG: Message = {
   role: "assistant",
-  content: "Xin chào! Tôi là trợ lý GoPark dành cho bạn.\n\nTôi có thể giúp:\n🔹 Tìm và đặt bãi đỗ xe\n🔹 Xem lịch sử đặt chỗ\n🔹 Kiểm tra số dư ví\n🔹 Xem danh sách xe đã đăng ký\n\nBạn cần gì hôm nay?",
+  content:
+    "Xin chào! Tôi là trợ lý GoPark dành cho bạn.\n\nTôi có thể giúp:\n🔹 Tìm và đặt bãi đỗ xe\n🔹 Xem lịch sử đặt chỗ\n🔹 Kiểm tra số dư ví\n🔹 Xem danh sách xe đã đăng ký\n\nBạn cần gì hôm nay?",
 };
 
 function speakText(text: string, onEnd?: () => void) {
@@ -35,8 +46,10 @@ function speakText(text: string, onEnd?: () => void) {
     t.replace(/(\d[\d,.]*)đ/g, (_, num) => {
       const n = parseInt(num.replace(/[,.]/g, ""), 10);
       if (isNaN(n)) return num + " đồng";
-      if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(".0","") + " tỷ đồng";
-      if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(".0","") + " triệu đồng";
+      if (n >= 1_000_000_000)
+        return (n / 1_000_000_000).toFixed(1).replace(".0", "") + " tỷ đồng";
+      if (n >= 1_000_000)
+        return (n / 1_000_000).toFixed(1).replace(".0", "") + " triệu đồng";
       if (n >= 1_000) return (n / 1_000).toFixed(0) + " nghìn đồng";
       return n + " đồng";
     });
@@ -47,9 +60,14 @@ function speakText(text: string, onEnd?: () => void) {
     .trim();
 
   const utt = new SpeechSynthesisUtterance(clean);
-  utt.lang = "vi-VN"; utt.rate = 1.05; utt.pitch = 1;
+  utt.lang = "vi-VN";
+  utt.rate = 1.05;
+  utt.pitch = 1;
   const voices = window.speechSynthesis.getVoices();
-  const googleVi = voices.find(v => v.lang === "vi-VN" && v.name.toLowerCase().includes("google")) || voices.find(v => v.lang === "vi-VN");
+  const googleVi =
+    voices.find(
+      (v) => v.lang === "vi-VN" && v.name.toLowerCase().includes("google"),
+    ) || voices.find((v) => v.lang === "vi-VN");
   if (googleVi) utt.voice = googleVi;
   if (onEnd) utt.onend = onEnd;
   window.speechSynthesis.speak(utt);
@@ -57,12 +75,12 @@ function speakText(text: string, onEnd?: () => void) {
 
 // Lấy GPS của user
 function getUserLocation(): Promise<{ lat: number; lng: number } | null> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (!navigator.geolocation) return resolve(null);
     navigator.geolocation.getCurrentPosition(
-      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
       () => resolve(null),
-      { timeout: 4000 }
+      { timeout: 4000 },
     );
   });
 }
@@ -86,12 +104,22 @@ export default function UserChatbot() {
   const [showSessions, setShowSessions] = useState(false);
 
   // Draggable / resizable state
-  const [panelPos, setPanelPos] = useState<{ right: number; bottom: number }>({ right: 24, bottom: 24 });
-  const [panelSize, setPanelSize] = useState<{ width: number; height: number }>({ width: 420, height: 600 });
+  const [panelPos, setPanelPos] = useState<{ right: number; bottom: number }>({
+    right: 24,
+    bottom: 24,
+  });
+  const [panelSize, setPanelSize] = useState<{ width: number; height: number }>(
+    { width: 420, height: 600 },
+  );
   const draggingRef = useRef(false);
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, right: 24, bottom: 24 });
   const resizingRef = useRef(false);
-  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 420, height: 600 });
+  const resizeStartRef = useRef({
+    mouseX: 0,
+    mouseY: 0,
+    width: 420,
+    height: 600,
+  });
   const panelRef = useRef<HTMLDivElement>(null);
 
   const recognitionRef = useRef<any>(null);
@@ -101,22 +129,39 @@ export default function UserChatbot() {
   const voiceModeRef = useRef(false);
   const voiceStateRef = useRef<VoiceState>("idle");
 
-  useEffect(() => { voiceModeRef.current = voiceMode; }, [voiceMode]);
-  useEffect(() => { voiceStateRef.current = voiceState; }, [voiceState]);
+  useEffect(() => {
+    voiceModeRef.current = voiceMode;
+  }, [voiceMode]);
+  useEffect(() => {
+    voiceStateRef.current = voiceState;
+  }, [voiceState]);
 
   useEffect(() => {
-    window.requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }));
-    if (!open && messages[messages.length - 1]?.role === "assistant") setHasUnread(true);
+    window.requestAnimationFrame(() =>
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }),
+    );
+    if (!open && messages[messages.length - 1]?.role === "assistant")
+      setHasUnread(true);
   }, [messages]);
 
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
-  useEffect(() => { if (open) setHasUnread(false); }, [open]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+  useEffect(() => {
+    if (open) setHasUnread(false);
+  }, [open]);
 
   // Drag handlers
   const onDragMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest("button, input, textarea, label")) return;
+    if ((e.target as HTMLElement).closest("button, input, textarea, label"))
+      return;
     draggingRef.current = true;
-    dragStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, right: panelPos.right, bottom: panelPos.bottom };
+    dragStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      right: panelPos.right,
+      bottom: panelPos.bottom,
+    };
     e.preventDefault();
   };
   useEffect(() => {
@@ -124,27 +169,48 @@ export default function UserChatbot() {
       if (draggingRef.current) {
         const dx = e.clientX - dragStartRef.current.mouseX;
         const dy = e.clientY - dragStartRef.current.mouseY;
-        setPanelPos({ right: Math.max(0, dragStartRef.current.right - dx), bottom: Math.max(0, dragStartRef.current.bottom - dy) });
+        setPanelPos({
+          right: Math.max(0, dragStartRef.current.right - dx),
+          bottom: Math.max(0, dragStartRef.current.bottom - dy),
+        });
       }
       if (resizingRef.current) {
         const dx = e.clientX - resizeStartRef.current.mouseX;
         const dy = e.clientY - resizeStartRef.current.mouseY;
         setPanelSize({
-          width: Math.max(320, Math.min(700, resizeStartRef.current.width - dx)),
-          height: Math.max(400, Math.min(900, resizeStartRef.current.height - dy)),
+          width: Math.max(
+            320,
+            Math.min(700, resizeStartRef.current.width - dx),
+          ),
+          height: Math.max(
+            400,
+            Math.min(900, resizeStartRef.current.height - dy),
+          ),
         });
       }
     };
-    const onUp = () => { draggingRef.current = false; resizingRef.current = false; };
+    const onUp = () => {
+      draggingRef.current = false;
+      resizingRef.current = false;
+    };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
-    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
   }, []);
 
   const onResizeMouseDown = (e: React.MouseEvent) => {
     resizingRef.current = true;
-    resizeStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, width: panelSize.width, height: panelSize.height };
-    e.preventDefault(); e.stopPropagation();
+    resizeStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      width: panelSize.width,
+      height: panelSize.height,
+    };
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   // Mic input setup
@@ -153,8 +219,15 @@ export default function UserChatbot() {
     const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
     if (!SR) return;
     const r = new SR();
-    r.lang = "vi-VN"; r.interimResults = true; r.continuous = false;
-    r.onresult = (ev: any) => setInput(Array.from(ev.results).map((x: any) => x[0].transcript).join(""));
+    r.lang = "vi-VN";
+    r.interimResults = true;
+    r.continuous = false;
+    r.onresult = (ev: any) =>
+      setInput(
+        Array.from(ev.results)
+          .map((x: any) => x[0].transcript)
+          .join(""),
+      );
     r.onstart = () => setListening(true);
     r.onend = () => setListening(false);
     r.onerror = () => setListening(false);
@@ -167,15 +240,25 @@ export default function UserChatbot() {
     const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
     if (!SR) return;
     // Dừng instance cũ nếu có
-    try { wakeRecognitionRef.current?.stop(); } catch {}
+    try {
+      wakeRecognitionRef.current?.stop();
+    } catch {}
     const r = new SR();
-    r.lang = "vi-VN"; r.interimResults = true; r.continuous = true;
+    r.lang = "vi-VN";
+    r.interimResults = true;
+    r.continuous = true;
     r.onresult = (ev: any) => {
-      const transcript = Array.from(ev.results).map((x: any) => x[0].transcript).join(" ").toLowerCase();
+      const transcript = Array.from(ev.results)
+        .map((x: any) => x[0].transcript)
+        .join(" ")
+        .toLowerCase();
       if (
-        transcript.includes("hey gopark") || transcript.includes("hey go park") ||
-        transcript.includes("hê gopark") || transcript.includes("hei gopark") ||
-        transcript.includes("này gopark") || transcript.includes("ê gopark")
+        transcript.includes("hey gopark") ||
+        transcript.includes("hey go park") ||
+        transcript.includes("hê gopark") ||
+        transcript.includes("hei gopark") ||
+        transcript.includes("này gopark") ||
+        transcript.includes("ê gopark")
       ) {
         r.stop();
         setVoiceState("prompted");
@@ -187,7 +270,11 @@ export default function UserChatbot() {
     };
     r.onend = () => {
       if (voiceModeRef.current && voiceStateRef.current === "wake-listening") {
-        setTimeout(() => { try { r.start(); } catch {} }, 300);
+        setTimeout(() => {
+          try {
+            r.start();
+          } catch {}
+        }, 300);
       }
     };
     r.onerror = (e: any) => {
@@ -196,7 +283,9 @@ export default function UserChatbot() {
         setTimeout(() => startWakeListener(), 1000);
       }
     };
-    try { r.start(); } catch {}
+    try {
+      r.start();
+    } catch {}
     wakeRecognitionRef.current = r;
     setVoiceState("wake-listening");
   }, []);
@@ -206,22 +295,38 @@ export default function UserChatbot() {
     const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
     if (!SR) return;
     const r = new SR();
-    r.lang = "vi-VN"; r.interimResults = false; r.continuous = false;
+    r.lang = "vi-VN";
+    r.interimResults = false;
+    r.continuous = false;
     setVoiceState("question-listening");
     r.onresult = async (ev: any) => {
-      const question = Array.from(ev.results).map((x: any) => x[0].transcript).join("").trim();
-      if (question) { setVoiceState("speaking"); await sendMessageVoice(question); }
+      const question = Array.from(ev.results)
+        .map((x: any) => x[0].transcript)
+        .join("")
+        .trim();
+      if (question) {
+        setVoiceState("speaking");
+        await sendMessageVoice(question);
+      }
     };
     r.onend = () => {
-      if (voiceModeRef.current && voiceStateRef.current === "question-listening") {
+      if (
+        voiceModeRef.current &&
+        voiceStateRef.current === "question-listening"
+      ) {
         setVoiceState("wake-listening");
         startWakeListener();
       }
     };
     r.onerror = () => {
-      if (voiceModeRef.current) { setVoiceState("wake-listening"); startWakeListener(); }
+      if (voiceModeRef.current) {
+        setVoiceState("wake-listening");
+        startWakeListener();
+      }
     };
-    try { r.start(); } catch {}
+    try {
+      r.start();
+    } catch {}
   }, [startWakeListener]);
 
   useEffect(() => {
@@ -230,8 +335,12 @@ export default function UserChatbot() {
       startWakeListener();
     } else {
       window.speechSynthesis?.cancel();
-      try { wakeRecognitionRef.current?.stop(); } catch {}
-      try { recognitionRef.current?.stop(); } catch {}
+      try {
+        wakeRecognitionRef.current?.stop();
+      } catch {}
+      try {
+        recognitionRef.current?.stop();
+      } catch {}
       setVoiceState("idle");
     }
   }, [voiceMode, startWakeListener]);
@@ -241,8 +350,14 @@ export default function UserChatbot() {
       const res = await fetch(STATUS_URL);
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setStatus(data?.data?.running || data?.data?.models?.groq?.ok ? "connected" : "disconnected");
-    } catch { setStatus("disconnected"); }
+      setStatus(
+        data?.data?.running || data?.data?.models?.groq?.ok
+          ? "connected"
+          : "disconnected",
+      );
+    } catch {
+      setStatus("disconnected");
+    }
   }, []);
 
   useEffect(() => {
@@ -256,17 +371,26 @@ export default function UserChatbot() {
     if (!accessToken) return;
     fetch(`${API_BASE_URL}/chatbot/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-      body: JSON.stringify({ messages: [{ role: "user", content: "xe cua toi" }] }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "xe cua toi" }],
+      }),
     })
-      .then(r => r.json())
-      .then(data => {
+      .then((r) => r.json())
+      .then((data) => {
         const text: string = data?.data?.text || "";
-        const lines = text.split("\n").filter(l => /^\d+\./.test(l.trim()));
-        const vehicles = lines.map((l, i) => {
-          const match = l.match(/\d+\.\s*(.+?)\s*\((.+?)\)/);
-          return match ? { label: `🚗 Xe ${i+1}: ${match[1]}`, msg: `xe ${i+1}` } : null;
-        }).filter(Boolean);
+        const lines = text.split("\n").filter((l) => /^\d+\./.test(l.trim()));
+        const vehicles = lines
+          .map((l, i) => {
+            const match = l.match(/\d+\.\s*(.+?)\s*\((.+?)\)/);
+            return match
+              ? { label: `🚗 Xe ${i + 1}: ${match[1]}`, msg: `xe ${i + 1}` }
+              : null;
+          })
+          .filter(Boolean);
         setUserVehicles(vehicles as any[]);
       })
       .catch(() => {});
@@ -277,7 +401,7 @@ export default function UserChatbot() {
     if (!accessToken) return;
     try {
       const r = await fetch(`${API_BASE_URL}/chatbot/sessions`, {
-        headers: { "Authorization": `Bearer ${accessToken}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       const data = await r.json();
       setSessions(data?.data || []);
@@ -289,8 +413,13 @@ export default function UserChatbot() {
     try {
       const r = await fetch(`${API_BASE_URL}/chatbot/sessions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${accessToken}` },
-        body: JSON.stringify({ title: `Cuộc trò chuyện ${new Date().toLocaleString("vi-VN")}` }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          title: `Cuộc trò chuyện ${new Date().toLocaleString("vi-VN")}`,
+        }),
       });
       const data = await r.json();
       const newSession = data?.data;
@@ -298,57 +427,63 @@ export default function UserChatbot() {
         setCurrentSessionId(newSession.id);
         setMessages([WELCOME_MSG]);
         messagesRef.current = [WELCOME_MSG];
-        setSessions(prev => [newSession, ...prev]);
+        setSessions((prev) => [newSession, ...prev]);
         setShowSessions(false);
       }
     } catch {}
   }, [accessToken]);
 
-  const loadSessionMessages = useCallback(async (sessionId: string) => {
-    if (!accessToken) return;
-    try {
-      const r = await fetch(`${API_BASE_URL}/chatbot/sessions/${sessionId}`, {
-        headers: { "Authorization": `Bearer ${accessToken}` },
-      });
-      const data = await r.json();
-      const session = data?.data;
-      if (session?.messages?.length) {
-        const msgs: Message[] = [
-          WELCOME_MSG,
-          ...session.messages.map((m: any) => ({
-            role: m.role as "user" | "assistant",
-            content: m.content,
-            type: m.type,
-            data: m.data,
-          })),
-        ];
-        setMessages(msgs);
-        messagesRef.current = msgs;
-      } else {
-        setMessages([WELCOME_MSG]);
-        messagesRef.current = [WELCOME_MSG];
-      }
-      setCurrentSessionId(sessionId);
-      setShowSessions(false);
-    } catch {}
-  }, [accessToken]);
+  const loadSessionMessages = useCallback(
+    async (sessionId: string) => {
+      if (!accessToken) return;
+      try {
+        const r = await fetch(`${API_BASE_URL}/chatbot/sessions/${sessionId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const data = await r.json();
+        const session = data?.data;
+        if (session?.messages?.length) {
+          const msgs: Message[] = [
+            WELCOME_MSG,
+            ...session.messages.map((m: any) => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+              type: m.type,
+              data: m.data,
+            })),
+          ];
+          setMessages(msgs);
+          messagesRef.current = msgs;
+        } else {
+          setMessages([WELCOME_MSG]);
+          messagesRef.current = [WELCOME_MSG];
+        }
+        setCurrentSessionId(sessionId);
+        setShowSessions(false);
+      } catch {}
+    },
+    [accessToken],
+  );
 
-  const deleteSessionById = useCallback(async (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!accessToken) return;
-    try {
-      await fetch(`${API_BASE_URL}/chatbot/sessions/${sessionId}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${accessToken}` },
-      });
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
-      if (currentSessionId === sessionId) {
-        setCurrentSessionId(null);
-        setMessages([WELCOME_MSG]);
-        messagesRef.current = [WELCOME_MSG];
-      }
-    } catch {}
-  }, [accessToken, currentSessionId]);
+  const deleteSessionById = useCallback(
+    async (sessionId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!accessToken) return;
+      try {
+        await fetch(`${API_BASE_URL}/chatbot/sessions/${sessionId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+        if (currentSessionId === sessionId) {
+          setCurrentSessionId(null);
+          setMessages([WELCOME_MSG]);
+          messagesRef.current = [WELCOME_MSG];
+        }
+      } catch {}
+    },
+    [accessToken, currentSessionId],
+  );
 
   // Load sessions khi mở chatbot
   useEffect(() => {
@@ -364,8 +499,10 @@ export default function UserChatbot() {
     if (!content || loading) return;
     const userMsg: Message = { role: "user", content };
     const newMessages = [...messagesRef.current, userMsg];
-    setMessages(newMessages); messagesRef.current = newMessages;
-    setInput(""); setLoading(true);
+    setMessages(newMessages);
+    messagesRef.current = newMessages;
+    setInput("");
+    setLoading(true);
     try {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
@@ -379,76 +516,129 @@ export default function UserChatbot() {
         ? `${API_BASE_URL}/chatbot/sessions/${currentSessionId}/chat`
         : API_URL;
       const resp = await fetch(url, {
-        method: "POST", headers,
-        body: JSON.stringify({ messages: [{ role: "user", content }], context }),
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          messages: [{ role: "user", content }],
+          context,
+        }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const response = await resp.json();
       if (response?.data?.action === "list_parking" && response?.data?.lots) {
         const msg: Message = {
-          role: "assistant", type: "parking-list",
-          content: response?.data?.text || response?.text || "Tìm thấy các bãi sau:",
+          role: "assistant",
+          type: "parking-list",
+          content:
+            response?.data?.text || response?.text || "Tìm thấy các bãi sau:",
           data: { lots: response.data.lots, criteria: response.data.criteria },
         };
-        setMessages([...messagesRef.current, msg]); messagesRef.current = [...messagesRef.current, msg];
-        setLoading(false); return;
+        setMessages([...messagesRef.current, msg]);
+        messagesRef.current = [...messagesRef.current, msg];
+        setLoading(false);
+        return;
       }
       // Xử lý redirect - check cả data.action và action (BE có thể trả ở 2 chỗ)
-      const redirectAction = response?.data?.action === "redirect" ? response.data : (response?.action === "redirect" ? response : null);
+      const redirectAction =
+        response?.data?.action === "redirect"
+          ? response.data
+          : response?.action === "redirect"
+            ? response
+            : null;
       if (redirectAction) {
-        const redirectUrl = redirectAction.redirectUrl || redirectAction.data?.url;
-        const redirectMsg = redirectAction.text || redirectAction.message || "🔄 Đang chuyển sang trang đặt chỗ...";
+        const redirectUrl =
+          redirectAction.redirectUrl || redirectAction.data?.url;
+        const redirectMsg =
+          redirectAction.text ||
+          redirectAction.message ||
+          "🔄 Đang chuyển sang trang đặt chỗ...";
         const msg: Message = { role: "assistant", content: redirectMsg };
-        setMessages([...messagesRef.current, msg]); messagesRef.current = [...messagesRef.current, msg];
+        setMessages([...messagesRef.current, msg]);
+        messagesRef.current = [...messagesRef.current, msg];
         if (voiceModeRef.current) speakText(redirectMsg);
-        setTimeout(() => { if (redirectUrl) window.location.href = redirectUrl; }, 1800);
-        setLoading(false); return;
+        setTimeout(() => {
+          if (redirectUrl) window.location.href = redirectUrl;
+        }, 1800);
+        setLoading(false);
+        return;
       }
-      const text2 = response?.data?.text || response?.text || response?.message || "Không có phản hồi";
+      const text2 =
+        response?.data?.text ||
+        response?.text ||
+        response?.message ||
+        "Không có phản hồi";
       const assistantMsg: Message = { role: "assistant", content: text2 };
-      setMessages([...messagesRef.current, assistantMsg]); messagesRef.current = [...messagesRef.current, assistantMsg];
+      setMessages([...messagesRef.current, assistantMsg]);
+      messagesRef.current = [...messagesRef.current, assistantMsg];
       // Nếu voice mode đang bật → đọc câu trả lời
       if (voiceModeRef.current) {
         setVoiceState("speaking");
         speakText(text2, () => {
-          if (voiceModeRef.current) { setVoiceState("wake-listening"); startWakeListener(); }
-          else setVoiceState("idle");
+          if (voiceModeRef.current) {
+            setVoiceState("wake-listening");
+            startWakeListener();
+          } else setVoiceState("idle");
         });
       }
     } catch {
-      const errMsg: Message = { role: "assistant", content: "❌ Lỗi kết nối. Vui lòng thử lại." };
-      setMessages([...messagesRef.current, errMsg]); messagesRef.current = [...messagesRef.current, errMsg];
-    } finally { setLoading(false); }
+      const errMsg: Message = {
+        role: "assistant",
+        content: "❌ Lỗi kết nối. Vui lòng thử lại.",
+      };
+      setMessages([...messagesRef.current, errMsg]);
+      messagesRef.current = [...messagesRef.current, errMsg];
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function sendMessageVoice(content: string) {
     if (!content || loading) return;
     const userMsg: Message = { role: "user", content };
     const newMessages = [...messagesRef.current, userMsg];
-    setMessages(newMessages); messagesRef.current = newMessages;
+    setMessages(newMessages);
+    messagesRef.current = newMessages;
     setLoading(true);
     try {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
       const resp = await fetch(API_URL, {
-        method: "POST", headers,
-        body: JSON.stringify({ messages: messagesRef.current.filter(m => m.role === "user") }),
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          messages: messagesRef.current.filter((m) => m.role === "user"),
+        }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const response = await resp.json();
-      const text2 = response?.data?.text || response?.text || response?.message || "Không có phản hồi";
+      const text2 =
+        response?.data?.text ||
+        response?.text ||
+        response?.message ||
+        "Không có phản hồi";
       const assistantMsg: Message = { role: "assistant", content: text2 };
-      setMessages([...messagesRef.current, assistantMsg]); messagesRef.current = [...messagesRef.current, assistantMsg];
-      setLoading(false); setVoiceState("speaking");
+      setMessages([...messagesRef.current, assistantMsg]);
+      messagesRef.current = [...messagesRef.current, assistantMsg];
+      setLoading(false);
+      setVoiceState("speaking");
       speakText(text2, () => {
-        if (voiceModeRef.current) { setVoiceState("wake-listening"); startWakeListener(); }
-        else setVoiceState("idle");
+        if (voiceModeRef.current) {
+          setVoiceState("wake-listening");
+          startWakeListener();
+        } else setVoiceState("idle");
       });
     } catch {
-      const errMsg: Message = { role: "assistant", content: "❌ Lỗi kết nối. Vui lòng thử lại." };
-      setMessages([...messagesRef.current, errMsg]); messagesRef.current = [...messagesRef.current, errMsg];
+      const errMsg: Message = {
+        role: "assistant",
+        content: "❌ Lỗi kết nối. Vui lòng thử lại.",
+      };
+      setMessages([...messagesRef.current, errMsg]);
+      messagesRef.current = [...messagesRef.current, errMsg];
       setLoading(false);
-      if (voiceModeRef.current) { setVoiceState("wake-listening"); startWakeListener(); }
+      if (voiceModeRef.current) {
+        setVoiceState("wake-listening");
+        startWakeListener();
+      }
     }
   }
 
@@ -459,14 +649,29 @@ export default function UserChatbot() {
     if (accessToken) createNewSession();
   }
   function removeMessage(index: number) {
-    setMessages(prev => { const u = prev.filter((_, i) => i !== index); messagesRef.current = u; return u; });
+    setMessages((prev) => {
+      const u = prev.filter((_, i) => i !== index);
+      messagesRef.current = u;
+      return u;
+    });
   }
 
-  const statusDot: Record<Status, string> = { connected: "#22c55e", disconnected: "#ef4444", unknown: "#f59e0b" };
-  const statusLabel: Record<Status, string> = { connected: "Đã kết nối", disconnected: "Mất kết nối", unknown: "Đang kiểm tra" };
+  const statusDot: Record<Status, string> = {
+    connected: "#22c55e",
+    disconnected: "#ef4444",
+    unknown: "#f59e0b",
+  };
+  const statusLabel: Record<Status, string> = {
+    connected: "Đã kết nối",
+    disconnected: "Mất kết nối",
+    unknown: "Đang kiểm tra",
+  };
   const voiceStateLabel: Record<VoiceState, string> = {
-    idle: "", "wake-listening": "🎙️ Đang chờ \"Hey GoPark\"...",
-    prompted: "🤖 Bạn muốn hỏi gì?", "question-listening": "👂 Đang nghe câu hỏi...", speaking: "🔊 Đang trả lời...",
+    idle: "",
+    "wake-listening": '🎙️ Đang chờ "Hey GoPark"...',
+    prompted: "🤖 Bạn muốn hỏi gì?",
+    "question-listening": "👂 Đang nghe câu hỏi...",
+    speaking: "🔊 Đang trả lời...",
   };
 
   // Render parking list theo criteria
@@ -479,12 +684,20 @@ export default function UserChatbot() {
     const isNearest = criteria === "nearest";
     const isCheapest = criteria === "price_cheapest";
 
-    const criteriaLabel = isBest ? "⭐ Phù hợp nhất" : isNearest ? "📍 Gần nhất" : isCheapest ? "💰 Giá rẻ nhất" : "🔍 Kết quả tìm kiếm";
+    const criteriaLabel = isBest
+      ? "⭐ Phù hợp nhất"
+      : isNearest
+        ? "📍 Gần nhất"
+        : isCheapest
+          ? "💰 Giá rẻ nhất"
+          : "🔍 Kết quả tìm kiếm";
     const criteriaDesc = isBest
       ? "Điểm tổng hợp: đánh giá (40%) + chỗ trống (30%) + giá rẻ (30%)"
-      : isNearest ? "Sắp xếp theo khoảng cách từ vị trí của bạn"
-      : isCheapest ? "Sắp xếp theo giá/giờ tăng dần, ưu tiên còn chỗ"
-      : "Danh sách bãi đỗ xe";
+      : isNearest
+        ? "Sắp xếp theo khoảng cách từ vị trí của bạn"
+        : isCheapest
+          ? "Sắp xếp theo giá/giờ tăng dần, ưu tiên còn chỗ"
+          : "Danh sách bãi đỗ xe";
 
     const primary = lots[0];
     const others = isBest ? [] : lots.slice(1); // best chỉ hiện 1 card, không có bảng
@@ -495,36 +708,89 @@ export default function UserChatbot() {
         <div className="uc-criteria-header">
           <span className="uc-criteria-label">{criteriaLabel}</span>
           <span className="uc-criteria-desc">{criteriaDesc}</span>
-          <button className="uc-parking-card-close" onClick={() => removeMessage(i)}>✕</button>
+          <button
+            className="uc-parking-card-close"
+            onClick={() => removeMessage(i)}
+          >
+            ✕
+          </button>
         </div>
 
         {/* Primary card */}
         <div className="uc-parking-card">
-          <div className="uc-parking-card-row" style={{ alignItems: "flex-start" }}>
+          <div
+            className="uc-parking-card-row"
+            style={{ alignItems: "flex-start" }}
+          >
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, color: "#ecfccb", fontSize: 14 }}>{primary.name}</div>
+              <div style={{ fontWeight: 700, color: "#ecfccb", fontSize: 14 }}>
+                {primary.name}
+              </div>
               <div className="uc-parking-card-meta">{primary.address}</div>
             </div>
             {primary.avgRating > 0 && (
-              <div style={{ background: "rgba(34,197,94,0.15)", borderRadius: 8, padding: "3px 8px", fontSize: 12, color: "#86efac", flexShrink: 0 }}>
+              <div
+                style={{
+                  background: "rgba(34,197,94,0.15)",
+                  borderRadius: 8,
+                  padding: "3px 8px",
+                  fontSize: 12,
+                  color: "#86efac",
+                  flexShrink: 0,
+                }}
+              >
                 ⭐ {Number(primary.avgRating).toFixed(1)}
               </div>
             )}
           </div>
           <div className="uc-parking-card-row" style={{ marginTop: 8 }}>
-            <div className="uc-parking-card-meta" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <span>💰 {(primary.hourly_rate || 20000).toLocaleString("vi-VN")}đ/giờ</span>
-              <span>🅿️ {primary.available_slots ?? "?"}/{primary.total_slots ?? "?"} chỗ</span>
-              {primary.distance_km != null && <span>📍 {primary.distance_km} km</span>}
+            <div
+              className="uc-parking-card-meta"
+              style={{ display: "flex", gap: 12, flexWrap: "wrap" }}
+            >
+              <span>
+                💰 {(primary.hourly_rate || 20000).toLocaleString("vi-VN")}đ/giờ
+              </span>
+              <span>
+                🅿️ {primary.available_slots ?? "?"}/{primary.total_slots ?? "?"}{" "}
+                chỗ
+              </span>
+              {primary.distance_km != null && (
+                <span>📍 {primary.distance_km} km</span>
+              )}
             </div>
             <div className="uc-parking-card-actions">
-              <button className="uc-btn-detail" onClick={() => (window.location.href = `/users/detailParking/${primary.id}`)}>Chi tiết</button>
-              <button className="uc-btn-book" onClick={() => (window.location.href = `/users/myBooking/${primary.id}`)}>Đặt ngay</button>
+              <button
+                className="uc-btn-detail"
+                onClick={() =>
+                  (window.location.href = `/users/detailParking/${primary.id}`)
+                }
+              >
+                Chi tiết
+              </button>
+              <button
+                className="uc-btn-book"
+                onClick={() =>
+                  (window.location.href = `/users/myBooking/${primary.id}`)
+                }
+              >
+                Đặt ngay
+              </button>
             </div>
           </div>
           {isBest && (
-            <div style={{ marginTop: 8, fontSize: 11, color: "#4ade80", background: "rgba(34,197,94,0.08)", borderRadius: 6, padding: "4px 8px" }}>
-              💡 Được chọn dựa trên điểm tổng hợp cao nhất trong tất cả bãi đang hoạt động
+            <div
+              style={{
+                marginTop: 8,
+                fontSize: 11,
+                color: "#4ade80",
+                background: "rgba(34,197,94,0.08)",
+                borderRadius: 6,
+                padding: "4px 8px",
+              }}
+            >
+              💡 Được chọn dựa trên điểm tổng hợp cao nhất trong tất cả bãi đang
+              hoạt động
             </div>
           )}
         </div>
@@ -532,7 +798,9 @@ export default function UserChatbot() {
         {/* Table các bãi còn lại */}
         {others.length > 0 && (
           <div className="uc-parking-secondary">
-            <div className="uc-parking-secondary-title">Các bãi khác ({others.length})</div>
+            <div className="uc-parking-secondary-title">
+              Các bãi khác ({others.length})
+            </div>
             <table className="uc-parking-table">
               <thead>
                 <tr>
@@ -547,16 +815,49 @@ export default function UserChatbot() {
               <tbody>
                 {others.map((lot: any) => (
                   <tr key={lot.id}>
-                    <td style={{ fontWeight: 500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    <td
+                      style={{
+                        fontWeight: 500,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {lot.name}
                     </td>
-                    <td style={{ whiteSpace: "nowrap" }}>{(lot.hourly_rate || 20000).toLocaleString("vi-VN")}đ</td>
-                    <td style={{ whiteSpace: "nowrap" }}>{lot.available_slots ?? "?"}/{lot.total_slots ?? "?"}</td>
-                    {lot.distance_km != null && <td style={{ whiteSpace:"nowrap" }}>{lot.distance_km}km</td>}
-                    <td style={{ whiteSpace: "nowrap" }}>{lot.avgRating > 0 ? Number(lot.avgRating).toFixed(1) : "-"}</td>
                     <td style={{ whiteSpace: "nowrap" }}>
-                      <button className="uc-btn-detail" onClick={() => (window.location.href = `/users/detailParking/${lot.id}`)}>Chi tiết</button>
-                      <button className="uc-btn-book" onClick={() => (window.location.href = `/users/myBooking/${lot.id}`)}>Đặt</button>
+                      {(lot.hourly_rate || 20000).toLocaleString("vi-VN")}đ
+                    </td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      {lot.available_slots ?? "?"}/{lot.total_slots ?? "?"}
+                    </td>
+                    {lot.distance_km != null && (
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        {lot.distance_km}km
+                      </td>
+                    )}
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      {lot.avgRating > 0
+                        ? Number(lot.avgRating).toFixed(1)
+                        : "-"}
+                    </td>
+                    <td style={{ whiteSpace: "nowrap" }}>
+                      <button
+                        className="uc-btn-detail"
+                        onClick={() =>
+                          (window.location.href = `/users/detailParking/${lot.id}`)
+                        }
+                      >
+                        Chi tiết
+                      </button>
+                      <button
+                        className="uc-btn-book"
+                        onClick={() =>
+                          (window.location.href = `/users/myBooking/${lot.id}`)
+                        }
+                      >
+                        Đặt
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -695,29 +996,58 @@ export default function UserChatbot() {
           <div
             ref={panelRef}
             className="uc-panel"
-            style={{ right: panelPos.right, bottom: panelPos.bottom, width: panelSize.width, height: panelSize.height }}
+            style={{
+              right: panelPos.right,
+              bottom: panelPos.bottom,
+              width: panelSize.width,
+              height: panelSize.height,
+            }}
           >
             {/* Resize handle (góc trên trái) */}
-            <div className="uc-resize-handle" onMouseDown={onResizeMouseDown} title="Kéo để thay đổi kích thước" />
+            <div
+              className="uc-resize-handle"
+              onMouseDown={onResizeMouseDown}
+              title="Kéo để thay đổi kích thước"
+            />
 
             {/* Sessions overlay */}
             {showSessions && (
               <div className="uc-sessions-overlay">
                 <div className="uc-sessions-hdr">
-                  <span className="uc-sessions-title">💬 Lịch sử trò chuyện</span>
-                  <button className="uc-ibtn" onClick={() => setShowSessions(false)}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  <span className="uc-sessions-title">
+                    💬 Lịch sử trò chuyện
+                  </span>
+                  <button
+                    className="uc-ibtn"
+                    onClick={() => setShowSessions(false)}
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
                   </button>
                 </div>
                 <div className="uc-sessions-list">
                   {sessions.length === 0 && (
-                    <div style={{ textAlign: "center", color: "#3a6b4a", fontSize: 12, padding: 20 }}>
+                    <div
+                      style={{
+                        textAlign: "center",
+                        color: "#3a6b4a",
+                        fontSize: 12,
+                        padding: 20,
+                      }}
+                    >
                       Chưa có cuộc trò chuyện nào
                     </div>
                   )}
-                  {sessions.map(s => (
+                  {sessions.map((s) => (
                     <div
                       key={s.id}
                       className={`uc-session-item${s.id === currentSessionId ? " active" : ""}`}
@@ -727,20 +1057,46 @@ export default function UserChatbot() {
                       <div className="uc-session-info">
                         <div className="uc-session-name">{s.title}</div>
                         <div className="uc-session-date">
-                          {new Date(s.updatedAt).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })}
+                          {new Date(s.updatedAt).toLocaleString("vi-VN", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}
                         </div>
                       </div>
-                      <button className="uc-session-del" onClick={e => deleteSessionById(s.id, e)} title="Xóa">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+                      <button
+                        className="uc-session-del"
+                        onClick={(e) => deleteSessionById(s.id, e)}
+                        title="Xóa"
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14H6L5 6" />
                         </svg>
                       </button>
                     </div>
                   ))}
                 </div>
-                <button className="uc-new-session-btn" onClick={createNewSession}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                <button
+                  className="uc-new-session-btn"
+                  onClick={createNewSession}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
                   Cuộc trò chuyện mới
                 </button>
@@ -748,38 +1104,91 @@ export default function UserChatbot() {
             )}
 
             {/* Header - drag handle */}
-            <div className="uc-hdr uc-drag-handle" onMouseDown={onDragMouseDown}>
+            <div
+              className="uc-hdr uc-drag-handle"
+              onMouseDown={onDragMouseDown}
+            >
               <div className="uc-hdr-row">
                 <div className="uc-brand">
                   <div className="uc-av">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                      <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="2"
+                    >
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
                     </svg>
                   </div>
                   <div>
                     <div className="uc-bname">GoPark Assistant</div>
-                    <div className="uc-bsub">{user?.profile?.name ? `Xin chào, ${user.profile.name}` : "Hỗ trợ người dùng 24/7"}</div>
+                    <div className="uc-bsub">
+                      {user?.profile?.name
+                        ? `Xin chào, ${user.profile.name}`
+                        : "Hỗ trợ người dùng 24/7"}
+                    </div>
                   </div>
                 </div>
                 <div className="uc-acts">
                   <span className="uc-role-badge">👤 USER</span>
                   <div className="uc-pill">
-                    <div className="uc-dot" style={{ background: statusDot[status] }} />
+                    <div
+                      className="uc-dot"
+                      style={{ background: statusDot[status] }}
+                    />
                     {statusLabel[status]}
                   </div>
-                  <button className="uc-ibtn" title="Lịch sử chat" onClick={() => setShowSessions(true)}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  <button
+                    className="uc-ibtn"
+                    title="Lịch sử chat"
+                    onClick={() => setShowSessions(true)}
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
                   </button>
-                  <button className="uc-ibtn" onClick={clearHistory} title="Cuộc trò chuyện mới">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  <button
+                    className="uc-ibtn"
+                    onClick={clearHistory}
+                    title="Cuộc trò chuyện mới"
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                   </button>
-                  <button className="uc-ibtn" onClick={() => setOpen(false)} title="Đóng">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  <button
+                    className="uc-ibtn"
+                    onClick={() => setOpen(false)}
+                    title="Đóng"
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
                   </button>
                 </div>
@@ -787,24 +1196,42 @@ export default function UserChatbot() {
               {/* Voice toggle */}
               <div className="uc-voice-row">
                 <span className="uc-voice-label">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
                   </svg>
                   Chế độ giọng nói AI
                 </span>
                 <label className="uc-toggle">
-                  <input type="checkbox" checked={voiceMode} onChange={e => setVoiceMode(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={voiceMode}
+                    onChange={(e) => setVoiceMode(e.target.checked)}
+                  />
                   <span className="uc-toggle-slider" />
                 </label>
               </div>
               {voiceMode && (
                 <div className="uc-voice-status">
-                  {(voiceState === "wake-listening" || voiceState === "question-listening") && (
+                  {(voiceState === "wake-listening" ||
+                    voiceState === "question-listening") && (
                     <span className="uc-wave">
-                      <span style={{height:6}} /><span /><span /><span /><span style={{height:6}} />
+                      <span style={{ height: 6 }} />
+                      <span />
+                      <span />
+                      <span />
+                      <span style={{ height: 6 }} />
                     </span>
-                  )}{" "}{voiceStateLabel[voiceState]}
+                  )}{" "}
+                  {voiceStateLabel[voiceState]}
                 </div>
               )}
             </div>
@@ -812,30 +1239,58 @@ export default function UserChatbot() {
             {/* Messages */}
             <div className="uc-msgs">
               {messages.map((m, i) => (
-                <div key={i} className={`uc-row${m.role === "user" ? " u" : ""}`}>
+                <div
+                  key={i}
+                  className={`uc-row${m.role === "user" ? " u" : ""}`}
+                >
                   {m.role === "assistant" && (
                     <div className="uc-mav">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#fff"
+                        strokeWidth="2"
+                      >
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
                       </svg>
                     </div>
                   )}
                   <div className={`uc-bub${m.role === "user" ? " u" : " b"}`}>
-                    {m.type === "parking-list"
-                      ? <div>{m.content}{renderParkingList(m, i)}</div>
-                      : m.content}
+                    {m.type === "parking-list" ? (
+                      <div>
+                        {m.content}
+                        {renderParkingList(m, i)}
+                      </div>
+                    ) : (
+                      m.content
+                    )}
                   </div>
                 </div>
               ))}
               {loading && (
                 <div className="uc-row">
                   <div className="uc-mav">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                      <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="2"
+                    >
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
                     </svg>
                   </div>
                   <div className="uc-bub b">
-                    <div className="uc-tdots"><div className="uc-td"/><div className="uc-td"/><div className="uc-td"/></div>
+                    <div className="uc-tdots">
+                      <div className="uc-td" />
+                      <div className="uc-td" />
+                      <div className="uc-td" />
+                    </div>
                   </div>
                 </div>
               )}
@@ -846,15 +1301,29 @@ export default function UserChatbot() {
             <div className="uc-chips-wrap">
               <div className="uc-clabel">💡 Gợi ý nhanh</div>
               <div className="uc-chips">
-                {QUICK_CHIPS.map(label => (
-                  <button key={label} className="uc-chip" onClick={() => sendMessage(label)}>{label}</button>
-                ))}
-                {userVehicles.length > 0 && userVehicles.map((v: any) => (
-                  <button key={v.msg} className="uc-chip" style={{ borderColor: "rgba(34,197,94,0.4)", background: "rgba(34,197,94,0.12)" }}
-                    onClick={() => sendMessage(`đặt bãi với ${v.msg}`)}>
-                    {v.label}
+                {QUICK_CHIPS.map((label) => (
+                  <button
+                    key={label}
+                    className="uc-chip"
+                    onClick={() => sendMessage(label)}
+                  >
+                    {label}
                   </button>
                 ))}
+                {userVehicles.length > 0 &&
+                  userVehicles.map((v: any) => (
+                    <button
+                      key={v.msg}
+                      className="uc-chip"
+                      style={{
+                        borderColor: "rgba(34,197,94,0.4)",
+                        background: "rgba(34,197,94,0.12)",
+                      }}
+                      onClick={() => sendMessage(`đặt bãi với ${v.msg}`)}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
               </div>
             </div>
 
@@ -862,10 +1331,21 @@ export default function UserChatbot() {
             <div className="uc-inp-area">
               <div className="uc-inp-box">
                 <textarea
-                  className="uc-ta" rows={1} value={input}
-                  placeholder={voiceMode ? "Voice mode bật – hoặc gõ câu hỏi..." : "Hỏi về bãi đỗ, đặt chỗ, ví tiền..."}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  className="uc-ta"
+                  rows={1}
+                  value={input}
+                  placeholder={
+                    voiceMode
+                      ? "Voice mode bật – hoặc gõ câu hỏi..."
+                      : "Hỏi về bãi đỗ, đặt chỗ, ví tiền..."
+                  }
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
                 />
                 <button
                   className={`uc-mic${listening ? " on" : ""}`}
@@ -873,32 +1353,86 @@ export default function UserChatbot() {
                   onClick={() => {
                     const r = recognitionRef.current;
                     if (!r) return;
-                    if (listening) { r.stop(); }
-                    else {
-                      try { r.start(); }
-                      catch { const win: any = window; const SR = win.SpeechRecognition || win.webkitSpeechRecognition; if (SR) { const nr = new SR(); nr.lang="vi-VN"; nr.interimResults=true; nr.onresult=(ev:any)=>setInput(Array.from(ev.results).map((x:any)=>x[0].transcript).join("")); nr.onstart=()=>setListening(true); nr.onend=()=>setListening(false); recognitionRef.current=nr; nr.start(); } }
+                    if (listening) {
+                      r.stop();
+                    } else {
+                      try {
+                        r.start();
+                      } catch {
+                        const win: any = window;
+                        const SR =
+                          win.SpeechRecognition || win.webkitSpeechRecognition;
+                        if (SR) {
+                          const nr = new SR();
+                          nr.lang = "vi-VN";
+                          nr.interimResults = true;
+                          nr.onresult = (ev: any) =>
+                            setInput(
+                              Array.from(ev.results)
+                                .map((x: any) => x[0].transcript)
+                                .join(""),
+                            );
+                          nr.onstart = () => setListening(true);
+                          nr.onend = () => setListening(false);
+                          recognitionRef.current = nr;
+                          nr.start();
+                        }
+                      }
                     }
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill={listening ? "#ef4444" : "none"} stroke="currentColor" strokeWidth="1.9">
-                    <rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill={listening ? "#ef4444" : "none"}
+                    stroke="currentColor"
+                    strokeWidth="1.9"
+                  >
+                    <rect x="9" y="2" width="6" height="11" rx="3" />
+                    <path d="M5 10a7 7 0 0 0 14 0" />
+                    <line x1="12" y1="19" x2="12" y2="22" />
                   </svg>
                 </button>
-                <button className="uc-send" disabled={loading || !input.trim()} onClick={() => sendMessage()}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.3">
-                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                <button
+                  className="uc-send"
+                  disabled={loading || !input.trim()}
+                  onClick={() => sendMessage()}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#fff"
+                    strokeWidth="2.3"
+                  >
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
                   </svg>
                 </button>
               </div>
-              <div className="uc-hint">Enter gửi · Shift+Enter xuống dòng · 🎙️ mic để nói</div>
+              <div className="uc-hint">
+                Enter gửi · Shift+Enter xuống dòng · 🎙️ mic để nói
+              </div>
             </div>
           </div>
         )}
 
-        <button className={`uc-fab${open ? " hidden" : ""}`} onClick={() => setOpen(true)}>
+        <button
+          className={`uc-fab${open ? " hidden" : ""}`}
+          onClick={() => setOpen(true)}
+        >
           {hasUnread && <span className="uc-badge">!</span>}
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#fff"
+            strokeWidth="2"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
         </button>
       </div>
