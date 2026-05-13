@@ -36,14 +36,22 @@ const WELCOME_MSG: Message = {
 function speakText(text: string, onEnd?: () => void) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const clean = text.replace(/[🔹🔸💰⭐📅📋💳🚗❓🔍✅❌⚠️💡📊📈🏆📋🎉👤🏢]/gu, "").trim();
+  const convertMoney = (t: string) =>
+    t.replace(/(\d[\d,.]*)đ/g, (_, num) => {
+      const n = parseInt(num.replace(/[,.]/g, ""), 10);
+      if (isNaN(n)) return num + " đồng";
+      if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(".0","") + " tỷ đồng";
+      if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(".0","") + " triệu đồng";
+      if (n >= 1_000) return (n / 1_000).toFixed(0) + " nghìn đồng";
+      return n + " đồng";
+    });
+  const clean = convertMoney(text)
+    .replace(/[🔹🔸💰⭐📅📋💳🚗❓🔍✅❌⚠️💡📊📈🏆🎉👤🏢]/gu, "")
+    .replace(/\*\*/g, "").trim();
   const utt = new SpeechSynthesisUtterance(clean);
-  utt.lang = "vi-VN";
-  utt.rate = 1.05;
-  utt.pitch = 1;
+  utt.lang = "vi-VN"; utt.rate = 1.05; utt.pitch = 1;
   const voices = window.speechSynthesis.getVoices();
-  const googleVi = voices.find(v => v.lang === "vi-VN" && v.name.toLowerCase().includes("google"))
-    || voices.find(v => v.lang === "vi-VN");
+  const googleVi = voices.find(v => v.lang === "vi-VN" && v.name.toLowerCase().includes("google")) || voices.find(v => v.lang === "vi-VN");
   if (googleVi) utt.voice = googleVi;
   if (onEnd) utt.onend = onEnd;
   window.speechSynthesis.speak(utt);
