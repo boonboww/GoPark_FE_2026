@@ -733,7 +733,7 @@ function TrafficLayerManager({ visible }: { visible: boolean }) {
               type: 'line',
               source: sourceId,
               'source-layer': 'traffic',
-              filter: layer.filter,
+              filter: layer.filter as any,
               paint: {
                 'line-color': layer.color,
                 'line-width': 3,
