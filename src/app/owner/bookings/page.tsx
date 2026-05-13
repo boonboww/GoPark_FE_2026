@@ -24,7 +24,7 @@ export default function BookingsPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        {role !== "staff" && <SiteHeader />}
+        <SiteHeader />
 
         <div className="max-w-6xl mx-auto p-6 space-y-6 w-full">
           <div className="space-y-1">

@@ -47,7 +47,7 @@ export default function CustomerManagementPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        {role !== "staff" && <SiteHeader />}
+        <SiteHeader />
         <div className="max-w-[1400px] mx-auto p-6 space-y-6 w-full">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold text-foreground tracking-tight">

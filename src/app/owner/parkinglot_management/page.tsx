@@ -367,7 +367,7 @@ export default function ParkingLotManagementPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        {role !== "staff" && <SiteHeader />}
+        <SiteHeader />
 
         <div className="max-w-[1400px] mx-auto p-6 space-y-6 w-full">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">

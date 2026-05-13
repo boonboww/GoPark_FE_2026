@@ -36,7 +36,7 @@ export default function Page() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        {role !== "staff" && <SiteHeader />}
+        <SiteHeader />
         <div className="max-w-[1400px] mx-auto p-6 flex-1 space-y-6 w-full @container/main">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
