@@ -26,7 +26,7 @@ export interface AdminActivity {
   content: string;
   username: string;
   time: string;
-  status: "success" | "warning" | "error";
+  status: "SUCCESS" | "WARNING" | "ERROR" | "success" | "warning" | "error" | string;
 }
 
 export interface SystemStatus {
@@ -61,10 +61,10 @@ export interface CustomerList {
   email: string;
   phone: string;
   avatar?: string;
-  status: "ACTIVE" | "BLOCKED";
+  status: "ACTIVE" | "BLOCKED" | "SPENDING" | string;
   totalBookings: number;
   totalSpending: number;
-  lastActive: string;
+  lastActive?: string;
   createdAt: string;
   address?: string;
 }
@@ -81,54 +81,59 @@ export interface OwnerList {
   name: string;
   email: string;
   phone: string;
-  totalParkingLots: number;
-  totalRevenue: string; // Backend returns string like "0 Tr ₫"
+  totalParkingLots?: number;
+  totalRevenue?: string; // Backend returns string like "0 Tr ₫"
+  totalSpending?: number;
   totalBookings: number;
   status: "ACTIVE" | "BLOCKED" | string;
   createdAt: string;
 }
 
 /** Transaction related types */
-export type TransactionStatus = "success" | "pending" | "failed" | "refunded";
-export type PaymentMethod =
-  | "momo"
-  | "vnpay"
-  | "zalopay"
-  | "bank_transfer"
-  | "wallet"
-  | "cash"
-  | "credit_card";
+export type TransactionStatus = "PENDING" | "COMPLETED" | "FAILED" | "CANCELLED" | "SUCCESS";
 export type TransactionType =
-  | "top_up"
-  | "withdrawal"
-  | "booking_payment"
-  | "subscription"
-  | "refund"
-  | "penalty";
+  | "TOP_UP"
+  | "WITHDRAW"
+  | "PENALTY"
+  | "BOOKING_PAYMENT"
+  | "BOOKING_REFUND"
+  | "TRANSFER_IN"
+  | "TRANSFER_OUT"
+  | "EARN_PARKING_FEE"
+  | "PAYMENT";
 
-export interface TransactionUser {
-  _id: string;
-  userName: string;
-  email: string;
-  role: "user" | "owner";
+export interface WalletInfo {
+  id: string;
+  balance: number;
+  user?: {
+    id: string;
+    userName: string;
+    email: string;
+    role: string;
+    phoneNumber?: string;
+    profile?: {
+      id: number;
+      name: string;
+      phone: string;
+      gender: string | null;
+      image: string | null;
+    };
+  };
 }
 
 export interface Transaction {
-  _id: string;
-  transactionCode: string;
-  user: TransactionUser;
-  type: TransactionType;
-  status: TransactionStatus;
+  id: string;
   amount: number;
-  paymentMethod: PaymentMethod;
-  description: string;
-  bookingId?: string;
-  parkingLotName?: string;
-  parkingLotAddress?: string;
-  createdAt: string;
-  completedAt?: string;
-  failedReason?: string;
-  refundReason?: string;
+  balance_before: number;
+  balance_after: number;
+  type: TransactionType | string;
+  status: TransactionStatus | string;
+  ref_type: string | null;
+  ref_id: string | null;
+  created_at: string;
+  updated_at: string;
+  wallet_id: string | null;
+  wallet?: WalletInfo;
 }
 
 /** Report related types */
@@ -329,8 +334,13 @@ class AdminService {
    */
   async getRecentActivities(page?: number, limit?: number): Promise<{ data: AdminActivity[], total: number }> {
     const url = page && limit ? `/admin/stats/activities-recent?page=${page}&limit=${limit}` : "/admin/stats/activities-recent";
-    const response = await get<any>(url);
-    return { data: response.data || [], total: response.count || response.data?.length || 0 };
+    const response = await get<ApiResponse<{ items: AdminActivity[], meta: any }>>(url);
+    
+    // The response data is { items: [...], meta: {...} }
+    const items = response.data?.items || [];
+    const total = response.data?.meta?.totalItems || items.length || 0;
+    
+    return { data: items, total };
   }
 
   /**
@@ -361,12 +371,18 @@ class AdminService {
     return response.data;
   }
 
-  async getCustomers(): Promise<CustomerList[]> {
-    const response =
-      await get<ApiResponse<WrappedResponse<CustomerList[]>>>(
-        "/admin/users/list",
-      );
-    return response.data.data;
+  async getCustomers(page?: number, limit?: number): Promise<{ data: CustomerList[], total: number }> {
+    const params: Record<string, string> = {};
+    if (page) params.page = String(page);
+    if (limit) params.limit = String(limit);
+    
+    const response = await get<ApiResponse<{ data: CustomerList[], meta: any }>>(
+      "/admin/users/list",
+      params
+    );
+    const items = response.data?.data || [];
+    const total = response.data?.meta?.totalItems || items.length || 0;
+    return { data: items, total };
   }
 
   /**
@@ -382,34 +398,73 @@ class AdminService {
    * Get list of owners
    * GET /api/v1/admin/owners/list
    */
-  async getOwners(): Promise<OwnerList[]> {
-    const response =
-      await get<ApiResponse<WrappedResponse<OwnerList[]>>>(
-        "/admin/owners/list",
-      );
-    return response.data.data;
+  async getOwners(page?: number, limit?: number): Promise<{ data: OwnerList[], total: number }> {
+    const params: Record<string, string> = {};
+    if (page) params.page = String(page);
+    if (limit) params.limit = String(limit);
+
+    const response = await get<ApiResponse<{ data: OwnerList[], meta: any }>>(
+      "/admin/owners/list",
+      params
+    );
+    const items = response.data?.data || [];
+    const total = response.data?.meta?.totalItems || items.length || 0;
+    return { data: items, total };
   }
 
   /**
-   * Get list of transactions
-   * GET /api/v1/admin/transactions
+   * Get transaction statistics
+   * GET /api/v1/admin/stats/transactions
    */
-  async getTransactions(): Promise<Transaction[]> {
-    const response = await get<ApiResponse<WrappedResponse<Transaction[]>>>(
-      "/admin/transactions",
+  async getTransactionStats(): Promise<{
+    totalTransactions: number;
+    successTransactions: number;
+    totalIncome: string;
+    totalRefund: string;
+  }> {
+    const response = await get<ApiResponse<{
+      totalTransactions: number;
+      successTransactions: number;
+      totalIncome: string;
+      totalRefund: string;
+    }>>("/admin/stats/transactions");
+    return response.data;
+  }
+
+  /**
+   * Get list of transactions (from wallets)
+   * GET /api/v1/admin/wallets
+   */
+  async getTransactions(page?: number, limit?: number): Promise<{ data: Transaction[], total: number }> {
+    const params: Record<string, string> = {};
+    if (page) params.page = String(page);
+    if (limit) params.limit = String(limit);
+
+    const response = await get<ApiResponse<{ items: Transaction[], meta: any }>>(
+      "/admin/wallets",
+      params
     );
-    return response.data.data;
+    const items = response.data?.items || [];
+    const total = response.data?.meta?.totalItems || items.length || 0;
+    return { data: items, total };
   }
 
   /**
    * Get list of all parking lots
    * GET /api/v1/admin/parking-lots
    */
-  async getParkingLots(): Promise<ParkingLot[]> {
-    const response = await get<ApiResponse<WrappedResponse<ParkingLot[]>>>(
+  async getParkingLots(page?: number, limit?: number): Promise<{ data: ParkingLot[], total: number }> {
+    const params: Record<string, string> = {};
+    if (page) params.page = String(page);
+    if (limit) params.limit = String(limit);
+
+    const response = await get<ApiResponse<{ items: ParkingLot[], meta: any }>>(
       "/admin/parking-lots",
+      params
     );
-    return response.data.data;
+    const items = response.data?.items || [];
+    const total = response.data?.meta?.totalItems || items.length || 0;
+    return { data: items, total };
   }
 
   /**
@@ -425,17 +480,18 @@ class AdminService {
    * Get parking lot list
    * GET /api/v1/admin/parking-lots/list
    */
-  async getParkingLotsList(): Promise<{ data: ParkingLotItem[]; meta: any }> {
-    const response = await get<ApiResponse<WrappedResponse<ParkingLotItem[]>> & { meta?: any }>(
+  async getParkingLotsList(page?: number, limit?: number): Promise<{ data: ParkingLotItem[]; total: number }> {
+    const params: Record<string, string> = {};
+    if (page) params.page = String(page);
+    if (limit) params.limit = String(limit);
+
+    const response = await get<ApiResponse<{ data: ParkingLotItem[], meta: any }>>(
       "/admin/parking-lots/list",
+      params
     );
-    // The structure: { statusCode, message, data: { success, message, data: [...], meta: {...} } }
-    // our 'get' helper usually returns the outer 'data' field.
-    const nestedData = response.data; // This is the WrappedResponse
-    return {
-      data: nestedData.data || [],
-      meta: (nestedData as any).meta || response.meta
-    };
+    const items = response.data?.data || [];
+    const total = response.data?.meta?.totalItems || items.length || 0;
+    return { data: items, total };
   }
 
   /**
@@ -451,14 +507,20 @@ class AdminService {
   /**  * Get list of all approval requests
    * GET /api/v1/admin/requests
    */
-  async getApprovalRequests(): Promise<ApprovalRequest[]> {
+  async getApprovalRequests(page?: number, limit?: number): Promise<{ data: ApprovalRequest[], total: number }> {
+    const params: Record<string, string> = {};
+    if (page) params.page = String(page);
+    if (limit) params.limit = String(limit);
+
     const response = await get<
       ApiResponse<{
         items: ApprovalRequest[];
         meta: any;
       }>
-    >("/admin/requests");
-    return response.data.items;
+    >("/admin/requests", params);
+    const items = response.data?.items || [];
+    const total = response.data?.meta?.totalItems || items.length || 0;
+    return { data: items, total };
   }
 
   /**

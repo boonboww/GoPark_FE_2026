@@ -61,10 +61,10 @@ interface Customer {
   email: string;
   phone: string;
   avatar?: string;
-  status: "ACTIVE" | "BLOCKED";
+  status: "ACTIVE" | "BLOCKED" | "SPENDING" | string;
   totalBookings: number;
   totalSpending: number;
-  lastActive: string;
+  lastActive?: string;
   createdAt: string;
   address?: string;
   recentBookings?: RecentBooking[];
@@ -191,7 +191,8 @@ export default function CustomerPage() {
     setCustomerData,
     setCustomersLoading,
     setCustomersError,
-    setCustomers
+    setCustomers,
+    totalCustomers
   } = useAdminStore();
 
   const [filters, setFilters] = useState<Filters>({
@@ -213,13 +214,13 @@ export default function CustomerPage() {
     try {
       setCustomersLoading(true);
 
-      const [statsData, customerListData] = await Promise.all([
+      const [statsData, customerResponse] = await Promise.all([
         adminService.getUserStats(),
-        adminService.getCustomers()
+        adminService.getCustomers(currentPage, pageSize)
       ]);
 
-      if (customerListData && statsData) {
-        setCustomerData(customerListData, statsData);
+      if (customerResponse && statsData) {
+        setCustomerData(customerResponse.data, statsData, customerResponse.total);
       }
     } catch (err) {
       console.error("Error fetching customers:", err);
@@ -228,10 +229,8 @@ export default function CustomerPage() {
   };
 
   useEffect(() => {
-    if (customers.length === 0) {
-      fetchCustomers();
-    }
-  }, []);
+    fetchCustomers();
+  }, [currentPage, pageSize]);
 
   // Filter & sort
   const filteredCustomers = useMemo(() => {
@@ -267,10 +266,8 @@ export default function CustomerPage() {
     return result;
   }, [customers, filters]);
 
-  // Paginated customers
-  const paginatedCustomers = useMemo(() => {
-    return filteredCustomers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  }, [filteredCustomers, currentPage]);
+  // Paginated customers are now direct from store
+  const paginatedCustomers = filteredCustomers;
 
   // Stats
   const stats = useMemo(() => {
@@ -619,7 +616,7 @@ const formatNumber = (num: number) => {
         {filteredCustomers.length > 0 && (
           <div className="px-5 py-4 border-t border-border flex items-center justify-between bg-card">
             <div className="text-sm text-muted-foreground">
-              Hiển thị <span className="font-medium text-foreground">{Math.min(filteredCustomers.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredCustomers.length, currentPage * pageSize)}</span> trong <span className="font-medium text-foreground">{filteredCustomers.length}</span> khách hàng
+              Hiển thị <span className="font-medium text-foreground">{Math.min(totalCustomers, (currentPage - 1) * pageSize + 1)}-{Math.min(totalCustomers, currentPage * pageSize)}</span> trong <span className="font-medium text-foreground">{totalCustomers}</span> khách hàng
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -633,7 +630,7 @@ const formatNumber = (num: number) => {
               </Button>
               
               {(() => {
-                const totalPages = Math.ceil(filteredCustomers.length / pageSize);
+                const totalPages = Math.ceil(totalCustomers / pageSize);
                 const pages = [];
                 for (let i = 1; i <= totalPages; i++) {
                   if (
@@ -667,8 +664,8 @@ const formatNumber = (num: number) => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(filteredCustomers.length / pageSize), prev + 1))}
-                disabled={currentPage >= Math.ceil(filteredCustomers.length / pageSize)}
+                onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(totalCustomers / pageSize), prev + 1))}
+                disabled={currentPage >= Math.ceil(totalCustomers / pageSize)}
                 className="h-8 w-8 p-0"
               >
                 <ChevronRight className="w-4 h-4" />

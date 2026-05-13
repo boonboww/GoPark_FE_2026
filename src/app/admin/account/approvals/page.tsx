@@ -233,6 +233,8 @@ export default function ApprovalsPage() {
     setApprovalRequests: setRequests,
     setApprovalsLoading,
     setApprovalsError,
+    totalApprovals,
+    setTotalApprovals
   } = useAdminStore();
 
   /** Bộ lọc */
@@ -268,12 +270,13 @@ export default function ApprovalsPage() {
     try {
       setApprovalsLoading(true);
 
-      const [statsRequest, requests] = await Promise.all([
+      const [statsResult, listResult] = await Promise.all([
         adminService.getStatsApprovalRequests(),
-        adminService.getApprovalRequests(),
+        adminService.getApprovalRequests(currentPage, pageSize),
       ]);
 
-      setRequests(requests);
+      setRequests(listResult.data);
+      setTotalApprovals(listResult.total);
     } catch (err) {
       console.error("Lỗi khi tải danh sách đơn:", err);
       setApprovalsError(
@@ -286,10 +289,8 @@ export default function ApprovalsPage() {
 
   /** Tải dữ liệu khi component được mount */
   useEffect(() => {
-    if (Array.isArray(requests) && requests.length === 0) {
-      fetchRequests();
-    }
-  }, []);
+    fetchRequests();
+  }, [currentPage, pageSize]);
 
   // ── Lọc & sắp xếp danh sách ────────────────────────────────────────────────
 
@@ -340,13 +341,8 @@ export default function ApprovalsPage() {
     return result;
   }, [requests, filters]);
 
-  // Paginated requests
-  const paginatedRequests = useMemo(() => {
-    return filteredRequests.slice(
-      (currentPage - 1) * pageSize,
-      currentPage * pageSize,
-    );
-  }, [filteredRequests, currentPage]);
+  // Paginated requests are now direct from filtered results
+  const paginatedRequests = filteredRequests;
 
   // ── Thống kê ────────────────────────────────────────────────────────────────
 
@@ -865,20 +861,20 @@ export default function ApprovalsPage() {
       </div>
 
       {/* Phân trang */}
-      {filteredRequests.length > 0 && (
+      {totalApprovals > 0 && (
         <div className="px-5 py-4 bg-card rounded-xl border border-border flex items-center justify-between shadow-sm">
           <div className="text-sm text-muted-foreground">
             Hiển thị{" "}
             <span className="font-medium text-foreground">
               {Math.min(
-                filteredRequests.length,
+                totalApprovals,
                 (currentPage - 1) * pageSize + 1,
               )}
-              -{Math.min(filteredRequests.length, currentPage * pageSize)}
+              -{Math.min(totalApprovals, currentPage * pageSize)}
             </span>{" "}
             trong{" "}
             <span className="font-medium text-foreground">
-              {filteredRequests.length}
+              {totalApprovals}
             </span>{" "}
             đơn yêu cầu
           </div>
@@ -894,7 +890,7 @@ export default function ApprovalsPage() {
             </Button>
 
             {(() => {
-              const totalPages = Math.ceil(filteredRequests.length / pageSize);
+              const totalPages = Math.ceil(totalApprovals / pageSize);
               const pages = [];
               for (let i = 1; i <= totalPages; i++) {
                 if (
@@ -935,13 +931,13 @@ export default function ApprovalsPage() {
               onClick={() =>
                 setCurrentPage((prev) =>
                   Math.min(
-                    Math.ceil(filteredRequests.length / pageSize),
+                    Math.ceil(totalApprovals / pageSize),
                     prev + 1,
                   ),
                 )
               }
               disabled={
-                currentPage >= Math.ceil(filteredRequests.length / pageSize)
+                currentPage >= Math.ceil(totalApprovals / pageSize)
               }
               className="h-8 w-8 p-0"
             >

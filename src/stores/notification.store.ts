@@ -45,6 +45,7 @@ interface NotificationUIState {
   filters: NotificationFilters;
   currentPage: number;
   pageSize: number;
+  totalNotifications: number;
   isLoading: boolean;
   error: string | null;
 
@@ -75,6 +76,7 @@ export const useNotificationStore = create<NotificationUIState>((set, get) => ({
   },
   currentPage: 1,
   pageSize: 10,
+  totalNotifications: 0,
   isLoading: false,
   error: null,
 
@@ -105,9 +107,13 @@ export const useNotificationStore = create<NotificationUIState>((set, get) => ({
 
   fetchNotifications: async () => {
     try {
+      const { currentPage, pageSize } = get();
       set({ isLoading: true, error: null });
-      const response = await notificationService.getAll();
-      set({ notifications: response.data.items || [] });
+      const response = await notificationService.getAll(currentPage, pageSize);
+      set({ 
+        notifications: response.data.items || [],
+        totalNotifications: response.data.meta?.totalItems || (response.data.items?.length || 0)
+      });
     } catch (err: any) {
       console.error("Lỗi khi tải thông báo:", err);
       set({ error: err.message || "Lỗi không xác định" });

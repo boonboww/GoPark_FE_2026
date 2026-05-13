@@ -150,6 +150,8 @@ export default function ParkingLotsPage() {
     setParkingLotStats,
     setParkingLotsLoading,
     setParkingLotsError,
+    totalParkingLots,
+    setTotalParkingLots
   } = useAdminStore();
 
   const [usingMockData, setUsingMockData] = useState(false);
@@ -178,24 +180,25 @@ export default function ParkingLotsPage() {
       setUsingMockData(false);
 
       const [listResult, statsResult] = await Promise.all([
-        adminService.getParkingLotsList(),
+        adminService.getParkingLotsList(currentPage, pageSize),
         adminService.getParkingLotStats()
       ]);
 
       setParkingLots(listResult.data);
+      setTotalParkingLots(listResult.total);
       setParkingLotStats(statsResult);
     } catch (err) {
       console.error("Lỗi khi tải danh sách bãi đỗ:", err);
       setParkingLotsError(err instanceof Error ? err.message : "Lỗi không xác định");
+    } finally {
+      setParkingLotsLoading(false);
     }
   };
 
   /** Tải dữ liệu khi component được mount */
   useEffect(() => {
-    if (parkingLots.length === 0) {
-      fetchParkingLots();
-    }
-  }, []);
+    fetchParkingLots();
+  }, [currentPage, pageSize]);
 
   // ── Lọc & sắp xếp ──────────────────────────────────────────────────────────
 
@@ -245,10 +248,8 @@ export default function ParkingLotsPage() {
     return result;
   }, [parkingLots, filters]);
 
-  // Paginated lots
-  const paginatedLots = useMemo(() => {
-    return filteredLots.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  }, [filteredLots, currentPage]);
+  // Paginated lots are now direct from filtered results
+  const paginatedLots = filteredLots;
 
   // ── Thống kê ────────────────────────────────────────────────────────────────
 
@@ -314,7 +315,7 @@ export default function ParkingLotsPage() {
             Tất cả Bãi đỗ xe
           </h1>
           <p className="mt-1 text-xs md:text-sm" style={{ color: 'rgba(255,255,255,0.70)' }}>
-            Tìm thấy {filteredLots.length} bãi đỗ xe
+            Tìm thấy {totalParkingLots} bãi đỗ xe
             {usingMockData && <span className="ml-2 text-orange-300 text-[10px] md:text-xs">(Dữ liệu mẫu)</span>}
           </p>
           {error && <p className="text-red-300 text-[10px] md:text-xs mt-1">Lỗi kết nối: {error}</p>}
@@ -527,10 +528,10 @@ export default function ParkingLotsPage() {
         </div>
 
         {/* Phân trang */}
-        {filteredLots.length > 0 && (
+        {totalParkingLots > 0 && (
           <div className="px-5 py-4 border-t border-border flex items-center justify-between bg-card">
             <div className="text-sm text-muted-foreground">
-              Hiển thị <span className="font-medium text-foreground">{Math.min(filteredLots.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredLots.length, currentPage * pageSize)}</span> trong <span className="font-medium text-foreground">{filteredLots.length}</span> bãi đỗ
+              Hiển thị <span className="font-medium text-foreground">{Math.min(totalParkingLots, (currentPage - 1) * pageSize + 1)}-{Math.min(totalParkingLots, currentPage * pageSize)}</span> trong <span className="font-medium text-foreground">{totalParkingLots}</span> bãi đỗ
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -544,7 +545,7 @@ export default function ParkingLotsPage() {
               </Button>
               
               {(() => {
-                const totalPages = Math.ceil(filteredLots.length / pageSize);
+                const totalPages = Math.ceil(totalParkingLots / pageSize);
                 const pages = [];
                 for (let i = 1; i <= totalPages; i++) {
                   if (
@@ -578,8 +579,8 @@ export default function ParkingLotsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(filteredLots.length / pageSize), prev + 1))}
-                disabled={currentPage >= Math.ceil(filteredLots.length / pageSize)}
+                onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(totalParkingLots / pageSize), prev + 1))}
+                disabled={currentPage >= Math.ceil(totalParkingLots / pageSize)}
                 className="h-8 w-8 p-0"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -589,7 +590,7 @@ export default function ParkingLotsPage() {
         )}
 
         {/* Trạng thái trống */}
-        {filteredLots.length === 0 && (
+        {totalParkingLots === 0 && (
           <div className="text-center py-16">
             <div className="bg-muted rounded-full w-20 h-20 mx-auto mb-5 flex items-center justify-center">
               <ParkingSquare className="h-10 w-10 text-gray-400" />
@@ -799,25 +800,11 @@ export default function ParkingLotsPage() {
                         </p>
                       </div>
                     </div>
-                    {lot.owner.gender && (
-                      <Badge variant="outline" className="text-[10px] uppercase">{lot.owner.gender}</Badge>
-                    )}
                   </div>
                 </div>
 
-                {/* Nút hành động */}
-                <div className="flex justify-end gap-3 pt-2 border-t border-border">
+                <div className="flex justify-end pt-2 border-t border-border">
                   <Button variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>
-                  {lot.status === "ACTIVE" && (
-                    <Button className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => handleToggleStatus(lot, "INACTIVE")}>
-                      <Ban size={16} className="mr-2" />Tạm ngưng
-                    </Button>
-                  )}
-                  {lot.status === "INACTIVE" && (
-                    <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleToggleStatus(lot, "ACTIVE")}>
-                      <CheckCircle size={16} className="mr-2" />Kích hoạt lại
-                    </Button>
-                  )}
                 </div>
               </div>
             );

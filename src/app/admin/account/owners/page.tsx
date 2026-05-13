@@ -177,7 +177,8 @@ export default function OwnersPage() {
     setOwnersLoading,
     setOwnersError,
     setOwners,
-    setOwnerStats
+    setOwnerStats,
+    totalOwners
   } = useAdminStore();
 
   /** Bộ lọc tìm kiếm / trạng thái / sắp xếp */
@@ -202,13 +203,13 @@ export default function OwnersPage() {
     try {
       setOwnersLoading(true);
 
-      const [statsData, listData] = await Promise.all([
+      const [statsData, listResponse] = await Promise.all([
         adminService.getOwnerStats(),
-        adminService.getOwners()
+        adminService.getOwners(currentPage, pageSize)
       ]);
 
-      if (statsData && listData) {
-        setOwnerData(listData, statsData);
+      if (statsData && listResponse) {
+        setOwnerData(listResponse.data, statsData, listResponse.total);
       }
 
     } catch (err) {
@@ -219,10 +220,8 @@ export default function OwnersPage() {
 
   /** Tải dữ liệu khi component được mount */
   useEffect(() => {
-    if (owners.length === 0) {
-      fetchOwners();
-    }
-  }, []);
+    fetchOwners();
+  }, [currentPage, pageSize]);
 
   // ── Lọc & sắp xếp danh sách ────────────────────────────────────────────────
 
@@ -255,22 +254,20 @@ export default function OwnersPage() {
         result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         break;
       case "most-lots":
-        result.sort((a, b) => b.totalParkingLots - a.totalParkingLots);
+        result.sort((a, b) => b.totalParkingLots! - a.totalParkingLots!);
         break;
       case "most-revenue":
         // Since revenue is a string like "0 Tr ₫", we might need a better way to sort
         // But for now, we leave it or attempt basic string comparison
-        result.sort((a, b) => b.totalRevenue.localeCompare(a.totalRevenue));
+        result.sort((a, b) => b.totalRevenue!.localeCompare(a.totalRevenue!));
         break;
     }
 
     return result;
   }, [owners, filters]);
 
-  // Paginated owners
-  const paginatedOwners = useMemo(() => {
-    return filteredOwners.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  }, [filteredOwners, currentPage]);
+  // Paginated owners are now direct from store
+  const paginatedOwners = filteredOwners;
 
   // ── Tính toán thống kê ──────────────────────────────────────────────────────
 
@@ -407,7 +404,7 @@ export default function OwnersPage() {
             Quản lý Chủ bãi đỗ
           </h1>
           <p className="mt-1 text-xs md:text-sm" style={{ color: 'rgba(255,255,255,0.70)' }}>
-            Tìm thấy {filteredOwners.length} chủ bãi đỗ 
+            Tìm thấy {totalOwners} chủ bãi đỗ 
           </p>
           {error && <p className="text-red-300 text-[10px] md:text-xs mt-1">Lỗi kết nối: {error}</p>}
         </div>
@@ -644,7 +641,7 @@ export default function OwnersPage() {
         {filteredOwners.length > 0 && (
           <div className="px-5 py-4 border-t border-border flex items-center justify-between bg-card">
             <div className="text-sm text-muted-foreground">
-              Hiển thị <span className="font-medium text-foreground">{Math.min(filteredOwners.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredOwners.length, currentPage * pageSize)}</span> trong <span className="font-medium text-foreground">{filteredOwners.length}</span> chủ bãi
+              Hiển thị <span className="font-medium text-foreground">{Math.min(totalOwners, (currentPage - 1) * pageSize + 1)}-{Math.min(totalOwners, currentPage * pageSize)}</span> trong <span className="font-medium text-foreground">{totalOwners}</span> chủ bãi
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -658,7 +655,7 @@ export default function OwnersPage() {
               </Button>
               
               {(() => {
-                const totalPages = Math.ceil(filteredOwners.length / pageSize);
+                const totalPages = Math.ceil(totalOwners / pageSize);
                 const pages = [];
                 for (let i = 1; i <= totalPages; i++) {
                   if (
@@ -692,8 +689,8 @@ export default function OwnersPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(filteredOwners.length / pageSize), prev + 1))}
-                disabled={currentPage >= Math.ceil(filteredOwners.length / pageSize)}
+                onClick={() => setCurrentPage((prev) => Math.min(Math.ceil(totalOwners / pageSize), prev + 1))}
+                disabled={currentPage >= Math.ceil(totalOwners / pageSize)}
                 className="h-8 w-8 p-0"
               >
                 <ChevronRight className="w-4 h-4" />

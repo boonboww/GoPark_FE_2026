@@ -13,7 +13,6 @@ import {
   RevenueSource,
   DailyRevenue,
   RecentTransaction,
-  ParkingLot,
   ParkingLotItem,
   ParkingLotStats,
   ApprovalRequest
@@ -41,6 +40,12 @@ interface AdminState {
 
   // Transactions
   transactions: Transaction[];
+  transactionStats: {
+    totalTransactions: number;
+    successTransactions: number;
+    totalIncome: string;
+    totalRefund: string;
+  } | null;
   isTransactionsLoading: boolean;
   transactionsError: string | null;
 
@@ -60,7 +65,21 @@ interface AdminState {
   parkingLotsError: string | null;
   approvalsError: string | null;
 
+  // Pagination Totals
+  totalCustomers: number;
+  totalOwners: number;
+  totalTransactions: number;
+  totalParkingLots: number;
+  totalApprovals: number;
+  totalActivities: number;
+
   // Actions
+  setTransactionStats: (stats: {
+    totalTransactions: number;
+    successTransactions: number;
+    totalIncome: string;
+    totalRefund: string;
+  }) => void;
   setDashboardData: (stats: AdminStats, activities: AdminActivity[], systemStatus: SystemStatus) => void;
   setDashboardLoading: (loading: boolean) => void;
   setDashboardError: (error: string | null) => void;
@@ -99,8 +118,12 @@ interface AdminState {
   setApprovalsError: (error: string | null) => void;
 
   // Bulk updates
-  setCustomerData: (customers: CustomerList[], stats: UserStats) => void;
-  setOwnerData: (owners: OwnerList[], stats: OwnerStats) => void;
+  setCustomerData: (customers: CustomerList[], stats: UserStats, total?: number) => void;
+  setOwnerData: (owners: OwnerList[], stats: OwnerStats, total?: number) => void;
+  setTotalTransactions: (total: number) => void;
+  setTotalParkingLots: (total: number) => void;
+  setTotalApprovals: (total: number) => void;
+  setTotalActivities: (total: number) => void;
 }
 
 export const useAdminStore = create<AdminState>((set) => ({
@@ -122,6 +145,7 @@ export const useAdminStore = create<AdminState>((set) => ({
   ownersError: null,
 
   transactions: [],
+  transactionStats: null,
   isTransactionsLoading: false,
   transactionsError: null,
 
@@ -133,7 +157,6 @@ export const useAdminStore = create<AdminState>((set) => ({
   parkingLots: [],
   parkingLotStats: null,
   approvalRequests: [],
-  statsRequest: null,
   isReportsLoading: false,
   isParkingLotsLoading: false,
   isApprovalsLoading: false,
@@ -141,7 +164,16 @@ export const useAdminStore = create<AdminState>((set) => ({
   parkingLotsError: null,
   approvalsError: null,
 
+  // Pagination Totals
+  totalCustomers: 0,
+  totalOwners: 0,
+  totalTransactions: 0,
+  totalParkingLots: 0,
+  totalApprovals: 0,
+  totalActivities: 0,
+
   // Actions
+  setTransactionStats: (transactionStats) => set({ transactionStats }),
   setDashboardData: (overviewStats, recentActivities, systemStatus) => 
     set({ overviewStats, recentActivities, systemStatus, isDashboardLoading: false, dashboardError: null }),
   setDashboardLoading: (isDashboardLoading) => set({ isDashboardLoading }),
@@ -175,9 +207,14 @@ export const useAdminStore = create<AdminState>((set) => ({
   setApprovalsLoading: (isApprovalsLoading) => set({ isApprovalsLoading }),
   setApprovalsError: (approvalsError) => set({ approvalsError, isApprovalsLoading: false }),
   
-  setCustomerData: (customers, customerStats) => 
-    set({ customers, customerStats, isCustomersLoading: false, customersError: null }),
+  setCustomerData: (customers, customerStats, total) => 
+    set({ customers, customerStats, totalCustomers: total || customers.length, isCustomersLoading: false, customersError: null }),
     
-  setOwnerData: (owners, ownerStats) => 
-    set({ owners, ownerStats, isOwnersLoading: false, ownersError: null }),
+  setOwnerData: (owners, ownerStats, total) => 
+    set({ owners, ownerStats, totalOwners: total || owners.length, isOwnersLoading: false, ownersError: null }),
+
+  setTotalTransactions: (totalTransactions) => set({ totalTransactions }),
+  setTotalParkingLots: (totalParkingLots) => set({ totalParkingLots }),
+  setTotalApprovals: (totalApprovals) => set({ totalApprovals }),
+  setTotalActivities: (totalActivities) => set({ totalActivities }),
 }));
