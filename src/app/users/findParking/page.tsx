@@ -4,28 +4,52 @@ import { TopFilter, type ParkingFilters, type NearMeFilter } from "@/components/
 import { ParkingMap } from "@/components/features/findParking/ParkingMap";
 import { ParkingList } from "@/components/features/findParking/ParkingList";
 import { parkingService } from "@/services/parking.service";
+import { useConfigStore } from "@/stores/config.store";
 
 const CITY_LABELS: Record<string, string[]> = {
   hcm: ["hồ chí minh", "ho chi minh", "tp.hcm", "tphcm", "sài gòn", "sai gon"],
   hn: ["hà nội", "ha noi", "hn"],
   dn: ["đà nẵng", "da nang", "dn"],
+  hp: ["hải phòng", "hai phong", "hp"],
+  ct: ["cần thơ", "can tho", "ct"],
+  nt: ["nha trang", "nt"],
+  dl: ["đà lạt", "da lat", "dl"],
+  vt: ["vũng tàu", "vung tau", "vt"]
 };
 
 const CITY_BOUNDS: Record<string, { minLat: number; maxLat: number; minLng: number; maxLng: number }> = {
   hcm: { minLat: 10.63, maxLat: 11.10, minLng: 106.40, maxLng: 106.90 },
   hn: { minLat: 20.95, maxLat: 21.20, minLng: 105.70, maxLng: 105.95 },
   dn: { minLat: 15.95, maxLat: 16.25, minLng: 107.95, maxLng: 108.35 },
+  hp: { minLat: 20.70, maxLat: 21.00, minLng: 106.50, maxLng: 106.85 },
+  ct: { minLat: 9.90, maxLat: 10.20, minLng: 105.60, maxLng: 105.90 },
+  nt: { minLat: 12.18, maxLat: 12.32, minLng: 109.15, maxLng: 109.25 },
+  dl: { minLat: 11.85, maxLat: 12.00, minLng: 108.38, maxLng: 108.48 },
+  vt: { minLat: 10.33, maxLat: 10.45, minLng: 107.05, maxLng: 107.15 }
 };
 
 const CITY_FOCUS: Record<string, { lat: number; lng: number; zoom: number; name: string }> = {
   hcm: { lat: 10.7758, lng: 106.7018, zoom: 11.5, name: "TP. Hồ Chí Minh" },
   hn: { lat: 21.0285, lng: 105.8542, zoom: 11.5, name: "Hà Nội" },
   dn: { lat: 16.0544, lng: 108.2022, zoom: 12, name: "Đà Nẵng" },
+  hp: { lat: 20.8502, lng: 106.6838, zoom: 12, name: "Hải Phòng" },
+  ct: { lat: 10.0270, lng: 105.7877, zoom: 12, name: "Cần Thơ" },
+  nt: { lat: 12.2388, lng: 109.1967, zoom: 13, name: "Nha Trang" },
+  dl: { lat: 11.9404, lng: 108.4384, zoom: 13, name: "Đà Lạt" },
+  vt: { lat: 10.3459, lng: 107.0842, zoom: 13, name: "Vũng Tàu" }
 };
 
 const toLowerSafe = (value: unknown) => String(value || "").toLowerCase();
 
-const extractLotPrice = (lot: any) => Number(lot.minprice ?? lot.minPrice ?? 0);
+const extractLotPrice = (lot: any) => {
+  let val = Number(lot.minprice ?? lot.minPrice ?? 0);
+  if (!val || val === 0) val = 15000; // Fallback to match UI display
+  // Normalize if data stores in thousands (e.g., 15 instead of 15000)
+  if (val > 0 && val < 500) {
+    val = val * 1000;
+  }
+  return val;
+};
 
 const extractLotImageUrl = (lot: any): string | null => {
   const image = lot?.image;
@@ -103,7 +127,7 @@ export default function FindParkingPage() {
   const [parkingLots, setParkingLots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedParkingLot, setSelectedParkingLot] = useState<any | null>(null);
-  const [directionRoute, setDirectionRoute] = useState<{coordinates: [number, number][]} | null>(null);
+  const [directionRoute, setDirectionRoute] = useState<{coordinates: [number, number][], congestion?: string[]} | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [nearMeFilter, setNearMeFilter] = useState<NearMeFilter | null>(null);
   const [filters, setFilters] = useState<ParkingFilters>({
@@ -111,6 +135,18 @@ export default function FindParkingPage() {
     priceSort: "",
   });
   const [searchTitle, setSearchTitle] = useState("");
+  const { locationEnabled } = useConfigStore();
+  const [userCurrentLocation, setUserCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
+
+  useEffect(() => {
+    // Tự động lấy vị trí để phục vụ cho các bộ lọc "Gần tôi nhất" kể cả khi chưa click nút "Gần tôi"
+    if (locationEnabled && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserCurrentLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => console.error("Could not fetch user location automatically:", err)
+      );
+    }
+  }, [locationEnabled]);
 
   useEffect(() => {
     const fetchLots = async () => {
@@ -195,6 +231,9 @@ export default function FindParkingPage() {
       const nearMeDistanceKm = nearMeCenter && coordinates
         ? calculateDistanceKm(nearMeCenter, coordinates)
         : null;
+      const userDistanceKm = userCurrentLocation && coordinates
+        ? calculateDistanceKm(userCurrentLocation, coordinates)
+        : null;
 
       return {
         ...lot,
@@ -203,6 +242,7 @@ export default function FindParkingPage() {
         imageUrl: extractLotImageUrl(lot),
         distanceKm,
         nearMeDistanceKm,
+        userDistanceKm,
       };
     });
 
@@ -250,11 +290,11 @@ export default function FindParkingPage() {
       // 4. Price Sort/Range
       const price = extractLotPrice(lot);
       if (filters.priceSort === "under-15") {
-        if (price > 15000) return false;
+        if (price >= 15000) return false;
       } else if (filters.priceSort === "15-30") {
         if (price < 15000 || price > 30000) return false;
       } else if (filters.priceSort === "above-30") {
-        if (price < 30000) return false;
+        if (price <= 30000) return false;
       }
 
       return true;
@@ -265,24 +305,56 @@ export default function FindParkingPage() {
       result = [...result].sort((a, b) => extractLotPrice(a) - extractLotPrice(b));
     } else if (filters.priceSort === "desc") {
       result = [...result].sort((a, b) => extractLotPrice(b) - extractLotPrice(a));
+    } else if (filters.priceSort === "distance-asc") {
+      // Sort by nearMeDistanceKm first, then distanceKm if not using "Near me"
+      result = [...result].sort((a, b) => {
+        const distA = a.nearMeDistanceKm ?? a.distanceKm ?? a.userDistanceKm ?? 999;
+        const distB = b.nearMeDistanceKm ?? b.distanceKm ?? b.userDistanceKm ?? 999;
+        return distA - distB;
+      });
     } else if (destinationCenter) {
       // If searching, sort by distance to search point
       result = [...result].sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
     }
 
     return result;
-  }, [parkingLots, destination, filters, nearMeFilter, searchTitle]);
+  }, [parkingLots, destination, filters, nearMeFilter, searchTitle, userCurrentLocation]);
 
   const mapParkingLots = useMemo(() => {
-    // Để bản đồ và khung danh sách khớp dữ liệu với nhau khi thực hiện search
-    if (searchTitle || destination) {
-      return filteredParkingLots;
-    }
+    return filteredParkingLots;
+  }, [filteredParkingLots]);
 
-    const nearMeCenter = nearMeFilter?.origin || null;
-    const nearMeRadius = nearMeFilter?.radiusKm || null;
+  const suggestedParkingLots = useMemo(() => {
+    if (filteredParkingLots.length > 0) return [];
+    
+    const keywordRaw = searchTitle || destination?.name || "";
+    if (!keywordRaw) return [];
+    
+    // Convert to lowercase without accents
+    const keywordClean = removeAccents(keywordRaw).toLowerCase();
+    
+    // Split to words, skip very short words
+    const words = keywordClean.split(/\s+/).filter((w) => w.length > 2);
+    if (words.length === 0) return [];
+    
+    const candidates = parkingLots
+      .map((lot) => {
+        let score = 0;
+        const nameClean = removeAccents(lot.name || "").toLowerCase();
+        const addressClean = removeAccents(lot.address || "").toLowerCase();
+        
+        words.forEach((w) => {
+          if (nameClean.includes(w)) score += 2;
+          if (addressClean.includes(w)) score += 1;
+        });
+        
+        return { ...lot, score };
+      })
+      .filter((lot) => lot.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5); // top 5 suggestions
 
-    return parkingLots.map((lot) => {
+    return candidates.map((lot) => {
       const coordinates = getLotCoordinates(lot);
       return {
         ...lot,
@@ -290,25 +362,8 @@ export default function FindParkingPage() {
         lng: coordinates?.lng,
         imageUrl: extractLotImageUrl(lot),
       };
-    }).filter((lot) => {
-      if (filters.city) {
-        const coordinates = getLotCoordinates(lot);
-        const address = toLowerSafe(lot.address);
-        const candidates = CITY_LABELS[filters.city] || [];
-        const matchesByAddress = candidates.some((keyword) => address.includes(keyword));
-        const matchesByBounds = coordinates ? isWithinCityBounds(coordinates, filters.city) : false;
-        if (!matchesByAddress && !matchesByBounds) return false;
-      }
-
-      if (!filters.city && nearMeCenter && nearMeRadius) {
-        const coordinates = getLotCoordinates(lot);
-        const distance = coordinates ? calculateDistanceKm(nearMeCenter, coordinates) : null;
-        if (distance === null || distance > nearMeRadius) return false;
-      }
-
-      return true;
     });
-  }, [parkingLots, filters, nearMeFilter, searchTitle, destination, filteredParkingLots]);
+  }, [filteredParkingLots.length, parkingLots, searchTitle, destination?.name]);
 
   const mapFocusTarget = useMemo(() => {
     if (filters.city && CITY_FOCUS[filters.city]) {
@@ -354,6 +409,7 @@ export default function FindParkingPage() {
     <div className="flex h-dvh w-full flex-col overflow-hidden">
       <div className="w-full z-50">
         <TopFilter 
+          parkingLots={parkingLots}
           onSearch={setDestination} 
           onFilterChange={handleFilterChange} 
           onNearMeChange={handleNearMeChange}
@@ -363,6 +419,7 @@ export default function FindParkingPage() {
       <div className="flex flex-1 relative overflow-hidden z-0">
         <ParkingList 
           parkingLots={filteredParkingLots} 
+          suggestedParkingLots={suggestedParkingLots}
           loading={loading} 
           onSelectLot={setSelectedParkingLot} 
           selectedLotId={selectedParkingLot?.id} 

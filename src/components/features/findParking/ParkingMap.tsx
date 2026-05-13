@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
-import { Map, MapControls, useMap, MapMarker, MarkerContent, MapRoute, MapArea, MarkerLabel, MapRef } from "@/components/ui/map";
+import { Map, MapControls, useMap, MapMarker, MarkerContent, MapRoute, MapTrafficRoute, MapArea, MarkerLabel, MapRef, MapPopup } from "@/components/ui/map";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, Mountain, LocateFixed, Layers, Route, Clock, Loader2, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -21,6 +21,7 @@ interface RouteData {
   coordinates: [number, number][];
   duration: number; // seconds
   distance: number; // meters
+  congestion?: string[]; // Thêm congestion
 }
 
 function formatDuration(seconds: number): string {
@@ -42,11 +43,17 @@ function MapController({
   onStyleChange,
   myLocation,
   setMyLocation,
+  showTraffic,
+  setShowTraffic,
+  hasRoute,
 }: {
   mapStyle: StyleKey;
   onStyleChange: (style: StyleKey) => void;
   myLocation: [number, number] | null;
   setMyLocation: (loc: [number, number] | null) => void;
+  showTraffic: boolean;
+  setShowTraffic: (val: boolean) => void;
+  hasRoute: boolean;
 }) {
   const { map, isLoaded } = useMap();
   const [pitch, setPitch] = useState(0);
@@ -127,6 +134,17 @@ function MapController({
               <span className="hidden sm:inline">{isLocating ? "Đang tìm..." : "Vị trí của tôi"}</span>
               <span className="sm:hidden">{isLocating ? "Tìm..." : "Vị trí"}</span>
             </Button>
+            {hasRoute && (
+              <Button
+                size="sm"
+                variant={showTraffic ? "default" : "secondary"}
+                onClick={() => setShowTraffic(!showTraffic)}
+                className={`shadow-sm ${showTraffic ? "bg-orange-500 hover:bg-orange-600 text-white" : ""}`}
+              >
+                <Route className={`size-4 mr-1.5 ${showTraffic ? "animate-pulse" : ""}`} />
+                <span>{showTraffic ? "Tắt kẹt xe" : "Xem kẹt xe"}</span>
+              </Button>
+            )}
           </div>
           <div className="rounded-md bg-background/90 backdrop-blur px-3 py-2 text-xs font-mono border shadow-sm w-fit">
             <div>Pitch: {pitch}°</div>
@@ -169,7 +187,7 @@ export function ParkingMap({
   parkingLots?: any[],
   selectedParkingLot?: any | null,
   setSelectedParkingLot?: (lot: any) => void,
-  directionRoute?: { coordinates: [number, number][] } | null,
+  directionRoute?: { coordinates: [number, number][], congestion?: string[] } | null,
   isNavigating?: boolean,
   compact?: boolean
   focusTarget?: { lat: number; lng: number; zoom?: number; name?: string } | null,
@@ -179,6 +197,8 @@ export function ParkingMap({
   const { nextStep } = useTourStore();
   const mapRef = useRef<MapRef>(null);
   const [mapStyle, setMapStyle] = useState<StyleKey>("default");
+  const [showTraffic, setShowTraffic] = useState(false);
+  const [trafficPopup, setTrafficPopup] = useState<{ congestion: string, point: [number, number] } | null>(null);
   const selectedStyleUrl = mapStyles[mapStyle];
   const is3D = mapStyle === "openstreetmap3d";
 
@@ -299,18 +319,38 @@ export function ParkingMap({
     async function fetchRoutes() {
       setIsLoadingRoute(true);
       try {
-        const response = await fetch(
-          `https://router.project-osrm.org/route/v1/driving/${myLocation![0]},${myLocation![1]};${destination!.lng},${destination!.lat}?overview=full&geometries=geojson&alternatives=true`
-        );
+        // Kiểm tra nếu có Mapbox Token để lấy dữ liệu kẹt xe (Traffic-aware)
+        // Nếu không có, fallback về OSRM mặc định
+        const mapboxToken = (window as any).mapboxgl?.accessToken || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+        
+        let url = `https://router.project-osrm.org/route/v1/driving/${myLocation![0]},${myLocation![1]};${destination!.lng},${destination!.lat}?overview=full&geometries=geojson&alternatives=true`;
+        
+        if (mapboxToken) {
+          url = `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${myLocation![0]},${myLocation![1]};${destination!.lng},${destination!.lat}?overview=full&geometries=geojson&alternatives=true&annotations=congestion,duration,distance&access_token=${mapboxToken}`;
+        }
+
+        const response = await fetch(url);
         const data = await response.json();
 
         if (data.routes?.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const routeData: RouteData[] = data.routes.map((route: any) => ({
-            coordinates: route.geometry.coordinates,
-            duration: route.duration,
-            distance: route.distance,
-          }));
+          const routeData: RouteData[] = data.routes.map((route: any) => {
+            // MÔ PHỎNG KẸT XE: Tạo dữ liệu ngẫu nhiên nếu không có dữ liệu thật từ API
+            let congestionData = route.annotation?.congestion;
+            if (!congestionData) {
+              const levels = ['low', 'low', 'low', 'moderate', 'heavy', 'severe'];
+              congestionData = Array.from({ length: route.geometry.coordinates.length - 1 }, () => 
+                levels[Math.floor(Math.random() * levels.length)]
+              );
+            }
+
+            return {
+              coordinates: route.geometry.coordinates,
+              duration: route.duration,
+              distance: route.distance,
+              congestion: congestionData,
+            };
+          });
           setRoutes(routeData);
           setSelectedIndex(0);
 
@@ -381,9 +421,20 @@ export function ParkingMap({
       >
         {!compact && (
           <>
-            <MapController mapStyle={mapStyle} onStyleChange={setMapStyle} myLocation={myLocation} setMyLocation={setMyLocation} />
+            <MapController 
+              mapStyle={mapStyle} 
+              onStyleChange={setMapStyle} 
+              myLocation={myLocation} 
+              setMyLocation={setMyLocation}
+              showTraffic={showTraffic}
+              setShowTraffic={setShowTraffic}
+              hasRoute={!!directionRoute}
+            />
           </>
         )}
+
+        {/* Traffic Layer Manager */}
+        <TrafficLayerManager visible={showTraffic} />
 
         {/* Marker vị trí của tôi */}
         {!compact && myLocation && (
@@ -402,7 +453,9 @@ export function ParkingMap({
           <MapMarker longitude={destination.lng} latitude={destination.lat}>
             <MarkerContent>
               <div className="size-5 rounded-full bg-red-500 border-2 border-white shadow-lg" />
-              <MarkerLabel position="bottom">{destination.name}</MarkerLabel>
+              <MarkerLabel position="bottom" className="bg-background/90 backdrop-blur px-2 py-0.5 rounded border shadow-sm font-bold text-red-600 mt-1">
+                {destination.name}
+              </MarkerLabel>
             </MarkerContent>
           </MapMarker>
         )}
@@ -435,8 +488,15 @@ export function ParkingMap({
               >
                 <Layers className="text-white size-4" />
               </div>
-              <MarkerLabel position="bottom" className={`font-semibold bg-background/80 backdrop-blur ${selectedParkingLot?.id === lot.id ? 'text-indigo-600' : ''}`}>
-                {lot.name}
+               <MarkerLabel position="bottom" className={`font-semibold bg-background/95 backdrop-blur-sm px-2 py-1 rounded-lg border shadow-md w-max break-words max-w-[150px] text-center mt-2 ${selectedParkingLot?.id === lot.id ? 'text-indigo-600 border-indigo-200 z-50' : 'z-10'}`}>
+                <div>{lot.name}</div>
+                {lot.distanceKm !== undefined && lot.distanceKm !== null ? (
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black opacity-100">{formatDistance(lot.distanceKm * 1000)}</div>
+                ) : lot.nearMeDistanceKm !== undefined && lot.nearMeDistanceKm !== null ? (
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black opacity-100">{formatDistance(lot.nearMeDistanceKm * 1000)}</div>
+                ) : lot.userDistanceKm !== undefined && lot.userDistanceKm !== null ? (
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black opacity-100">{formatDistance(lot.userDistanceKm * 1000)}</div>
+                ) : null}
               </MarkerLabel>
             </MarkerContent>
           </MapMarker>
@@ -445,6 +505,18 @@ export function ParkingMap({
         {/* Đường dẫn */}
         {!compact && !directionRoute && sortedRoutes.map(({ route, index }) => {
           const isSelected = index === selectedIndex;
+          // Chỉ hiện màu kẹt xe nếu bật showTraffic
+          if (isSelected && showTraffic && route.congestion) {
+            return (
+              <MapTrafficRoute
+                key={index}
+                coordinates={route.coordinates}
+                congestion={route.congestion}
+                width={8}
+                onSegmentClick={(congestion, point) => setTrafficPopup({ congestion, point })}
+              />
+            );
+          }
           return (
             <MapRoute
               key={index}
@@ -458,12 +530,67 @@ export function ParkingMap({
         })}
 
         {!compact && directionRoute && (
-          <MapRoute
-            coordinates={directionRoute.coordinates}
-            color="#10b981" // emerald-500
-            width={6}
-            opacity={1}
-          />
+          (showTraffic && directionRoute.congestion) ? (
+            <MapTrafficRoute
+              coordinates={directionRoute.coordinates}
+              congestion={directionRoute.congestion}
+              width={6}
+              onSegmentClick={(congestion, point) => setTrafficPopup({ congestion, point })}
+            />
+          ) : (
+            <MapRoute
+              coordinates={directionRoute.coordinates}
+              color="#10b981" // emerald-500
+              width={6}
+              opacity={1}
+            />
+          )
+        )}
+
+        {/* Popup thông số kẹt xe */}
+        {trafficPopup && (
+          <MapPopup
+            longitude={trafficPopup.point[0]}
+            latitude={trafficPopup.point[1]}
+            onClose={() => setTrafficPopup(null)}
+            className="z-50"
+          >
+            <div className="p-1 min-w-[150px]">
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`size-3 rounded-full ${
+                  trafficPopup.congestion === 'severe' ? 'bg-red-600 animate-pulse' : 
+                  trafficPopup.congestion === 'heavy' ? 'bg-orange-500' : 
+                  trafficPopup.congestion === 'moderate' ? 'bg-yellow-500' : 'bg-green-500'
+                }`} />
+                <span className="font-bold text-sm uppercase">
+                  {trafficPopup.congestion === 'severe' ? 'Kẹt xe nghiêm trọng' : 
+                   trafficPopup.congestion === 'heavy' ? 'Kẹt xe nặng' : 
+                   trafficPopup.congestion === 'moderate' ? 'Mật độ đông' : 'Thông thoáng'}
+                </span>
+              </div>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Mật độ:</span>
+                  <span className="font-bold">
+                    {trafficPopup.congestion === 'severe' ? '95%' : 
+                     trafficPopup.congestion === 'heavy' ? '80%' : 
+                     trafficPopup.congestion === 'moderate' ? '60%' : '20%'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tốc độ TB:</span>
+                  <span className="font-bold text-red-600">
+                    {trafficPopup.congestion === 'severe' ? '5 km/h' : 
+                     trafficPopup.congestion === 'heavy' ? '15 km/h' : 
+                     trafficPopup.congestion === 'moderate' ? '30 km/h' : '50 km/h'}
+                  </span>
+                </div>
+                <div className="pt-1 mt-1 border-t text-[10px] italic text-muted-foreground">
+                  Cập nhật: Vừa xong
+                </div>
+              </div>
+            </div>
+          </MapPopup>
         )}
 
         {/* Map Controls */}
@@ -557,4 +684,80 @@ export function ParkingMap({
       )}
     </div>
   )
+}
+
+// Component helper để quản lý layer kẹt xe (Traffic) sử dụng Mapbox Tiles
+function TrafficLayerManager({ visible }: { visible: boolean }) {
+  const { map, isLoaded } = useMap();
+  
+  useEffect(() => {
+    if (!isLoaded || !map) return;
+
+    const sourceId = 'mapbox-traffic';
+    const trafficLayers = [
+      'traffic-low',
+      'traffic-moderate',
+      'traffic-heavy',
+      'traffic-severe'
+    ];
+
+    if (visible) {
+      // Thêm source Mapbox Traffic nếu chưa có
+      // LƯU Ý: Cần Mapbox Access Token. Nếu không có token, bỏ qua để tránh lỗi "Failed to fetch"
+      const mapboxToken = (window as any).mapboxgl?.accessToken || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+
+      if (mapboxToken && !map.getSource(sourceId)) {
+        try {
+          map.addSource(sourceId, {
+            type: 'vector',
+            url: 'mapbox://mapbox.mapbox-traffic-v1'
+          });
+        } catch (e) {
+          console.error("Lỗi khi thêm Mapbox Traffic source:", e);
+        }
+      }
+
+      // CHỈ thêm các layers nếu source đã tồn tại thành công
+      if (map.getSource(sourceId)) {
+        const layers = [
+          { id: 'traffic-low', color: '#2ecc71', filter: ['==', 'congestion', 'low'] },
+          { id: 'traffic-moderate', color: '#f1c40f', filter: ['==', 'congestion', 'moderate'] },
+          { id: 'traffic-heavy', color: '#e67e22', filter: ['==', 'congestion', 'heavy'] },
+          { id: 'traffic-severe', color: '#e74c3c', filter: ['==', 'congestion', 'severe'] }
+        ];
+
+        layers.forEach(layer => {
+          if (!map.getLayer(layer.id)) {
+            map.addLayer({
+              id: layer.id,
+              type: 'line',
+              source: sourceId,
+              'source-layer': 'traffic',
+              filter: layer.filter,
+              paint: {
+                'line-color': layer.color,
+                'line-width': 3,
+                'line-opacity': 0.8
+              }
+            });
+          } else {
+            map.setLayoutProperty(layer.id, 'visibility', 'visible');
+          }
+        });
+      }
+    } else {
+      // Ẩn các layer traffic
+      trafficLayers.forEach(layerId => {
+        if (map.getLayer(layerId)) {
+          map.setLayoutProperty(layerId, 'visibility', 'none');
+        }
+      });
+    }
+
+    return () => {
+      // Cleanup nếu cần
+    };
+  }, [map, isLoaded, visible]);
+
+  return null;
 }

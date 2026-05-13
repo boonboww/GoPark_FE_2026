@@ -13,6 +13,7 @@ interface Suggestion {
   name: string;
   display_name: string;
   geojson?: any;
+  isLocal?: boolean;
 }
 
 export interface ParkingFilters {
@@ -26,11 +27,13 @@ export interface NearMeFilter {
 }
 
 export function TopFilter({
+  parkingLots = [],
   onSearch,
   onFilterChange,
   onNearMeChange,
   onTextSearch,
 }: {
+  parkingLots?: any[];
   onSearch?: (dst: { lng: number, lat: number, name: string, geojson?: any } | null) => void;
   onFilterChange?: (filters: ParkingFilters) => void;
   onNearMeChange?: (filter: NearMeFilter | null) => void;
@@ -69,7 +72,9 @@ export function TopFilter({
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
     if (!searchValue.trim()) {
-      setSuggestions([]);
+      if (suggestions.length > 0) {
+        setSuggestions([]);
+      }
       return;
     }
 
@@ -77,27 +82,70 @@ export function TopFilter({
 
     searchTimeout.current = setTimeout(async () => {
       try {
+        let localSuggestions: Suggestion[] = [];
+        
+        // Lọc bãi đỗ từ database (local)
+        if (parkingLots.length > 0) {
+          const removeAccents = (str: string) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+          const keywordClean = removeAccents(searchValue);
+          
+          localSuggestions = parkingLots
+            .filter((lot: any) => {
+              const nameClean = removeAccents(lot.name || "");
+              const addressClean = removeAccents(lot.address || "");
+              
+              // Loại bỏ các từ khóa chung chung khỏi query để tìm cụm từ chính (ví dụ: Thanh Khê)
+              const specificKeyword = keywordClean.replace(/(bai do xe|bai do|bai giu xe|bai giu|parking|gopark)/g, "").trim();
+
+              // Nếu người dùng chỉ gõ "bãi đỗ", "parking"... thì specificKeyword sẽ rỗng -> hiển thị bãi nào cũng được
+              if (!specificKeyword) return true;
+              
+              // Tách cấu trúc từ để match bất chấp có dấu phẩy (vd: thanh khe da nang)
+              const words = specificKeyword.split(/\s+/).filter((w: string) => w.length > 0);
+              const nameMatchWords = words.every((w: string) => nameClean.includes(w));
+              const addressMatchWords = words.every((w: string) => addressClean.includes(w));
+              
+              return nameClean.includes(specificKeyword) || addressClean.includes(specificKeyword) || nameMatchWords || addressMatchWords;
+            })
+            .slice(0, 8) // Lấy tối đa 8 bãi đỗ
+            .map((lot: any) => {
+              const lat = Number(lot.lat ?? lot.latitude ?? lot.location?.lat);
+              const lng = Number(lot.lng ?? lot.longitude ?? lot.location?.lng);
+              return {
+                lat,
+                lng,
+                name: lot.name,
+                display_name: lot.address || "Chưa cập nhật địa chỉ",
+                isLocal: true
+              };
+            })
+            .filter((sg: any) => !isNaN(sg.lat) && !isNaN(sg.lng));
+        }
+
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchValue)}&limit=5&countrycodes=vn&polygon_geojson=1`);
         const data = await res.json();
+        
+        let nominatimSuggestions: Suggestion[] = [];
         if (data && data.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const parsed = data.map((item: any) => ({
+          nominatimSuggestions = data.map((item: any) => ({
             lat: parseFloat(item.lat),
             lng: parseFloat(item.lon),
             name: item.name || item.display_name.split(',')[0],
             display_name: item.display_name,
-            geojson: item.geojson
+            geojson: item.geojson,
+            isLocal: false
           }));
-          setSuggestions(parsed);
-        } else {
-          setSuggestions([]);
         }
+
+        // Kết hợp và ưu tiên bãi đỗ local lên trước
+        setSuggestions([...localSuggestions, ...nominatimSuggestions].slice(0, 12));
       } catch (error) {
         console.error("Lỗi fetch gợi ý:", error);
       }
-    }, 500); // 500ms debounce
+    }, 400); // 400ms debounce
 
-  }, [searchValue, showSuggestions]);
+  }, [searchValue, showSuggestions, parkingLots]);
 
   const handleSelectSuggestion = (sug: Suggestion) => {
     setSearchValue(sug.name);
@@ -149,6 +197,12 @@ export function TopFilter({
   }
 
   const handleApplyFilters = () => {
+    // Khi áp dụng bộ lọc (đặc biệt là lọc theo thành phố), ta nên reset lại thông tin tìm kiếm cũ
+    // để tránh bị xung đột (ví dụ: đang tìm bãi ở Đà Nẵng, xong lại lọc xem thành phố HCM thì sẽ ko ra kết quả)
+    setSearchValue("");
+    onSearch?.(null);
+    onTextSearch?.("");
+    
     if (selectedCity) {
       setNearMeFilter(null);
       onNearMeChange?.(null);
@@ -266,16 +320,21 @@ export function TopFilter({
 
           {/* Autocomplete dropdown */}
           {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 bg-background dark:bg-[#064e3b] dark:text-white border shadow-lg rounded-xl overflow-hidden z-60">
+            <div className="absolute top-full left-0 right-0 mt-1.5 bg-background dark:bg-[#064e3b] dark:text-white border shadow-lg rounded-xl overflow-hidden z-[60]">
               <ul className="py-1 max-h-75 overflow-y-auto">
                 {suggestions.map((sug, i) => (
                   <li
                     key={i}
-                    className="px-4 py-2 hover:bg-muted dark:hover:bg-white/10 cursor-pointer flex flex-col items-start text-sm transition-colors"
+                    className="px-4 py-2 hover:bg-muted dark:hover:bg-white/10 cursor-pointer flex items-center gap-3 text-sm transition-colors"
                     onClick={() => handleSelectSuggestion(sug)}
                   >
-                    <span className="font-medium">{sug.name}</span>
-                    <span className="text-xs text-muted-foreground dark:text-white/70 truncate w-full">{sug.display_name}</span>
+                    <div className={`p-1.5 rounded-full shrink-0 ${sug.isLocal ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-gray-100 text-gray-500 dark:bg-black/30 dark:text-gray-400'}`}>
+                      {sug.isLocal ? <Building className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+                    </div>
+                    <div className="flex flex-col items-start min-w-0 flex-1">
+                      <span className="font-bold truncate w-full">{sug.name}</span>
+                      <span className="text-xs text-muted-foreground dark:text-white/70 truncate w-full">{sug.display_name}</span>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -366,6 +425,11 @@ export function TopFilter({
                 <option value="hcm" className="dark:bg-[#064e3b]">Hồ Chí Minh</option>
                 <option value="hn" className="dark:bg-[#064e3b]">Hà Nội</option>
                 <option value="dn" className="dark:bg-[#064e3b]">Đà Nẵng</option>
+                <option value="hp" className="dark:bg-[#064e3b]">Hải Phòng</option>
+                <option value="ct" className="dark:bg-[#064e3b]">Cần Thơ</option>
+                <option value="nt" className="dark:bg-[#064e3b]">Nha Trang</option>
+                <option value="dl" className="dark:bg-[#064e3b]">Đà Lạt</option>
+                <option value="vt" className="dark:bg-[#064e3b]">Vũng Tàu</option>
               </select>
             </div>
 
@@ -383,6 +447,7 @@ export function TopFilter({
                   <option value="">Mặc định</option>
                   <option value="asc">Giá thấp đến cao</option>
                   <option value="desc">Giá cao đến thấp</option>
+                  <option value="distance-asc">Gần tôi nhất</option>
                 </optgroup>
                 <optgroup label="Khoảng giá" className="dark:bg-[#064e3b]">
                   <option value="under-15">Dưới 15,000 VND</option>
