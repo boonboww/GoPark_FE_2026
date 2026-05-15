@@ -26,27 +26,41 @@ import { Button } from "@/components/ui/button";
 import { parkingService } from "@/services/parking.service";
 import { toast } from "sonner";
 import { MapLocationPicker } from "@/components/ui/map-location-picker";
-import { Loader2, Plus, X, Upload, MapPin, Info, Home, Globe } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  X,
+  Upload,
+  MapPin,
+  Info,
+  Home,
+  Globe,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const formSchema = z.object({
-  name: z.string().min(1, "Tên bãi đỗ là bắt buộc"),
-  address: z.string().min(1, "Địa chỉ là bắt buộc"),
-  lat: z.coerce.number(),
-  lng: z.coerce.number(),
-  description: z.string().optional(),
-  open_time: z.string().min(1, "Giờ mở cửa là bắt buộc"),
-  close_time: z.string().min(1, "Giờ đóng cửa là bắt buộc"),
-  operating_days: z.array(z.string()).min(1, "Chọn ít nhất 1 ngày hoạt động"),
-}).refine((data) => {
-  if (!data.open_time || !data.close_time) return true;
-  const [openH, openM] = data.open_time.split(":").map(Number);
-  const [closeH, closeM] = data.close_time.split(":").map(Number);
-  return (closeH * 60 + closeM) > (openH * 60 + openM);
-}, {
-  message: "Giờ đóng cửa phải sau giờ mở cửa",
-  path: ["close_time"],
-});
+const formSchema = z
+  .object({
+    name: z.string().min(1, "Tên bãi đỗ là bắt buộc"),
+    address: z.string().min(1, "Địa chỉ là bắt buộc"),
+    lat: z.coerce.number(),
+    lng: z.coerce.number(),
+    description: z.string().optional(),
+    open_time: z.string().min(1, "Giờ mở cửa là bắt buộc"),
+    close_time: z.string().min(1, "Giờ đóng cửa là bắt buộc"),
+    operating_days: z.array(z.string()).min(1, "Chọn ít nhất 1 ngày hoạt động"),
+  })
+  .refine(
+    (data) => {
+      if (!data.open_time || !data.close_time) return true;
+      const [openH, openM] = data.open_time.split(":").map(Number);
+      const [closeH, closeM] = data.close_time.split(":").map(Number);
+      return closeH * 60 + closeM > openH * 60 + openM;
+    },
+    {
+      message: "Giờ đóng cửa phải sau giờ mở cửa",
+      path: ["close_time"],
+    },
+  );
 
 type FormValues = {
   name: string;
@@ -65,7 +79,11 @@ interface CreateLotModalProps {
   onSuccess?: () => void;
 }
 
-export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalProps) {
+export function CreateLotModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: CreateLotModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -80,7 +98,15 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
       description: "",
       open_time: "06:00",
       close_time: "22:00",
-      operating_days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+      operating_days: [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+      ],
     },
   });
 
@@ -93,7 +119,7 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
       setSelectedImages((prev) => [...prev, ...files]);
-      
+
       const newPreviews = files.map((file) => URL.createObjectURL(file));
       setPreviews((prev) => [...prev, ...newPreviews]);
     }
@@ -111,11 +137,15 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
       await parkingService.createParkingLot({
         ...values,
         open_time: new Date(`1970-01-01T${values.open_time}:00`).toISOString(),
-        close_time: new Date(`1970-01-01T${values.close_time}:00`).toISOString(),
+        close_time: new Date(
+          `1970-01-01T${values.close_time}:00`,
+        ).toISOString(),
         operating_days: values.operating_days.join(","),
         images: selectedImages,
       });
-      toast.success("Đã gửi yêu cầu tạo bãi đỗ thành công. Vui lòng chờ Admin phê duyệt.");
+      toast.success(
+        "Đã gửi yêu cầu tạo bãi đỗ thành công. Vui lòng chờ Admin phê duyệt.",
+      );
       form.reset();
       setSelectedImages([]);
       setPreviews([]);
@@ -141,14 +171,21 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                   <Home className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <DialogTitle className="text-2xl font-black text-slate-800 tracking-tight">Thêm Bãi đỗ mới</DialogTitle>
-                  <DialogDescription className="text-slate-500 font-medium text-xs">Yêu cầu tạo bãi sẽ được gửi cho Admin phê duyệt.</DialogDescription>
+                  <DialogTitle className="text-2xl font-black text-slate-800 tracking-tight">
+                    Thêm Bãi đỗ mới
+                  </DialogTitle>
+                  <DialogDescription className="text-slate-500 font-medium text-xs">
+                    Yêu cầu tạo bãi sẽ được gửi cho Admin phê duyệt.
+                  </DialogDescription>
                 </div>
               </div>
             </DialogHeader>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Tên bãi */}
                   <FormField
@@ -160,10 +197,10 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                           <Info className="w-3 h-3" /> Tên bãi đỗ
                         </FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             id="lot-name-input"
-                            placeholder="VD: GoPark Central" 
-                            {...field} 
+                            placeholder="VD: GoPark Central"
+                            {...field}
                             className="h-11 bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-bold"
                           />
                         </FormControl>
@@ -182,10 +219,10 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                           <MapPin className="w-3 h-3" /> Địa chỉ
                         </FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             id="lot-address-input"
-                            placeholder="VD: 123 Lê Lợi, Đà Nẵng" 
-                            {...field} 
+                            placeholder="VD: 123 Lê Lợi, Đà Nẵng"
+                            {...field}
                             className="h-11 bg-slate-50 border-slate-200 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all font-bold"
                           />
                         </FormControl>
@@ -200,12 +237,14 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                     name="lat"
                     render={({ field }) => (
                       <FormItem className="space-y-1.5">
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Vĩ độ (Lat)</FormLabel>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          Vĩ độ (Lat)
+                        </FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
+                          <Input
+                            type="number"
                             step="any"
-                            {...field} 
+                            {...field}
                             className="h-11 bg-slate-50 border-slate-200 font-mono font-bold"
                           />
                         </FormControl>
@@ -220,12 +259,14 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                     name="lng"
                     render={({ field }) => (
                       <FormItem className="space-y-1.5">
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Kinh độ (Lng)</FormLabel>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          Kinh độ (Lng)
+                        </FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
+                          <Input
+                            type="number"
                             step="any"
-                            {...field} 
+                            {...field}
                             className="h-11 bg-slate-50 border-slate-200 font-mono font-bold"
                           />
                         </FormControl>
@@ -242,12 +283,13 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                     name="open_time"
                     render={({ field }) => (
                       <FormItem className="space-y-1.5">
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Giờ mở cửa</FormLabel>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          Giờ mở cửa
+                        </FormLabel>
                         <FormControl>
-                          <Input 
-                            type="time" 
-                            lang="vi-VN"
-                            {...field} 
+                          <Input
+                            type="time"
+                            {...field}
                             className="h-11 bg-slate-50 border-slate-200 font-bold"
                           />
                         </FormControl>
@@ -261,12 +303,13 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                     name="close_time"
                     render={({ field }) => (
                       <FormItem className="space-y-1.5">
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Giờ đóng cửa</FormLabel>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          Giờ đóng cửa
+                        </FormLabel>
                         <FormControl>
-                          <Input 
-                            type="time" 
-                            lang="vi-VN"
-                            {...field} 
+                          <Input
+                            type="time"
+                            {...field}
                             className="h-11 bg-slate-50 border-slate-200 font-bold"
                           />
                         </FormControl>
@@ -282,9 +325,19 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                   name="operating_days"
                   render={({ field }) => (
                     <FormItem className="space-y-3">
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ngày hoạt động</FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Ngày hoạt động
+                      </FormLabel>
                       <div className="flex flex-wrap gap-2">
-                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => {
+                        {[
+                          "Monday",
+                          "Tuesday",
+                          "Wednesday",
+                          "Thursday",
+                          "Friday",
+                          "Saturday",
+                          "Sunday",
+                        ].map((day) => {
                           const isSelected = field.value?.includes(day);
                           const dayLabels: Record<string, string> = {
                             Monday: "T2",
@@ -306,8 +359,8 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                                 field.onChange(newVal);
                               }}
                               className={`w-10 h-10 rounded-xl border-2 transition-all font-bold text-xs flex items-center justify-center ${
-                                isSelected 
-                                  ? "bg-black border-black text-white" 
+                                isSelected
+                                  ? "bg-black border-black text-white"
                                   : "bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-300"
                               }`}
                             >
@@ -327,13 +380,15 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                   name="description"
                   render={({ field }) => (
                     <FormItem className="space-y-1.5">
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mô tả (Không bắt buộc)</FormLabel>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        Mô tả (Không bắt buộc)
+                      </FormLabel>
                       <FormControl>
-                        <Textarea 
+                        <Textarea
                           id="lot-description-input"
-                          placeholder="Mô tả sơ qua về bãi đỗ của bạn..." 
+                          placeholder="Mô tả sơ qua về bãi đỗ của bạn..."
                           className="min-h-[100px] bg-slate-50 border-slate-200 resize-none font-medium"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage className="text-xs" />
@@ -346,8 +401,11 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
                     <Upload className="w-3 h-3" /> Hình ảnh bãi đỗ
                   </label>
-                  
-                  <div id="lot-images-input" className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+
+                  <div
+                    id="lot-images-input"
+                    className="grid grid-cols-2 sm:grid-cols-4 gap-4"
+                  >
                     <AnimatePresence>
                       {previews.map((preview, index) => (
                         <motion.div
@@ -357,7 +415,11 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                           key={preview}
                           className="relative aspect-square rounded-xl overflow-hidden group shadow-md"
                         >
-                          <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                          <img
+                            src={preview}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
                           <button
                             type="button"
                             onClick={() => removeImage(index)}
@@ -368,21 +430,37 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                         </motion.div>
                       ))}
                     </AnimatePresence>
-                    
+
                     <label className="aspect-square rounded-xl border-2 border-dashed border-slate-200 hover:border-primary hover:bg-primary/5 cursor-pointer flex flex-col items-center justify-center gap-2 transition-all">
                       <Plus className="w-6 h-6 text-slate-400" />
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Thêm ảnh</span>
-                      <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                        Thêm ảnh
+                      </span>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageChange}
+                      />
                     </label>
                   </div>
                 </div>
 
                 <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
-                  <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting} className="font-bold">Hủy</Button>
-                  <Button 
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                    className="font-bold"
+                  >
+                    Hủy
+                  </Button>
+                  <Button
                     id="lot-submit-btn"
-                    type="submit" 
-                    disabled={isSubmitting} 
+                    type="submit"
+                    disabled={isSubmitting}
                     className="min-w-[150px] shadow-lg shadow-primary/25 rounded-xl font-bold"
                   >
                     {isSubmitting ? (
@@ -404,11 +482,15 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
             <div className="p-4 bg-white/80 backdrop-blur-sm border-b border-slate-100 z-10">
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-primary" />
-                <span className="text-sm font-black text-slate-800 uppercase tracking-tight">Vị trí thực tế</span>
+                <span className="text-sm font-black text-slate-800 uppercase tracking-tight">
+                  Vị trí thực tế
+                </span>
               </div>
-              <p className="text-[10px] text-slate-500 font-medium mt-1">Chọn vị trí trên bản đồ để tự động lấy tọa độ và địa chỉ.</p>
+              <p className="text-[10px] text-slate-500 font-medium mt-1">
+                Chọn vị trí trên bản đồ để tự động lấy tọa độ và địa chỉ.
+              </p>
             </div>
-            
+
             <div id="lot-map-picker" className="flex-1 relative">
               <MapLocationPicker
                 location={{ lat: watchedLat, lng: watchedLng }}

@@ -152,7 +152,7 @@ export default function EditParkingLotDialog({
   const removeExistingImage = (index: number) => {
     const url = existingImages[index];
     setDeletedImages([...deletedImages, url]);
-    
+
     const newExisting = [...existingImages];
     newExisting.splice(index, 1);
     setExistingImages(newExisting);
@@ -163,12 +163,12 @@ export default function EditParkingLotDialog({
       // 1. Xóa các ảnh cũ đã đánh dấu
       if (deletedImages.length > 0) {
         await Promise.all(
-          deletedImages.map((url) => 
+          deletedImages.map((url) =>
             parkingService.deleteParkingLotImage(parkingLot!.id, url)
           )
         );
       }
-      
+
       // 2. Cập nhật thông tin & thêm ảnh mới
       return parkingService.updateParkingLot(parkingLot!.id, {
         ...values,
@@ -305,9 +305,8 @@ export default function EditParkingLotDialog({
                                   : [...(field.value || []), day];
                                 field.onChange(newVal);
                               }}
-                              className={`w-9 h-9 rounded-lg border-2 transition-all font-bold text-xs flex items-center justify-center ${
-                                isSelected ? "bg-black border-black text-white" : "bg-slate-50 border-slate-200 text-slate-400"
-                              }`}
+                              className={`w-9 h-9 rounded-lg border-2 transition-all font-bold text-xs flex items-center justify-center ${isSelected ? "bg-black border-black text-white" : "bg-slate-50 border-slate-200 text-slate-400"
+                                }`}
                             >
                               {dayLabels[day]}
                             </button>
@@ -401,7 +400,7 @@ export default function EditParkingLotDialog({
               </div>
               <p className="text-[10px] text-slate-500 font-medium mt-1">Ghim lại vị trí bãi đỗ nếu có thay đổi.</p>
             </div>
-            
+
             <div className="flex-1 relative">
               <MapLocationPicker
                 location={{ lat: watchedLat, lng: watchedLng }}
