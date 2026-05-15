@@ -55,6 +55,57 @@ const DAY_MAP: Record<string, number> = {
   "CHỦ NHẬT": 0, "CN": 0, "SUNDAY": 0, "SUN": 0
 };
 
+const formatOperatingDays = (daysStr: string) => {
+  if (!daysStr) return "Hàng ngày";
+
+  const days = daysStr.split(",").map((s) => s.trim().toUpperCase());
+
+  const isAllDays =
+    days.length >= 7 ||
+    daysStr.toLowerCase().includes("hàng ngày") ||
+    daysStr.toLowerCase().includes("mỗi ngày") ||
+    daysStr.toLowerCase().includes("tất cả");
+
+  if (isAllDays) return "Hàng ngày";
+
+  const mapping: Record<string, string> = {
+    MONDAY: "T2",
+    TUESDAY: "T3",
+    WEDNESDAY: "T4",
+    THURSDAY: "T5",
+    FRIDAY: "T6",
+    SATURDAY: "T7",
+    SUNDAY: "CN",
+    "THỨ 2": "T2",
+    "THỨ 3": "T3",
+    "THỨ 4": "T4",
+    "THỨ 5": "T5",
+    "THỨ 6": "T6",
+    "THỨ 7": "T7",
+    "CHỦ NHẬT": "CN",
+  };
+
+  const formattedDays = days.map((d) => {
+    for (const [key, val] of Object.entries(mapping)) {
+      if (d.includes(key)) return val;
+    }
+    return d;
+  });
+
+  if (formattedDays.length > 2 && !daysStr.includes("-") && !daysStr.includes("đến")) {
+    // Check if consecutive
+    return formattedDays.join(", ");
+  }
+
+  return daysStr.replace(/Monday/gi, "Thứ 2")
+    .replace(/Tuesday/gi, "Thứ 3")
+    .replace(/Wednesday/gi, "Thứ 4")
+    .replace(/Thursday/gi, "Thứ 5")
+    .replace(/Friday/gi, "Thứ 6")
+    .replace(/Saturday/gi, "Thứ 7")
+    .replace(/Sunday/gi, "Chủ Nhật");
+};
+
 // Kiểm tra xem một giờ có phải là quá khứ không
 const checkIsPastHour = (h: string, selectedDate: string, today: string) => {
   const isToday = selectedDate === today;
@@ -379,16 +430,21 @@ export function BookingForm({
       return { subTotal: 0, discount: 0, finalTotal: 0 };
     }
 
-    const totalMinutes = end.diff(start, "minute");
     const pricePerHour = bookingDetails.priceHourly || 0;
     const priceDay = bookingDetails.priceDayly || 0;
-    //giá tiền mỗi phút
-    const priceMin = pricePerHour / 60;
 
-    const days = Math.floor(totalMinutes / 1440);
-    const remainingMinutes = totalMinutes % 1440;
+    const isSameDay = start.isSame(end, "day");
+    const totalHours = end.diff(start, "hour", true);
 
-    const subTotal = days * priceDay + remainingMinutes * priceMin;
+    let subTotal = 0;
+    if (isSameDay) {
+      // 1. Trong cùng 1 ngày: Tính theo giờ, làm tròn lên
+      subTotal = Math.ceil(totalHours) * pricePerHour;
+    } else {
+      // 2. Qua đêm hoặc nhiều ngày: Tính theo ngày
+      const numberOfDays = Math.ceil(totalHours / 24);
+      subTotal = numberOfDays * priceDay;
+    }
 
     // Apply voucher discount
     let discount = 0;
@@ -717,13 +773,13 @@ export function BookingForm({
 
                   {/* Operating Info Note */}
                   <div className="mt-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50 flex items-start gap-3">
-                    <div className="mt-0.5">
+                    <div className="mt-0.5 flex-shrink-0">
                       <Clock className="w-4 h-4 text-blue-600" />
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-[18px] font-bold text-blue-900 uppercase tracking-tight">Thông tin hoạt động</p>
-                      <p className="text-sm text-blue-700 leading-relaxed">
-                        Bãi đỗ hoạt động từ <span className="font-bold">{openTimeStr} đến {closeTimeStr}</span> các ngày <span className="font-bold">{dataLot.operating_days}</span>.
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <p className="text-sm font-bold text-blue-900 uppercase tracking-tight">Thông tin hoạt động</p>
+                      <p className="text-xs sm:text-sm text-blue-700 leading-relaxed break-words">
+                        Bãi đỗ hoạt động từ <span className="font-bold">{openTimeStr} đến {closeTimeStr}</span> {formatOperatingDays(dataLot.operating_days) === "Hàng ngày" ? "" : "các ngày"} <span className="font-bold">{formatOperatingDays(dataLot.operating_days)}</span>.
                       </p>
                     </div>
                   </div>
@@ -817,7 +873,10 @@ export function BookingForm({
               <motion.div variants={itemVariants} className="border-t pt-5 space-y-3">
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>Đơn giá</span>
-                  <span>{bookingDetails.priceHourly.toLocaleString()}đ/giờ</span>
+                  <span>
+                    {bookingDetails.priceHourly.toLocaleString()}đ/giờ
+                    {bookingDetails.priceDayly > 0 && ` - ${bookingDetails.priceDayly.toLocaleString()}đ/ngày`}
+                  </span>
                 </div>
 
                 {pricingBreakdown.discount > 0 && (

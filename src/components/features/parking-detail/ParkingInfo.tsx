@@ -75,6 +75,31 @@ export function ParkingInfo() {
     return `${openTime} - ${closeTime}`;
   }
 
+  const formatOperatingDays = (daysStr: string) => {
+    if (!daysStr) return "...";
+    
+    const days = daysStr.split(",").map((s) => s.trim().toUpperCase());
+    
+    const isAllDays = days.length >= 7 || 
+                     daysStr.toLowerCase().includes("hàng ngày") || 
+                     daysStr.toLowerCase().includes("tất cả");
+    if (isAllDays) return "Hàng ngày";
+
+    const mapping: Record<string, string> = {
+      MONDAY: "T2", TUESDAY: "T3", WEDNESDAY: "T4", THURSDAY: "T5", FRIDAY: "T6", SATURDAY: "T7", SUNDAY: "CN",
+      "THỨ 2": "T2", "THỨ 3": "T3", "THỨ 4": "T4", "THỨ 5": "T5", "THỨ 6": "T6", "THỨ 7": "T7", "CHỦ NHẬT": "CN"
+    };
+
+    const formattedDays = days.map(d => {
+      for (const [key, val] of Object.entries(mapping)) {
+        if (d.includes(key)) return val;
+      }
+      return d;
+    });
+
+    return formattedDays.join(", ");
+  };
+
   const handleBooking = () => {
     router.push(`/users/myBooking/${dataLot.id}`);
   };
@@ -178,10 +203,12 @@ export function ParkingInfo() {
               </CardContent>
             </Card>
             <Card className="bg-slate-50/30 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 shadow-none rounded-xl">
-              <CardContent className="p-3 flex flex-col items-center justify-center text-center">
-                <Calendar className="w-4 h-4 mb-1 text-slate-400" />
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{dataLot.operating_days || '...'}</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">Hoạt động</span>
+              <CardContent className="p-3 flex flex-col items-center justify-center text-center h-full min-w-0">
+                <Calendar className="w-4 h-4 mb-1 text-slate-400 shrink-0" />
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate w-full" title={dataLot.operating_days}>
+                  {formatOperatingDays(dataLot.operating_days)}
+                </span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest shrink-0">Hoạt động</span>
               </CardContent>
             </Card>
             <Card className="bg-indigo-50/30 dark:bg-indigo-900/10 border-indigo-100 dark:border-indigo-900/20 shadow-none rounded-xl">
