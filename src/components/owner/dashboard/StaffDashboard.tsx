@@ -73,6 +73,7 @@ export function StaffDashboard() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedSnapshot, setSelectedSnapshot] = useState<string | null>(null);
   const [lastPenaltyScan, setLastPenaltyScan] = useState<any>(null);
+  const [lastExtensionScan, setLastExtensionScan] = useState<any>(null);
 
   // Filtering & Pagination states
   const [timeRange, setTimeRange] = useState<'24H' | '7D' | 'MONTH' | 'CUSTOM' | 'ALL'>('24H');
@@ -436,11 +437,48 @@ export function StaffDashboard() {
       const data = await res.json();
 
       if (res.ok) {
-        if (data.penalty?.isLate) {
-          setLastPenaltyScan(data.penalty);
-        } else {
-          toast.success(data.message || "Xác thực thành công!");
+        // Backend uses TransformInterceptor, so the real data is in data.data
+        const actualData = data.data || data;
+        const msg = (data.message || actualData.message || "").toLowerCase();
+        const extensionFeeValue = actualData.extensionFee || actualData.extension_fee || 0;
+        
+        // 1. Trường hợp có phí phạt quá hạn (ưu tiên xử lý thanh toán mặt)
+        if (actualData.penalty?.isLate && actualData.penalty?.penaltyFee > 0) {
+          setLastExtensionScan({
+            type: 'penalty',
+            fee: actualData.penalty.penaltyFee,
+            plate: actualData.penalty.plate || detectedPlate || "???",
+            bookingId: actualData.bookingId,
+            gateId: selectedGateId,
+            content: qrContent,
+            imageUrl: actualData.imageUrl,
+            lateMinutes: actualData.penalty.lateMinutes
+          });
           setLastPenaltyScan(null);
+        } 
+        // 2. Trường hợp có phí gia hạn chưa thanh toán
+        else if (Number(extensionFeeValue) > 0 || msg.includes("gia hạn")) {
+          setLastExtensionScan({
+            type: 'extension',
+            fee: Number(extensionFeeValue),
+            plate: actualData.plate || detectedPlate || "???",
+            bookingId: actualData.bookingId,
+            gateId: selectedGateId,
+            content: qrContent,
+            imageUrl: actualData.imageUrl
+          });
+          setLastPenaltyScan(null);
+        } 
+        // 3. Trường hợp checkout bình thường (có thể có penalty nhưng đã trả hoặc không có phí)
+        else if (actualData.penalty?.isLate) {
+          setLastPenaltyScan(actualData.penalty);
+          setLastExtensionScan(null);
+        } else {
+          const successMsg = data.message || actualData.message || "Xác thực thành công!";
+          toast.success(successMsg);
+          alert(successMsg);
+          setLastPenaltyScan(null);
+          setLastExtensionScan(null);
         }
 
         setQrContent("");
@@ -457,12 +495,15 @@ export function StaffDashboard() {
           // If server provides a detailed comparison, show it
           if (errorMsg.includes("!") || errorMsg.includes("vs") || errorMsg.includes("đối chiếu")) {
             toast.error(errorMsg, { duration: 6000 });
+            alert(errorMsg);
           } else {
             toast.error("Sai biển số xe!", { duration: 4000 });
+            alert("Sai biển số xe!");
           }
         } else {
           // Show the actual error message from server (e.g., "Mã QR đã sử dụng", "Quá hạn", etc.)
           toast.error(errorMsg, { duration: 5000 });
+          alert(errorMsg);
         }
 
         setQrContent("");
@@ -478,6 +519,47 @@ export function StaffDashboard() {
     } finally {
       setLoading(false);
       isVerifying.current = false;
+    }
+  };
+
+  const handleConfirmExtensionPayment = async () => {
+    if (!lastExtensionScan || loading) return;
+    setLoading(true);
+
+    try {
+      const payload: any = {
+        bookingId: lastExtensionScan.bookingId,
+        gateId: Number(lastExtensionScan.gateId),
+        content: lastExtensionScan.content,
+        imageUrl: lastExtensionScan.imageUrl
+      };
+
+      // Nếu là phí phạt, truyền thêm penaltyFee để backend tạo invoice PAID
+      if (lastExtensionScan.type === 'penalty') {
+        payload.penaltyFee = lastExtensionScan.fee;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/booking/confirm-payment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast.success("Đã xác nhận thanh toán và hoàn tất check-out!");
+        setLastExtensionScan(null);
+        fetchHistory();
+      } else {
+        const error = await res.json();
+        toast.error(error.message || "Lỗi khi xác nhận thanh toán!");
+      }
+    } catch (error) {
+      toast.error("Lỗi kết nối máy chủ!");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1120,6 +1202,84 @@ export function StaffDashboard() {
               >
                 Xác nhận & Hoàn tất
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* EXTENSION FEE MODAL */}
+      <Dialog open={!!lastExtensionScan} onOpenChange={(open) => !open && setLastExtensionScan(null)}>
+        <DialogContent className="sm:max-w-[540px] rounded-[3rem] border-none p-0 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl bg-white/95 dark:bg-zinc-900/95 animate-in fade-in zoom-in duration-300">
+          <div className="p-10 bg-emerald-500/10">
+            <div className="flex flex-col items-center text-center space-y-8">
+              <div className="w-28 h-28 rounded-[2rem] bg-emerald-500 text-white flex items-center justify-center shadow-2xl shadow-emerald-500/30">
+                <IconClock size={56} stroke={2.5} />
+              </div>
+
+              <div className="space-y-3">
+                <h2 className="text-4xl font-black uppercase tracking-tighter leading-tight text-emerald-600">
+                  {lastExtensionScan?.type === 'penalty' ? 'Thanh Toán Phí Phạt' : 'Thanh Toán Gia Hạn'}
+                </h2>
+                <div className="flex justify-center">
+                  <Badge variant="outline" className="px-6 py-2 text-base font-black uppercase tracking-[0.2em] rounded-full border-4 border-emerald-500/20 bg-emerald-500/10 text-emerald-600">
+                    PHÍ PHÁT SINH
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="w-full space-y-6 bg-zinc-100/50 dark:bg-black/40 p-8 rounded-[2.5rem] border border-zinc-200/50 dark:border-white/5 shadow-inner">
+                <div className="flex justify-between items-center border-b border-dashed border-zinc-300 dark:border-zinc-700 pb-4">
+                  <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Loại phí</span>
+                  <span className="text-xl font-black text-zinc-900 dark:text-white uppercase">
+                    {lastExtensionScan?.type === 'penalty' ? 'Phí phạt quá hạn' : 'Gia hạn thêm giờ'}
+                  </span>
+                </div>
+                
+                {lastExtensionScan?.type === 'penalty' && (
+                  <div className="flex justify-between items-center border-b border-dashed border-zinc-300 dark:border-zinc-700 pb-4">
+                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Thời gian trễ</span>
+                    <span className="text-xl font-black text-red-500 uppercase">
+                      {lastExtensionScan?.lateMinutes} phút
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Số tiền cần thu</span>
+                  <span className="text-5xl font-black tracking-tighter text-emerald-600">
+                    {lastExtensionScan?.fee?.toLocaleString()}đ
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-full bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-700">
+                <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300 leading-relaxed uppercase tracking-wide">
+                  {lastExtensionScan?.type === 'penalty' 
+                    ? "Khách đã quá thời gian đỗ xe." 
+                    : "Khách có phí gia hạn chưa thanh toán."
+                  } Biển số: <span className="text-emerald-600 font-black">{lastExtensionScan?.plate}</span>
+                </p>
+                <p className="text-sm text-zinc-500 font-medium mt-2 italic">
+                  * Vui lòng thu tiền mặt từ khách hàng trước khi xác nhận.
+                </p>
+              </div>
+
+              <div className="flex gap-4 w-full">
+                <Button
+                  onClick={() => setLastExtensionScan(null)}
+                  variant="outline"
+                  className="flex-1 h-16 rounded-2xl border-2 border-zinc-200 font-black uppercase tracking-widest text-zinc-500 hover:bg-zinc-50"
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  onClick={handleConfirmExtensionPayment}
+                  disabled={loading}
+                  className="flex-[2] h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-black uppercase tracking-[0.2em] shadow-xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {loading ? <IconLoader2 className="animate-spin" /> : "Xác nhận đã thu tiền"}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>

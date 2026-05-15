@@ -486,7 +486,7 @@ const HeroSection = () => {
         </h1>
 
         <div className="flex bg-white/80 dark:bg-black/60 backdrop-blur-xl rounded-2xl sm:rounded-full shadow-md p-1.5 overflow-x-auto w-full max-w-full sm:max-w-max justify-start sm:justify-center hide-scrollbar border border-white/20">
-          <button 
+          <button
             id="nearby-tab-btn"
             onClick={() => setActiveTab("nearby")}
             className={`px-4 sm:px-6 py-2.5 cursor-pointer rounded-xl sm:rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "nearby" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white"}`}
@@ -499,7 +499,7 @@ const HeroSection = () => {
           >
             Sơ đồ bãi
           </button>
-          <button 
+          <button
             onClick={() => { setActiveTab("all"); setCurrentPage(1); }}
             className={`px-4 sm:px-6 py-2.5 cursor-pointer rounded-xl sm:rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "all" ? "bg-white dark:bg-stone-800 shadow-sm text-black dark:text-white" : "text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white"}`}
           >
@@ -758,8 +758,8 @@ const HeroSection = () => {
               <p className="text-gray-500 dark:text-gray-400 mt-3 text-center max-w-md font-medium">
                 Để khám phá các bãi đỗ xe gần nhất và nhận chỉ đường chính xác, vui lòng bật dịch vụ vị trí trong phần cài đặt.
               </p>
-              <Link 
-                href="/users/setting?tab=app" 
+              <Link
+                href="/users/setting?tab=app"
                 className="mt-8 bg-black dark:bg-white text-white dark:text-black px-10 py-4 rounded-2xl font-black shadow-2xl hover:scale-105 transition-transform flex items-center gap-3"
               >
                 <Settings className="w-5 h-5" />
@@ -786,14 +786,14 @@ const HeroSection = () => {
                       <div
                         key={`info-${index}`}
                         className={`absolute inset-0 flex flex-col justify-center transition-all duration-700 ease-in-out ${index === currentIndex
-                            ? "opacity-100 translate-x-0"
-                            : slideDirection === "left"
-                              ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
-                                ? "opacity-0 -translate-x-full"
-                                : "opacity-0 translate-x-full"
-                              : index > currentIndex || (currentIndex === displayNearbyParkings.length - 1 && index === 0)
-                                ? "opacity-0 translate-x-full"
-                                : "opacity-0 -translate-x-full"
+                          ? "opacity-100 translate-x-0"
+                          : slideDirection === "left"
+                            ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
+                              ? "opacity-0 -translate-x-full"
+                              : "opacity-0 translate-x-full"
+                            : index > currentIndex || (currentIndex === displayNearbyParkings.length - 1 && index === 0)
+                              ? "opacity-0 translate-x-full"
+                              : "opacity-0 -translate-x-full"
                           }`}
                       >
                         <div className="flex flex-col mb-4">
@@ -879,14 +879,14 @@ const HeroSection = () => {
                     <div
                       key={`img-${index}`}
                       className={`absolute inset-0 flex items-center justify-center transition-transform duration-700 ease-in-out ${index === currentIndex
-                          ? "translate-x-0"
-                          : slideDirection === "left"
-                            ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
-                              ? "-translate-x-[120%]"
-                              : "translate-x-[120%]"
-                            : index > currentIndex || (currentIndex === displayNearbyParkings.length - 1 && index === 0)
-                              ? "translate-x-[120%]"
-                              : "-translate-x-[120%]"
+                        ? "translate-x-0"
+                        : slideDirection === "left"
+                          ? index < currentIndex || (currentIndex === 0 && index === displayNearbyParkings.length - 1)
+                            ? "-translate-x-[120%]"
+                            : "translate-x-[120%]"
+                          : index > currentIndex || (currentIndex === displayNearbyParkings.length - 1 && index === 0)
+                            ? "translate-x-[120%]"
+                            : "-translate-x-[120%]"
                         }`}
                     >
                       <img

@@ -38,10 +38,10 @@ export function ModernParkingLotCard({
     try {
       if (timeStr.includes("T")) {
         const date = new Date(timeStr);
-        return date.toLocaleTimeString("vi-VN", { 
-          hour: "2-digit", 
+        return date.toLocaleTimeString("vi-VN", {
+          hour: "2-digit",
           minute: "2-digit",
-          hour12: false 
+          hour12: false
         });
       }
       return timeStr;
@@ -53,7 +53,7 @@ export function ModernParkingLotCard({
   // Helper định dạng ngày hoạt động đồng bộ
   const formatOperatingDays = (daysStr?: string) => {
     if (!daysStr) return "Hàng ngày (Thứ 2 - CN)";
-    
+
     const dayMap: Record<string, string> = {
       monday: "Thứ 2",
       tuesday: "Thứ 3",
@@ -190,28 +190,28 @@ export function ModernParkingLotCard({
 
           {/* Operating Info Section */}
           <div className="bg-slate-50/50 dark:bg-zinc-900/30 rounded-2xl p-3.5 border border-slate-100 dark:border-zinc-800/50 space-y-2.5">
-             <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center shadow-sm text-blue-600">
-                   <Clock size={14} />
-                </div>
-                <div className="flex-1">
-                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Giờ hoạt động</p>
-                   <p className="text-[11px] font-bold text-slate-700 dark:text-zinc-300">
-                      {openTime && closeTime ? `${openTime} - ${closeTime}` : "Liên tục 24/7"}
-                   </p>
-                </div>
-             </div>
-             <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center shadow-sm text-blue-600">
-                   <Calendar size={14} />
-                </div>
-                <div className="flex-1">
-                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Ngày hoạt động</p>
-                   <p className="text-[11px] font-bold text-slate-700 dark:text-zinc-300">
-                      {operatingDays}
-                   </p>
-                </div>
-             </div>
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center shadow-sm text-blue-600">
+                <Clock size={14} />
+              </div>
+              <div className="flex-1">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Giờ hoạt động</p>
+                <p className="text-[11px] font-bold text-slate-700 dark:text-zinc-300">
+                  {openTime && closeTime ? `${openTime} - ${closeTime}` : "Liên tục 24/7"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center shadow-sm text-blue-600">
+                <Calendar size={14} />
+              </div>
+              <div className="flex-1">
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Ngày hoạt động</p>
+                <p className="text-[11px] font-bold text-slate-700 dark:text-zinc-300">
+                  {operatingDays}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

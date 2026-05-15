@@ -429,8 +429,8 @@ export function ParkingMap({
             }}
           >
             <MarkerContent className="cursor-pointer group">
-              <div 
-                id={!compact ? `parking-marker-${lot.id}` : undefined} 
+              <div
+                id={!compact ? `parking-marker-${lot.id}` : undefined}
                 className={`p-2 rounded-xl border-2 shadow-lg transition-all ${selectedParkingLot?.id === lot.id ? 'bg-indigo-600 border-indigo-200 scale-125' : 'bg-primary border-primary-foreground hover:scale-110'}`}
               >
                 <Layers className="text-white size-4" />

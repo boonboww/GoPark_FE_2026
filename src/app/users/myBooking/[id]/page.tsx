@@ -66,7 +66,7 @@ const MyBooking = () => {
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-1">
-                      Giao dịch an toàn & Giữ chỗ 30 phút
+                      Giao dịch an toàn & Giữ chỗ 15 phút
                     </h4>
                     <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                       Bạn sẽ không bị trừ tiền cho đến khi check-in tại cổng.

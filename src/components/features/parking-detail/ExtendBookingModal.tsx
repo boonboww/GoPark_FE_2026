@@ -1,8 +1,16 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import { patch } from "@/lib/api";
 import { toast } from "sonner";
+import { parseParkingTime } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -10,23 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
-interface Booking {
-  id: string;
-  start_time: string;
-  end_time: string;
-  [key: string]: any;
-}
+import { Button } from "@/components/ui/button";
+import { Clock, Calendar, AlertCircle } from "lucide-react";
 
 interface ExtendBookingModalProps {
   isOpen: boolean;
-  booking: Booking | null;
+  booking: any;
   onClose: () => void;
 }
 
@@ -43,12 +40,40 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
     pricePerHour: 0,
     priceDay: 0,
     zoneName: "",
+    isValid: true,
+    message: "" as string | null,
     operatingHours: { open: null, close: null } as { open: string | null; close: string | null }
   });
 
+  const fetchPreview = async (endTime: string) => {
+    if (!booking) return;
+    setLoadingPrice(true);
+    try {
+      const res: any = await patch(`/booking/${booking.id}/extend`, {
+        new_end_time: endTime,
+        isPreview: true
+      });
 
-
-
+      if (res.data) {
+        setExtraAmount(res.data.extraAmount || 0);
+        setPricingInfo({
+          pricePerHour: res.data.pricePerHour || 0,
+          priceDay: res.data.priceDay || 0,
+          zoneName: res.data.zoneName || "Khu vực",
+          isValid: res.data.isValid ?? true,
+          message: res.data.message || null,
+          operatingHours: {
+            open: parseParkingTime(res.data.operatingHours?.open, "00:00"),
+            close: parseParkingTime(res.data.operatingHours?.close, "23:59")
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Lỗi preview gia hạn:", error);
+    } finally {
+      setLoadingPrice(false);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen || !booking) return;
@@ -58,58 +83,30 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
       setNewEndTime(initialTime);
     }
 
-    const fetchPreviewPrice = async () => {
-      const isValidTime = newEndTime && dayjs(newEndTime).isAfter(dayjs(booking.end_time));
-
-      if (isValidTime) {
-        setLoadingPrice(true);
-        try {
-          const res = (await patch(`/booking/${booking.id}/extend`, {
-            new_end_time: dayjs(newEndTime).toISOString(),
-            isPreview: true
-          })) as any;
-
-          if (res?.data) {
-            setExtraAmount(res.data.extraAmount || 0);
-            setPricingInfo({
-              pricePerHour: res.data.pricePerHour || 0,
-              priceDay: res.data.priceDay || 0,
-              zoneName: res.data.zoneName || "Khu vực",
-              operatingHours: res.data.operatingHours || { open: null, close: null }
-            });
-          }
-
-
-
-
-        } catch (error) {
-          console.error("Lỗi fetch giá:", error);
-          setExtraAmount(0);
-        } finally {
-          setLoadingPrice(false);
-        }
+    const timer = setTimeout(() => {
+      if (newEndTime && dayjs(newEndTime).isAfter(dayjs(booking.end_time))) {
+        fetchPreview(dayjs(newEndTime).toISOString());
       } else {
         setExtraAmount(0);
+        setPricingInfo(prev => ({ ...prev, isValid: true, message: null }));
       }
-    };
+    }, 300);
 
-    const timer = setTimeout(fetchPreviewPrice, 300);
     return () => clearTimeout(timer);
-
   }, [newEndTime, booking, isOpen]);
 
   const getHH = (timeStr: string) => timeStr ? dayjs(timeStr).format("HH") : "00";
   const getMM = (timeStr: string) => timeStr ? dayjs(timeStr).format("mm") : "00";
 
   const handleExtend = async () => {
-    if (isSubmitting || !booking) return;
+    if (isSubmitting || !booking || !pricingInfo.isValid) return;
     setIsSubmitting(true);
     try {
       await patch(`/booking/${booking.id}/extend`, {
         new_end_time: dayjs(newEndTime).toISOString(),
         isPreview: false
       });
-      alert("Gia hạn thành công!");
+      alert("Gia hạn thành công. Quý khách vui lòng tiếp tục sử dụng mã QR cũ. Mọi chi phí phát sinh sẽ được thanh toán trực tiếp tại quầy khi quý khách rời bãi.!");
       onClose();
       window.location.reload();
     } catch (error: any) {
@@ -120,7 +117,6 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
   };
 
   if (!booking) return null;
-  const oldEndTimeDate = dayjs(booking.end_time).format("YYYY-MM-DD");
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -129,175 +125,174 @@ export function ExtendBookingModal({ isOpen, booking, onClose }: ExtendBookingMo
           <DialogTitle className="text-xl font-bold text-gray-800">Gia hạn thời gian đỗ</DialogTitle>
         </DialogHeader>
 
-        <div className="p-6 pt-0 space-y-4">
-          {/* Section 1: Pricing Info */}
-          <div className="bg-blue-50 p-4 rounded-2xl flex items-center gap-4 border border-blue-100">
-            <div className="w-11 h-11 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
-              <span className="text-blue-600 font-black text-lg">P</span>
+        <div className="px-6 py-4 space-y-6">
+          {/* Section 1: Info Card */}
+          <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100 flex items-start gap-4">
+            <div className="bg-white p-3 rounded-xl shadow-sm">
+              <span className="text-blue-600 font-bold text-lg">P</span>
             </div>
             <div>
-              <p className="text-blue-600 text-xs font-bold uppercase tracking-wider mb-0.5">
-                ĐƠN GIÁ KHU VỰC: {pricingInfo.zoneName || "..."}
+              <p className="text-blue-700 font-bold text-sm uppercase tracking-wide">
+                Đơn giá khu vực: {pricingInfo.zoneName}
               </p>
-              <p className="text-gray-800 text-base font-medium">
-                Giá giờ/ngày: {pricingInfo.pricePerHour.toLocaleString()}đ / {pricingInfo.priceDay.toLocaleString()}đ
+              <p className="text-gray-600 text-sm font-medium mt-0.5">
+                Giá giờ/ngày: {pricingInfo.pricePerHour?.toLocaleString()}đ / {pricingInfo.priceDay?.toLocaleString()}đ
               </p>
             </div>
           </div>
 
-
-
           {/* Section 2: Current Times */}
-          <div className="border-2 border-dashed border-gray-300 rounded-2xl p-4 grid grid-cols-2 gap-4 bg-white">
+          <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 border-dashed">
             <div>
-              <p className="text-xs text-gray-700 font-bold uppercase mb-0.5">GIỜ VÀO</p>
-              <p className="font-bold text-gray-900 text-base">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Giờ vào</p>
+              <p className="text-sm font-bold text-slate-700">
                 {dayjs(booking.start_time).format("HH:mm - DD/MM")}
               </p>
             </div>
-            <div>
-              <p className="text-xs text-gray-700 font-bold uppercase mb-0.5">GIỜ RA CŨ</p>
-              <p className="font-bold text-gray-900 text-base">
+            <div className="border-l border-slate-200 pl-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Giờ ra cũ</p>
+              <p className="text-sm font-bold text-slate-700">
                 {dayjs(booking.end_time).format("HH:mm - DD/MM")}
               </p>
             </div>
           </div>
 
-          {/* Section 3 & 4: Date & Time Input (Fixed Grid 2:1:1) */}
-          <div className="grid grid-cols-4 gap-4 items-end">
-            <div className="col-span-2 space-y-1.5">
-              <label className="text-xs font-bold text-gray-800 uppercase tracking-wide ml-1 text-left block">NGÀY RA MỚI</label>
-              <input
-                type="date"
-                min={oldEndTimeDate}
-                value={newEndTime ? newEndTime.split('T')[0] : ""}
-                onChange={(e) => setNewEndTime(`${e.target.value}T${getHH(newEndTime)}:${getMM(newEndTime)}`)}
-                className="w-full h-11 px-3 bg-white border border-gray-400 rounded-2xl font-bold text-gray-900 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition-all cursor-pointer text-base"
-              />
+          {/* Section 3: New End Time Pickers */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-bold text-gray-700 uppercase tracking-tight">Ngày ra mới</label>
+              <div className="relative flex-1 max-w-[200px] ml-4">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={dayjs(newEndTime).format("YYYY-MM-DD")}
+                  onChange={(e) => {
+                    const newDate = e.target.value;
+                    const hh = getHH(newEndTime);
+                    const mm = getMM(newEndTime);
+                    setNewEndTime(`${newDate}T${hh}:${mm}`);
+                  }}
+                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-sm font-bold text-gray-700 focus:border-blue-500 transition-all outline-none"
+                />
+              </div>
             </div>
 
-            <div className="col-span-1 space-y-1.5">
-              <label className="text-xs font-bold text-gray-800 uppercase tracking-wide ml-1 text-left block">GIỜ</label>
-              <Select
-                value={getHH(newEndTime)}
-                onValueChange={(val) => setNewEndTime(`${newEndTime.split('T')[0]}T${val}:${getMM(newEndTime)}`)}
-              >
-                <SelectTrigger className="h-11 rounded-2xl font-bold border-gray-400 text-gray-900 focus:ring-4 focus:ring-blue-100 text-base bg-white px-3 flex justify-between shadow-sm">
-                  <SelectValue placeholder="Giờ" />
-                </SelectTrigger>
-                <SelectContent className="bg-white rounded-xl border-2 border-gray-300 shadow-xl z-[9999] opacity-100 !bg-opacity-100">
-                  {HOURS.map((h) => (
-                    <SelectItem
-                      key={h}
-                      value={h}
-                      disabled={dayjs(`${newEndTime.split('T')[0]}T${h}:${getMM(newEndTime)}`).isBefore(dayjs(booking.end_time))}
-                      className="font-bold text-gray-900 focus:bg-blue-50 focus:text-blue-700 cursor-pointer"
-                    >
-                      {h}h
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Giờ</label>
+                <Select
+                  value={getHH(newEndTime)}
+                  onValueChange={(h) => {
+                    const dateStr = dayjs(newEndTime).format("YYYY-MM-DD");
+                    setNewEndTime(`${dateStr}T${h}:${getMM(newEndTime)}`);
+                  }}
+                >
+                  <SelectTrigger className="h-12 rounded-xl border-2 border-slate-200 font-bold bg-slate-50">
+                    <SelectValue placeholder="Giờ" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white rounded-xl border-2 border-gray-300 shadow-xl z-[9999]">
+                    {HOURS.map((h) => (
+                      <SelectItem
+                        key={h}
+                        value={h}
+                        disabled={dayjs(`${dayjs(newEndTime).format("YYYY-MM-DD")}T${h}:${getMM(newEndTime)}`).isBefore(dayjs(booking.end_time))}
+                        className="font-bold text-gray-900 focus:bg-blue-50 focus:text-blue-700"
+                      >
+                        {h}h
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="col-span-1 space-y-1.5">
-              <label className="text-xs font-bold text-gray-800 uppercase tracking-wide ml-1 text-left block">PHÚT</label>
-              <Select
-                value={getMM(newEndTime)}
-                onValueChange={(val) => setNewEndTime(`${newEndTime.split('T')[0]}T${getHH(newEndTime)}:${val}`)}
-              >
-                <SelectTrigger className="h-11 rounded-2xl font-bold border-gray-400 text-gray-900 focus:ring-4 focus:ring-blue-100 text-base bg-white px-3 flex justify-between shadow-sm">
-                  <SelectValue placeholder="Phút" />
-                </SelectTrigger>
-                <SelectContent className="bg-white rounded-xl border-2 border-gray-300 shadow-xl z-[9999] opacity-100 !bg-opacity-100">
-                  {MINUTES.map((m) => (
-                    <SelectItem
-                      key={m}
-                      value={m}
-                      disabled={dayjs(`${newEndTime.split('T')[0]}T${getHH(newEndTime)}:${m}`).isBefore(dayjs(booking.end_time))}
-                      className="font-bold text-gray-900 focus:bg-blue-50 focus:text-blue-700 cursor-pointer"
-                    >
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Phút</label>
+                <Select
+                  value={getMM(newEndTime)}
+                  onValueChange={(m) => {
+                    const dateStr = dayjs(newEndTime).format("YYYY-MM-DD");
+                    setNewEndTime(`${dateStr}T${getHH(newEndTime)}:${m}`);
+                  }}
+                >
+                  <SelectTrigger className="h-12 rounded-xl border-2 border-slate-200 font-bold bg-slate-50">
+                    <SelectValue placeholder="Phút" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white rounded-xl border-2 border-gray-300 shadow-xl z-[9999]">
+                    {MINUTES.map((m) => (
+                      <SelectItem
+                        key={m}
+                        value={m}
+                        disabled={dayjs(`${dayjs(newEndTime).format("YYYY-MM-DD")}T${getHH(newEndTime)}:${m}`).isBefore(dayjs(booking.end_time))}
+                        className="font-bold text-gray-900 focus:bg-blue-50 focus:text-blue-700"
+                      >
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          {pricingInfo.operatingHours.open && (
-            <p className="text-red-500 text-[11px] font-bold uppercase tracking-wider mt-1 ml-1">
+          {/* Section 4: Operating Hours Display */}
+          <div className="flex items-center justify-center gap-2 py-1">
+            <p className="text-[11px] font-bold text-red-500 uppercase tracking-widest">
               Giờ hoạt động: {pricingInfo.operatingHours.open} - {pricingInfo.operatingHours.close}
             </p>
-          )}
+          </div>
 
-
-
-
-
-          {/* Section 5: Summary Card */}
-          <div className="bg-blue-50 p-4 rounded-3xl space-y-3 border border-blue-100">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-800 font-semibold">Thời gian thêm:</span>
-              <span className="font-bold text-gray-900">
-                {newEndTime && dayjs(newEndTime).isAfter(dayjs(booking.end_time))
-                  ? `${dayjs(newEndTime).diff(dayjs(booking.end_time), 'minute')} phút`
-                  : "0 phút"}
+          {/* Section 5: Summary */}
+          <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <div className="flex justify-between text-xs font-bold text-slate-500">
+              <span>Thời gian thêm:</span>
+              <span className="text-slate-800">{dayjs(newEndTime).diff(dayjs(booking.end_time), 'minute')} phút</span>
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+              <span className="text-sm font-bold text-blue-600 uppercase">Kết thúc mới</span>
+              <span className="text-sm font-bold text-blue-600">
+                {dayjs(newEndTime).format("HH:mm - DD/MM/YYYY")}
               </span>
             </div>
-
-            <div className="h-[1px] bg-gray-300 w-full" />
-
             <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-blue-700 uppercase tracking-wider">KẾT THÚC MỚI</span>
-              <span className="font-bold text-blue-700 text-lg">
-                {newEndTime ? dayjs(newEndTime).format("HH:mm - DD/MM/YYYY") : "Chưa chọn"}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">TIỀN CỘNG THÊM</span>
-              <span className="font-bold text-amber-700 text-2xl">
-                {loadingPrice ? "..." : `+${extraAmount.toLocaleString()}đ`}
+              <span className="text-sm font-bold text-orange-600 uppercase">Tiền cộng thêm</span>
+              <span className="text-lg font-bold text-orange-600">
+                +{extraAmount.toLocaleString()}đ
               </span>
             </div>
           </div>
+
+          {/* Section 5.5: Validation Message */}
+          {pricingInfo.message && (
+            <div className="bg-red-50 border border-red-200 p-3 rounded-2xl flex items-center gap-2">
+              <AlertCircle className="size-4 text-red-600 shrink-0" />
+              <p className="text-red-600 text-xs font-bold leading-relaxed italic">
+                {pricingInfo.message}
+              </p>
+            </div>
+          )}
 
           {/* Section 6: Footer Buttons */}
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
+              variant="outline"
               onClick={onClose}
-              className="flex-1 bg-gray-200 text-gray-800 py-3.5 rounded-2xl font-bold hover:bg-gray-300 transition-colors active:scale-95 text-base"
+              className="flex-1 py-6 rounded-2xl font-bold border-2 border-slate-200 hover:bg-slate-50 text-slate-500"
             >
               Hủy
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleExtend}
               disabled={
-                loadingPrice || 
-                isSubmitting || 
-                !newEndTime || 
-                dayjs(newEndTime).isBefore(dayjs(booking.end_time)) ||
-                (() => {
-                  if (!pricingInfo.operatingHours.open || !pricingInfo.operatingHours.close) return false;
-                  const open = pricingInfo.operatingHours.open;
-                  const close = pricingInfo.operatingHours.close;
-                  const current = dayjs(newEndTime).format("HH:mm");
-                  
-                  if (open < close) {
-                    return current < open || current > close;
-                  } else {
-                    return current < open && current > close;
-                  }
-                })()
+                loadingPrice ||
+                isSubmitting ||
+                !newEndTime ||
+                !pricingInfo.isValid ||
+                dayjs(newEndTime).isBefore(dayjs(booking.end_time))
               }
-              className="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:bg-blue-300 disabled:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2 text-base"
+              className="flex-1 bg-blue-600 text-white py-6 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:bg-blue-300 disabled:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2 text-base"
             >
-
-              {isSubmitting ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : "Xác nhận gia hạn"}
-            </button>
+              {loadingPrice ? "Đang tính giá..." : "Xác nhận gia hạn"}
+            </Button>
           </div>
         </div>
       </DialogContent>
