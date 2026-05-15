@@ -246,6 +246,7 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                         <FormControl>
                           <Input 
                             type="time" 
+                            lang="vi-VN"
                             {...field} 
                             className="h-11 bg-slate-50 border-slate-200 font-bold"
                           />
@@ -264,6 +265,7 @@ export function CreateLotModal({ isOpen, onClose, onSuccess }: CreateLotModalPro
                         <FormControl>
                           <Input 
                             type="time" 
+                            lang="vi-VN"
                             {...field} 
                             className="h-11 bg-slate-50 border-slate-200 font-bold"
                           />

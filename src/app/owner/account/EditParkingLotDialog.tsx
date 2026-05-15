@@ -259,7 +259,7 @@ export default function EditParkingLotDialog({
                           <Clock className="w-3 h-3" /> Giờ mở cửa
                         </FormLabel>
                         <FormControl>
-                          <Input type="time" className="h-11 bg-slate-50 font-bold" {...field} />
+                          <Input type="time" lang="vi-VN" className="h-11 bg-slate-50 font-bold" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -274,7 +274,7 @@ export default function EditParkingLotDialog({
                           <Clock className="w-3 h-3" /> Giờ đóng cửa
                         </FormLabel>
                         <FormControl>
-                          <Input type="time" className="h-11 bg-slate-50 font-bold" {...field} />
+                          <Input type="time" lang="vi-VN" className="h-11 bg-slate-50 font-bold" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

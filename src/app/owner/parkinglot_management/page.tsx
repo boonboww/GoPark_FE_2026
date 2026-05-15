@@ -505,6 +505,7 @@ export default function ParkingLotManagementPage() {
                           <div className="relative">
                             <Input
                               type="time"
+                              lang="vi-VN"
                               value={startTime}
                               onChange={(e) => setStartTime(e.target.value)}
                               className="h-10 border-slate-200 bg-slate-50 font-bold px-3"
@@ -513,6 +514,7 @@ export default function ParkingLotManagementPage() {
                           <div className="relative">
                             <Input
                               type="time"
+                              lang="vi-VN"
                               value={endTime}
                               onChange={(e) => setEndTime(e.target.value)}
                               className="h-10 border-slate-200 bg-slate-50 font-bold px-3"
