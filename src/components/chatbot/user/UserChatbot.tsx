@@ -172,6 +172,149 @@ function getUserLocation(): Promise<{ lat: number; lng: number } | null> {
   });
 }
 
+// Hàm khôi phục các ký tự bị lỗi () do Backend/DB làm mất byte UTF-8
+function fixVietnameseMojibake(text: string) {
+  if (!text) return text;
+  let fixed = text;
+  // CHỈ thay thế các cụm từ dài và an toàn, KHÔNG thay thế ký tự đơn lẻ
+  // để tránh làm hỏng cấu trúc JSON (như chữ 'n' trong 'null' hay 'action')
+  const replacements: Record<string, string> = {
+    // Cụm từ có chứa ký tự \ufffd ()
+    "Nguy\ufffdn Hu\ufffd": "Nguyễn Huệ",
+    "Nguy\ufffdn V\ufffdn Linh": "Nguyễn Văn Linh",
+    "\ufffdi\ufffdn Bi\ufffdn Ph\ufffd": "Điện Biên Phủ",
+    "Ph\ufffd\ufffdng H\ufffdi Ch\ufffdu": "Phường Hải Châu",
+    "H\ufffda C\ufffd\ufffdng": "Hòa Cường",
+    "Thanh Th\ufffdy": "Thanh Thủy",
+    "Thanh B\ufffdnh": "Thanh Bình",
+    "X\ufffda Kh\ufffdm \ufffd\ufffdc": "Xã Khâm Đức",
+    "Th\ufffdnh ph\ufffd": "Thành phố",
+    "H\ufffd Ch\ufffd Minh": "Hồ Chí Minh",
+    "Th\ufffdc Gi\ufffdn": "Thạc Gián",
+    "B\ufffdu H\ufffdc": "Bàu Hạc",
+    "Thanh Kh\ufffd": "Thanh Khê",
+    "\ufffd\ufffd N\ufffdng": "Đà Nẵng",
+    "Vi\ufffdt Nam": "Việt Nam",
+    "T\ufffd 4 \ufffd\ufffdn 10 ch\ufffd": "Từ 4 đến 10 chỗ",
+    "Nguy\ufffdn": "Nguyễn",
+    "Ph\ufffd\ufffdng": "Phường",
+    "Kh\ufffdm \ufffd\ufffdc": "Khâm Đức",
+    "Bi\ufffdn Ph\ufffd": "Biên Phủ",
+    "Qu\ufffdn 1": "Quận 1",
+    "B\ufffdi \ufffd\ufffd ": "Bãi đỗ ",
+    "Qu\ufffdn": "Quận",
+    "Ch\ufffd tr\ufffdng": "Chỗ trống",
+    "Gi\ufffda": "Giá",
+    "\ufffd/gi\ufffd": "đ/giờ",
+    "\ufffd/gi": "đ/gi",
+    "\ufffdnh gi\ufffda": "Đánh giá",
+
+    // Cụm từ bị mất hẳn ký tự (khoảng trắng)
+    "Nguyn Hu": "Nguyễn Huệ",
+    "Nguyn Vn Linh": "Nguyễn Văn Linh",
+    "in Bin Ph": "Điện Biên Phủ",
+    "Phng Hi Chu": "Phường Hải Châu",
+    "Ha Cng": "Hòa Cường",
+    "Thanh Thy": "Thanh Thủy",
+    "Thanh Bnh": "Thanh Bình",
+    "X Khm c": "Xã Khâm Đức",
+    "Thnh ph": "Thành phố",
+    "H Ch Minh": "Hồ Chí Minh",
+    "Thc Gin": "Thạc Gián",
+    "Bu Hc": "Bàu Hạc",
+    "Thanh Kh": "Thanh Khê",
+    " Nng": "Đà Nẵng",
+    "Vit Nam": "Việt Nam",
+    "T 4 n 10 ch": "Từ 4 đến 10 chỗ",
+    "Nguyn": "Nguyễn",
+    "Phng": "Phường",
+    "Khm c": "Khâm Đức",
+    "Bin Ph": "Biên Phủ",
+    "Qun 1": "Quận 1",
+    "Bi  ": "Bãi đỗ ",
+    "Qun": "Quận",
+    "Ch tr ng": "Chỗ trống",
+    " /giờ": "đ/giờ"
+  };
+
+  const sortedKeys = Object.keys(replacements).sort((a, b) => b.length - a.length);
+  for (const key of sortedKeys) {
+    fixed = fixed.split(key).join(replacements[key]);
+  }
+  return fixed;
+}
+
+// Markdown Renderer Component cho Chatbot
+const MarkdownRenderer = ({ content }: { content: string }) => {
+  if (!content) return null;
+  const lines = content.split('\n');
+  const blocks = [];
+  let currentTable: string[] = [];
+  let currentText: string[] = [];
+
+  for (let line of lines) {
+    if (line.trim().startsWith('|')) {
+      if (currentText.length) {
+        blocks.push({ type: 'text', content: currentText.join('\n') });
+        currentText = [];
+      }
+      currentTable.push(line);
+    } else {
+      if (currentTable.length) {
+        blocks.push({ type: 'table', content: currentTable });
+        currentTable = [];
+      }
+      currentText.push(line);
+    }
+  }
+  if (currentText.length) blocks.push({ type: 'text', content: currentText.join('\n') });
+  if (currentTable.length) blocks.push({ type: 'table', content: currentTable });
+
+  return (
+    <div className="uc-markdown">
+      {blocks.map((block, i) => {
+        if (block.type === 'table') {
+          const tlines = block.content as string[];
+          const contentLines = tlines.filter((l: string) => l.replace(/[\s|:\-]/g, '') !== '');
+          if(contentLines.length < 2) return <div key={i}>{tlines.join('\n')}</div>;
+
+          const header = contentLines[0].split('|').filter((_, idx, arr) => (idx > 0 && idx < arr.length - 1) || _.trim() !== '').map(c => c.trim());
+          const rows = contentLines.slice(1);
+          
+          return (
+            <div key={i} className="uc-table-wrapper">
+              <table className="uc-table">
+                <thead>
+                  <tr>
+                    {header.map((col, j) => <th key={j} dangerouslySetInnerHTML={{ __html: col.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, j) => {
+                    const cells = row.split('|').filter((_, idx, arr) => (idx > 0 && idx < arr.length - 1) || _.trim() !== '').map(c => c.trim());
+                    return (
+                      <tr key={j}>
+                        {cells.map((cell, k) => <td key={k} dangerouslySetInnerHTML={{ __html: cell.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />)}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+        } else {
+          let html = (block.content as string)
+            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+            .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          return <div key={i} dangerouslySetInnerHTML={{ __html: html }} style={{ whiteSpace: "pre-wrap", marginBottom: "4px" }} />;
+        }
+      })}
+    </div>
+  );
+};
+
 export default function UserChatbot() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -185,6 +328,7 @@ export default function UserChatbot() {
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
   const [wakeBanner, setWakeBanner] = useState(false);
   const [userVehicles, setUserVehicles] = useState<VehicleChip[]>([]);
+  const [dynamicChips, setDynamicChips] = useState<string[]>(QUICK_CHIPS);
 
   // Session management
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -427,15 +571,6 @@ export default function UserChatbot() {
   }, [startWakeListener]);
 
   useEffect(() => {
-    startWakeListener();
-    return () => {
-      try {
-        wakeRecognitionRef.current?.stop();
-      } catch {}
-    };
-  }, [startWakeListener]);
-
-  useEffect(() => {
     if (voiceMode) return;
     window.speechSynthesis?.cancel();
     try {
@@ -602,7 +737,10 @@ export default function UserChatbot() {
     setInput("");
     setLoading(true);
     try {
-      const headers: HeadersInit = { "Content-Type": "application/json" };
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        "Accept": "application/json; charset=utf-8"
+      };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
       let context: { userLat?: number; userLng?: number } = {};
       if (/gần|nearby|gan/i.test(content)) {
@@ -622,6 +760,7 @@ export default function UserChatbot() {
         }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      
       const response = await resp.json();
       const responseData = response?.data || response;
       const parkingPayload =
@@ -676,14 +815,31 @@ export default function UserChatbot() {
       const assistantMsg: Message = { role: "assistant", content: text2 };
       setMessages([...messagesRef.current, assistantMsg]);
       messagesRef.current = [...messagesRef.current, assistantMsg];
+
+      // Cập nhật gợi ý nhanh nếu AI đang gom thông tin đặt chỗ
+      if (responseData?.action === "collect_booking" && responseData.data?.suggestions) {
+        const suggestions = responseData.data.suggestions;
+        const missing = responseData.data.missing || [];
+        let newChips: string[] = [];
+        if (missing.includes('ten bai do') && suggestions.parkingLots?.length) {
+          newChips.push(...suggestions.parkingLots.map((_: any, i: number) => `bãi ${i + 1}`));
+        } else if (missing.includes('thoi gian vao/ra') && suggestions.timeExamples?.length) {
+          newChips.push(...suggestions.timeExamples);
+        } else if (missing.includes('xe hoac bien so') && suggestions.vehicles?.length) {
+          newChips.push(...suggestions.vehicles.map((v: any) => v.label));
+        } else if (missing.includes('phuong thuc thanh toan') && suggestions.payments?.length) {
+          newChips.push(...suggestions.payments.map((p: any) => p.label));
+        }
+        setDynamicChips(newChips.length > 0 ? newChips : QUICK_CHIPS);
+      } else {
+        setDynamicChips(QUICK_CHIPS);
+      }
+
       // Nếu voice mode đang bật → đọc câu trả lời
       if (voiceModeRef.current) {
         setVoiceState("speaking");
         speakText(text2, () => {
-          if (voiceModeRef.current) {
-            setVoiceState("wake-listening");
-            startWakeListener();
-          } else setVoiceState("idle");
+          setVoiceState("idle");
         });
       }
     } catch {
@@ -706,7 +862,10 @@ export default function UserChatbot() {
     messagesRef.current = newMessages;
     setLoading(true);
     try {
-      const headers: HeadersInit = { "Content-Type": "application/json" };
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        "Accept": "application/json; charset=utf-8"
+      };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
       const url = currentSessionId
         ? `${API_BASE_URL}/chatbot/sessions/${currentSessionId}/chat`
@@ -719,6 +878,7 @@ export default function UserChatbot() {
         }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      
       const response = await resp.json();
       const responseData = response?.data || response;
       const redirectAction =
@@ -752,13 +912,31 @@ export default function UserChatbot() {
       const assistantMsg: Message = { role: "assistant", content: text2 };
       setMessages([...messagesRef.current, assistantMsg]);
       messagesRef.current = [...messagesRef.current, assistantMsg];
+      
+      // Cập nhật gợi ý nhanh nếu AI đang gom thông tin đặt chỗ
+
+      if (responseData?.action === "collect_booking" && responseData.data?.suggestions) {
+        const suggestions = responseData.data.suggestions;
+        const missing = responseData.data.missing || [];
+        let newChips: string[] = [];
+        if (missing.includes('ten bai do') && suggestions.parkingLots?.length) {
+          newChips.push(...suggestions.parkingLots.map((_: any, i: number) => `bãi ${i + 1}`));
+        } else if (missing.includes('thoi gian vao/ra') && suggestions.timeExamples?.length) {
+          newChips.push(...suggestions.timeExamples);
+        } else if (missing.includes('xe hoac bien so') && suggestions.vehicles?.length) {
+          newChips.push(...suggestions.vehicles.map((v: any) => v.label));
+        } else if (missing.includes('phuong thuc thanh toan') && suggestions.payments?.length) {
+          newChips.push(...suggestions.payments.map((p: any) => p.label));
+        }
+        setDynamicChips(newChips.length > 0 ? newChips : QUICK_CHIPS);
+      } else {
+        setDynamicChips(QUICK_CHIPS);
+      }
+
       setLoading(false);
       setVoiceState("speaking");
       speakText(text2, () => {
-        if (voiceModeRef.current) {
-          setVoiceState("wake-listening");
-          startWakeListener();
-        } else setVoiceState("idle");
+        setVoiceState("idle");
       });
     } catch {
       const errMsg: Message = {
@@ -768,10 +946,7 @@ export default function UserChatbot() {
       setMessages([...messagesRef.current, errMsg]);
       messagesRef.current = [...messagesRef.current, errMsg];
       setLoading(false);
-      if (voiceModeRef.current) {
-        setVoiceState("wake-listening");
-        startWakeListener();
-      }
+      if (voiceModeRef.current) setVoiceState("idle");
     }
   }
 
@@ -801,7 +976,7 @@ export default function UserChatbot() {
   };
   const voiceStateLabel: Record<VoiceState, string> = {
     idle: "",
-    "wake-listening": '🎙️ Đang chờ "Hey GoPark"...',
+    "wake-listening": "",
     prompted: "🤖 Bạn muốn hỏi gì?",
     "question-listening": "👂 Đang nghe câu hỏi...",
     speaking: "🔊 Đang trả lời...",
@@ -1053,6 +1228,24 @@ export default function UserChatbot() {
         .uc-td { width:6px; height:6px; border-radius:50%; background:#22c55e; animation:ucBounce 1.2s infinite; }
         .uc-td:nth-child(2){ animation-delay:.22s; } .uc-td:nth-child(3){ animation-delay:.44s; }
         @keyframes ucBounce { 0%,60%,100%{ transform:translateY(0); opacity:.35; } 30%{ transform:translateY(-5px); opacity:1; } }
+        /* Markdown / Tables */
+        .uc-markdown { display: flex; flex-direction: column; gap: 4px; }
+        .uc-markdown h1, .uc-markdown h2, .uc-markdown h3 { font-weight: 700; color: #a7f3d0; margin-top: 8px; margin-bottom: 4px; }
+        .uc-markdown strong { font-weight: 700; color: #a7f3d0; }
+        .u .uc-markdown strong { color: #fff; text-shadow: 0 0 2px rgba(0,0,0,0.3); }
+        .uc-table-wrapper { margin: 8px 0; overflow-x: auto; border-radius: 8px; border: 1px solid rgba(34,197,94,0.15); background: rgba(0,0,0,0.2); }
+        .uc-table-wrapper::-webkit-scrollbar { height: 4px; }
+        .uc-table-wrapper::-webkit-scrollbar-thumb { background: rgba(34,197,94,0.3); border-radius: 4px; }
+        .uc-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        .uc-table th { background: rgba(34,197,94,0.15); color: #86efac; padding: 8px 12px; font-weight: 600; border-bottom: 1px solid rgba(34,197,94,0.2); white-space: nowrap; }
+        .uc-table td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #e2f5ea; }
+        .uc-table tr:last-child td { border-bottom: none; }
+        .uc-table tr:hover td { background: rgba(34,197,94,0.05); }
+        .u .uc-table-wrapper { border-color: rgba(255,255,255,0.2); }
+        .u .uc-table th { background: rgba(255,255,255,0.15); color: #fff; border-bottom: 1px solid rgba(255,255,255,0.2); }
+        .u .uc-table td { color: #fff; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .u .uc-table tr:hover td { background: rgba(255,255,255,0.1); }
+        
         .uc-chips-wrap { flex-shrink:0; padding:6px 12px; border-top:1px solid rgba(34,197,94,.08); }
         .uc-clabel { font-size:10px; color:#3a6b4a; letter-spacing:.6px; text-transform:uppercase; margin-bottom:5px; }
         .uc-chips { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin; }
@@ -1129,12 +1322,6 @@ export default function UserChatbot() {
       `}</style>
 
       <div className="uc">
-        {wakeBanner && (
-          <div className="uc-wake-banner" role="status" aria-live="polite">
-            <div className="uc-wake-title">Hey GoPark</div>
-            <div className="uc-wake-sub">Tôi đang nghe câu hỏi của bạn</div>
-          </div>
-        )}
         {open && (
           <div
             ref={panelRef}
@@ -1390,7 +1577,7 @@ export default function UserChatbot() {
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" y1="19" x2="12" y2="23" />
                   </svg>
-                  AI đọc câu trả lời
+                  Đọc câu trả lời
                 </span>
                 <label className="uc-toggle">
                   <input
@@ -1441,11 +1628,11 @@ export default function UserChatbot() {
                   <div className={`uc-bub${m.role === "user" ? " u" : " b"}`}>
                     {m.type === "parking-list" ? (
                       <div>
-                        {m.content}
+                        <MarkdownRenderer content={m.content} />
                         {renderParkingList(m, i)}
                       </div>
                     ) : (
-                      m.content
+                      <MarkdownRenderer content={m.content} />
                     )}
                   </div>
                 </div>
@@ -1481,7 +1668,7 @@ export default function UserChatbot() {
             <div className="uc-chips-wrap">
               <div className="uc-clabel">💡 Gợi ý nhanh</div>
               <div className="uc-chips">
-                {QUICK_CHIPS.map((label) => (
+                {dynamicChips.map((label) => (
                   <button
                     key={label}
                     className="uc-chip"
@@ -1516,7 +1703,7 @@ export default function UserChatbot() {
                   value={input}
                   placeholder={
                     voiceMode
-                      ? "AI sẽ đọc câu trả lời – hoặc gõ câu hỏi..."
+                      ? "Nhập câu hỏi, hệ thống sẽ đọc câu trả lời..."
                       : "Hỏi về bãi đỗ, đặt chỗ, ví tiền..."
                   }
                   onChange={(e) => setInput(e.target.value)}
@@ -1529,7 +1716,7 @@ export default function UserChatbot() {
                 />
                 <button
                   className={`uc-mic${listening ? " on" : ""}`}
-                  title={listening ? "Đang nghe – nhấn để dừng" : "Nhấn để nói"}
+                  title={listening ? "Đang nghe, nhấn để dừng" : "Nhấn để nói thành văn bản"}
                   onClick={() => {
                     const r = recognitionRef.current;
                     if (!r) return;

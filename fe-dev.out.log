@@ -1,0 +1,29 @@
+
+> gopark_fe_2026@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.19:3000
+- Environments: .env.local
+
+✓ Starting...
+Creating turbopack project {
+  dir: 'C:\\Users\\Admin\\Desktop\\GoPark_2026\\GoPark_FE_2026',
+  testMode: true
+}
+✓ Ready in 1138ms
+ GET / 200 in 1776ms (compile: 1299ms, render: 477ms)
+ GET /auth/login 200 in 66ms (compile: 12ms, render: 54ms)
+ GET / 200 in 58ms (compile: 9ms, render: 49ms)
+ GET /auth/login 200 in 25ms (compile: 5ms, render: 19ms)
+ GET / 200 in 25ms (compile: 7ms, render: 18ms)
+ GET / 200 in 21ms (compile: 5ms, render: 16ms)
+ GET /users/myBooking/10?start=2026-05-17T07%3A30&end=2026-05-17T09%3A00&vehicle=60A-999.99&payment=vnpay 200 in 910ms (compile: 809ms, render: 101ms)
+ GET / 200 in 43ms (compile: 6ms, render: 36ms)
+ GET / 200 in 180ms (compile: 85ms, render: 94ms)
+ GET /auth/login 200 in 45ms (compile: 12ms, render: 34ms)
+ GET / 200 in 23ms (compile: 6ms, render: 17ms)
+ GET / 200 in 22ms (compile: 8ms, render: 14ms)
+ GET /users/myBooking/26?start=2026-05-16T19%3A00&end=2026-05-16T21%3A00&vehicle=60A-999.99&payment=vnpay 200 in 328ms (compile: 281ms, render: 47ms)
+ GET / 200 in 37ms (compile: 6ms, render: 31ms)
