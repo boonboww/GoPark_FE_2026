@@ -1128,74 +1128,74 @@ export function StaffDashboard() {
 
       {/* GLOBAL LOADING OVERLAY */}
       {loading && (
-        <div className="fixed inset-0 bg-zinc-950/40 backdrop-blur-sm z-[100] flex items-center justify-center animate-in fade-in duration-300">
-          <Card className="bg-white dark:bg-zinc-900 border-none shadow-2xl p-10 rounded-[3rem] flex flex-col items-center gap-6">
+        <div className="fixed inset-0 bg-zinc-950/40 backdrop-blur-sm z-[100] flex items-center justify-center animate-in fade-in duration-300 p-4">
+          <Card className="bg-white dark:bg-zinc-900 border-none shadow-2xl p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] flex flex-col items-center gap-4 md:gap-6 max-w-xs w-full">
             <div className="relative">
-              <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-              <IconQrcode className="absolute inset-0 m-auto text-primary animate-pulse" size={24} />
+              <div className="w-12 h-12 md:w-16 md:h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+              <IconQrcode className="absolute inset-0 m-auto text-primary animate-pulse" size={20} />
             </div>
             <div className="text-center">
-              <p className="font-black tracking-[0.3em] text-xs uppercase text-zinc-900 dark:text-white">Processing</p>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Đang xác thực thông tin...</p>
+              <p className="font-black tracking-[0.2em] md:tracking-[0.3em] text-[10px] md:text-xs uppercase text-zinc-900 dark:text-white">Processing</p>
+              <p className="text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Đang xác thực thông tin...</p>
             </div>
           </Card>
         </div>
       )}
       {/* PENALTY MODAL (Prominent Overlay - Moved to bottom for global visibility) */}
       <Dialog open={!!lastPenaltyScan} onOpenChange={(open) => !open && setLastPenaltyScan(null)}>
-        <DialogContent className="sm:max-w-[540px] rounded-[3rem] border-none p-0 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl bg-white/95 dark:bg-zinc-900/95 animate-in fade-in zoom-in duration-300">
-          <div className={`p-10 ${lastPenaltyScan?.paymentStatus === 'success'
+        <DialogContent className="sm:max-w-[440px] w-[95vw] max-h-[96vh] overflow-y-auto rounded-[1.5rem] md:rounded-[2rem] border-none p-0 shadow-[0_0_80px_rgba(0,0,0,0.4)] backdrop-blur-2xl bg-white/95 dark:bg-zinc-900/95 animate-in fade-in zoom-in duration-300">
+          <div className={`p-5 md:p-6 ${lastPenaltyScan?.paymentStatus === 'success'
             ? 'bg-emerald-500/10'
             : 'bg-red-500/10'
             }`}>
-            <div className="flex flex-col items-center text-center space-y-8">
-              <div className={`w-28 h-28 rounded-[2rem] flex items-center justify-center shadow-2xl ${lastPenaltyScan?.paymentStatus === 'success'
-                ? 'bg-emerald-500 text-white shadow-emerald-500/30'
-                : 'bg-red-500 text-white shadow-red-500/30 animate-pulse'
+            <div className="flex flex-col items-center text-center space-y-4 md:space-y-5">
+              <div className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-xl ${lastPenaltyScan?.paymentStatus === 'success'
+                ? 'bg-emerald-500 text-white shadow-emerald-500/20'
+                : 'bg-red-500 text-white shadow-red-500/20 animate-pulse'
                 }`}>
-                <IconAlertCircle size={56} stroke={2.5} />
+                <IconAlertCircle className="size-8 md:size-10" stroke={2.5} />
               </div>
 
-              <div className="space-y-3">
-                <h2 className={`text-4xl font-black uppercase tracking-tighter leading-tight ${lastPenaltyScan?.paymentStatus === 'success' ? 'text-emerald-600' : 'text-red-600'
+              <div className="space-y-1.5">
+                <h2 className={`text-lg md:text-xl font-black uppercase tracking-tight leading-tight ${lastPenaltyScan?.paymentStatus === 'success' ? 'text-emerald-600' : 'text-red-600'
                   }`}>
                   {lastPenaltyScan?.paymentStatus === 'success' ? 'Thanh Toán Phạt' : 'Yêu Cầu Tiền Mặt'}
                 </h2>
                 <div className="flex justify-center">
-                  <Badge variant={lastPenaltyScan?.paymentStatus === 'success' ? 'default' : 'destructive'} className="px-6 py-2 text-base font-black uppercase tracking-[0.2em] rounded-full border-4 border-white/20">
+                  <Badge variant={lastPenaltyScan?.paymentStatus === 'success' ? 'default' : 'destructive'} className="px-3 md:px-4 py-0.5 md:py-1 text-[10px] md:text-xs font-black uppercase tracking-wider rounded-full border-2 border-white/20">
                     {lastPenaltyScan?.paymentStatus === 'success' ? 'VÍ ĐÃ TRỪ TIỀN' : 'CHƯA THANH TOÁN'}
                   </Badge>
                 </div>
               </div>
 
-              <div className="w-full space-y-6 bg-zinc-100/50 dark:bg-black/40 p-8 rounded-[2.5rem] border border-zinc-200/50 dark:border-white/5 shadow-inner">
-                <div className="flex justify-between items-center border-b border-dashed border-zinc-300 dark:border-zinc-700 pb-4">
-                  <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Thời gian quá hạn</span>
-                  <span className="text-2xl font-black text-zinc-900 dark:text-white underline decoration-primary decoration-4 underline-offset-8">
+              <div className="w-full space-y-3 bg-zinc-100/50 dark:bg-black/40 p-4 md:p-5 rounded-2xl border border-zinc-200/50 dark:border-white/5 shadow-inner">
+                <div className="flex justify-between items-center border-b border-dashed border-zinc-300 dark:border-zinc-700 pb-2 md:pb-3">
+                  <span className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Thời gian quá hạn</span>
+                  <span className="text-base md:text-lg font-black text-zinc-900 dark:text-white underline decoration-primary decoration-2 underline-offset-4">
                     {lastPenaltyScan?.lateMinutes} PHÚT
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Số tiền cần thu</span>
-                  <span className={`text-5xl font-black tracking-tighter ${lastPenaltyScan?.paymentStatus === 'success' ? 'text-emerald-600' : 'text-red-600'
+                  <span className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Số tiền cần thu</span>
+                  <span className={`text-2xl md:text-3xl font-black tracking-tighter ${lastPenaltyScan?.paymentStatus === 'success' ? 'text-emerald-600' : 'text-red-600'
                     }`}>
                     {lastPenaltyScan?.penaltyFee?.toLocaleString()}đ
                   </span>
                 </div>
               </div>
 
-              <div className="w-full bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-700">
-                <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300 leading-relaxed uppercase tracking-wide">
+              <div className="w-full bg-zinc-50 dark:bg-zinc-800/50 p-3 md:p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                <p className="text-[11px] md:text-xs font-bold text-zinc-700 dark:text-zinc-300 leading-tight uppercase">
                   {lastPenaltyScan?.paymentStatus === 'success'
-                    ? "Hệ thống đã tự động khấu trừ tiền phạt. Bạn có thể cho xe ra ngay."
-                    : "Lưu ý: Ví khách không đủ tiền. Nhân viên PHẢI thu tiền mặt trước khi mở cổng."
+                    ? "Hệ thống đã tự động khấu trừ tiền phạt."
+                    : "Ví khách không đủ tiền. Thu tiền mặt trước khi mở cổng."
                   }
                 </p>
               </div>
 
               <Button
                 onClick={() => setLastPenaltyScan(null)}
-                className={`w-full h-20 rounded-[1.5rem] text-2xl font-black uppercase tracking-[0.2em] shadow-2xl transition-all hover:scale-[1.02] active:scale-95 ${lastPenaltyScan?.paymentStatus === 'success'
+                className={`w-full h-11 md:h-12 rounded-xl text-xs md:text-sm font-black uppercase tracking-wider shadow-lg transition-all hover:scale-[1.02] active:scale-95 ${lastPenaltyScan?.paymentStatus === 'success'
                   ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                   : 'bg-red-500 hover:bg-red-600 text-white'
                   }`}
@@ -1209,75 +1209,75 @@ export function StaffDashboard() {
 
       {/* EXTENSION FEE MODAL */}
       <Dialog open={!!lastExtensionScan} onOpenChange={(open) => !open && setLastExtensionScan(null)}>
-        <DialogContent className="sm:max-w-[540px] rounded-[3rem] border-none p-0 overflow-hidden shadow-[0_0_100px_rgba(0,0,0,0.5)] backdrop-blur-2xl bg-white/95 dark:bg-zinc-900/95 animate-in fade-in zoom-in duration-300">
-          <div className="p-10 bg-emerald-500/10">
-            <div className="flex flex-col items-center text-center space-y-8">
-              <div className="w-28 h-28 rounded-[2rem] bg-emerald-500 text-white flex items-center justify-center shadow-2xl shadow-emerald-500/30">
-                <IconClock size={56} stroke={2.5} />
+        <DialogContent className="sm:max-w-[440px] w-[95vw] max-h-[96vh] overflow-y-auto rounded-[1.5rem] md:rounded-[2rem] border-none p-0 shadow-[0_0_80px_rgba(0,0,0,0.4)] backdrop-blur-2xl bg-white/95 dark:bg-zinc-900/95 animate-in fade-in zoom-in duration-300">
+          <div className="p-5 md:p-6 bg-emerald-500/10">
+            <div className="flex flex-col items-center text-center space-y-4 md:space-y-5">
+              <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-xl shadow-emerald-500/20">
+                <IconClock className="size-8 md:size-10" stroke={2.5} />
               </div>
 
-              <div className="space-y-3">
-                <h2 className="text-4xl font-black uppercase tracking-tighter leading-tight text-emerald-600">
+              <div className="space-y-1.5">
+                <h2 className="text-lg md:text-xl font-black uppercase tracking-tight leading-tight text-emerald-600">
                   {lastExtensionScan?.type === 'penalty' ? 'Thanh Toán Phí Phạt' : 'Thanh Toán Gia Hạn'}
                 </h2>
                 <div className="flex justify-center">
-                  <Badge variant="outline" className="px-6 py-2 text-base font-black uppercase tracking-[0.2em] rounded-full border-4 border-emerald-500/20 bg-emerald-500/10 text-emerald-600">
+                  <Badge variant="outline" className="px-3 md:px-4 py-0.5 md:py-1 text-[10px] md:text-xs font-black uppercase tracking-wider rounded-full border-2 border-emerald-500/20 bg-emerald-500/10 text-emerald-600">
                     PHÍ PHÁT SINH
                   </Badge>
                 </div>
               </div>
 
-              <div className="w-full space-y-6 bg-zinc-100/50 dark:bg-black/40 p-8 rounded-[2.5rem] border border-zinc-200/50 dark:border-white/5 shadow-inner">
-                <div className="flex justify-between items-center border-b border-dashed border-zinc-300 dark:border-zinc-700 pb-4">
-                  <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Loại phí</span>
-                  <span className="text-xl font-black text-zinc-900 dark:text-white uppercase">
+              <div className="w-full space-y-3 bg-zinc-100/50 dark:bg-black/40 p-4 md:p-5 rounded-2xl border border-zinc-200/50 dark:border-white/5 shadow-inner">
+                <div className="flex justify-between items-center border-b border-dashed border-zinc-300 dark:border-zinc-700 pb-2 md:pb-3">
+                  <span className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Loại phí</span>
+                  <span className="text-sm md:text-base font-black text-zinc-900 dark:text-white uppercase">
                     {lastExtensionScan?.type === 'penalty' ? 'Phí phạt quá hạn' : 'Gia hạn thêm giờ'}
                   </span>
                 </div>
                 
                 {lastExtensionScan?.type === 'penalty' && (
-                  <div className="flex justify-between items-center border-b border-dashed border-zinc-300 dark:border-zinc-700 pb-4">
-                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Thời gian trễ</span>
-                    <span className="text-xl font-black text-red-500 uppercase">
+                  <div className="flex justify-between items-center border-b border-dashed border-zinc-300 dark:border-zinc-700 pb-2 md:pb-3">
+                    <span className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Thời gian trễ</span>
+                    <span className="text-sm md:text-base font-black text-red-500 uppercase">
                       {lastExtensionScan?.lateMinutes} phút
                     </span>
                   </div>
                 )}
 
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Số tiền cần thu</span>
-                  <span className="text-5xl font-black tracking-tighter text-emerald-600">
+                  <span className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Số tiền cần thu</span>
+                  <span className="text-2xl md:text-3xl font-black tracking-tighter text-emerald-600">
                     {lastExtensionScan?.fee?.toLocaleString()}đ
                   </span>
                 </div>
               </div>
 
-              <div className="w-full bg-zinc-50 dark:bg-zinc-800/50 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-700">
-                <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300 leading-relaxed uppercase tracking-wide">
+              <div className="w-full bg-zinc-50 dark:bg-zinc-800/50 p-3 md:p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                <p className="text-[11px] md:text-xs font-bold text-zinc-700 dark:text-zinc-300 leading-tight uppercase">
                   {lastExtensionScan?.type === 'penalty' 
-                    ? "Khách đã quá thời gian đỗ xe." 
-                    : "Khách có phí gia hạn chưa thanh toán."
+                    ? "Khách quá thời gian đỗ xe." 
+                    : "Khách có phí gia hạn chưa trả."
                   } Biển số: <span className="text-emerald-600 font-black">{lastExtensionScan?.plate}</span>
                 </p>
-                <p className="text-sm text-zinc-500 font-medium mt-2 italic">
-                  * Vui lòng thu tiền mặt từ khách hàng trước khi xác nhận.
+                <p className="text-[9px] md:text-[10px] text-zinc-500 font-medium mt-1 italic">
+                  * Thu tiền mặt trước khi xác nhận.
                 </p>
               </div>
 
-              <div className="flex gap-4 w-full">
+              <div className="flex gap-2 md:gap-3 w-full">
                 <Button
                   onClick={() => setLastExtensionScan(null)}
                   variant="outline"
-                  className="flex-1 h-16 rounded-2xl border-2 border-zinc-200 font-black uppercase tracking-widest text-zinc-500 hover:bg-zinc-50"
+                  className="flex-1 h-10 md:h-12 rounded-xl border-2 border-zinc-200 font-black uppercase tracking-wider text-zinc-500 hover:bg-zinc-50 text-[10px] md:text-xs"
                 >
                   Hủy bỏ
                 </Button>
                 <Button
                   onClick={handleConfirmExtensionPayment}
                   disabled={loading}
-                  className="flex-[2] h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-black uppercase tracking-[0.2em] shadow-xl transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+                  className="flex-[2] h-10 md:h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs md:text-sm font-black uppercase tracking-wider shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
                 >
-                  {loading ? <IconLoader2 className="animate-spin" /> : "Xác nhận đã thu tiền"}
+                  {loading ? <IconLoader2 className="animate-spin" /> : "Xác nhận"}
                 </Button>
               </div>
             </div>
