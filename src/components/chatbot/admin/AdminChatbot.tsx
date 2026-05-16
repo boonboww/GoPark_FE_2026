@@ -222,6 +222,11 @@ export default function AdminChatbot() {
     "doanh thu thang nay",
     "yeu cau cho duyet",
     "hoa don chua thanh toan",
+    "top 5 bai gia re nhat",
+    "top 5 bai nhieu cho trong",
+    "top 5 bai danh gia cao nhat",
+    "tim user nguyendung",
+    "tim bai My Khe",
   ];
 
   return (

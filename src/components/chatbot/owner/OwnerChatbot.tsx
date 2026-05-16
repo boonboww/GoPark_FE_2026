@@ -87,14 +87,16 @@ const isWakeWord = (text: string) => {
 const OWNER_API_URL = `${API_BASE_URL}/chatbot/owner/chat`;
 
 const QUICK_CHIPS = [
-  "📊 Doanh thu tuần này",
-  "📈 So sánh tháng này vs tháng trước",
-  "🏆 Bãi doanh thu cao nhất",
-  "💡 Gợi ý tăng doanh thu",
-  "📅 Doanh thu theo quý",
-  "🔍 Phân tích xu hướng",
-  "⚠️ Bãi hoạt động kém",
-  "📋 Báo cáo tổng quan",
+  "Doanh thu tuần này",
+  "Doanh thu tháng này",
+  "Doanh thu quý này",
+  "So sánh tuần này với tuần trước",
+  "So sánh tháng này với tháng trước",
+  "Top 5 bãi tốt nhất",
+  "Bãi hoạt động kém",
+  "Gợi ý tăng doanh thu",
+  "Xem thông tin bãi",
+  "Báo cáo tổng quan",
 ];
 
 const WELCOME_MSG: Message = {

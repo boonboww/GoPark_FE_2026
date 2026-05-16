@@ -106,16 +106,21 @@ const isWakeWord = (text: string) => {
 
 const API_URL = `${API_BASE_URL}/chatbot/chat`;
 const STATUS_URL = `${API_BASE_URL}/chatbot/status`;
+const CHATBOT_REDIRECT_CONSENT_KEY = "gopark-chatbot-redirect-consent";
 
 const QUICK_CHIPS = [
-  "🔍 Tìm bãi gần tôi",
-  "💰 Bãi giá rẻ nhất",
-  "⭐ Bãi phù hợp nhất",
-  "📅 Đặt bãi",
-  "📋 Lịch sử đặt của tôi",
-  "💳 Số dư ví GoPark",
-  "🚗 Xe đã đăng ký",
-  "❓ Hướng dẫn thanh toán",
+  "Tìm bãi gần tôi",
+  "Bãi giá rẻ nhất",
+  "Bãi phù hợp nhất",
+  "Đặt bãi gần nhất",
+  "Đặt bãi Mỹ Khê từ 8h đến 10h",
+  "Lịch sử đặt chỗ của tôi",
+  "Số dư ví GoPark",
+  "Xe đã đăng ký",
+  "Hướng dẫn thanh toán",
+  "Cách hủy đặt chỗ",
+  "Khuyến mãi hiện có",
+  "Liên hệ hỗ trợ",
 ];
 
 const WELCOME_MSG: Message = {
@@ -125,7 +130,10 @@ const WELCOME_MSG: Message = {
 };
 
 function speakText(text: string, onEnd?: () => void) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  if (typeof window === "undefined" || !window.speechSynthesis) {
+    onEnd?.();
+    return;
+  }
   window.speechSynthesis.cancel();
 
   // Convert số tiền sang chữ tiếng Việt để đọc tự nhiên
@@ -158,6 +166,31 @@ function speakText(text: string, onEnd?: () => void) {
   if (googleVi) utt.voice = googleVi;
   if (onEnd) utt.onend = onEnd;
   window.speechSynthesis.speak(utt);
+}
+
+function canAutoRedirectFromChatbot() {
+  if (typeof window === "undefined") return false;
+  if (localStorage.getItem(CHATBOT_REDIRECT_CONSENT_KEY) === "true") {
+    return true;
+  }
+
+  const accepted = window.confirm(
+    "GoPark muốn chuyển bạn sang trang đặt chỗ. Nhấn OK để đồng ý. Lần sau hệ thống sẽ tự chuyển trang.",
+  );
+
+  if (accepted) {
+    localStorage.setItem(CHATBOT_REDIRECT_CONSENT_KEY, "true");
+  }
+
+  return accepted;
+}
+
+function redirectFromChatbot(redirectUrl?: string | null) {
+  if (!redirectUrl || typeof window === "undefined") return false;
+  if (!canAutoRedirectFromChatbot()) return false;
+
+  window.location.href = redirectUrl;
+  return true;
 }
 
 // Lấy GPS của user
@@ -801,9 +834,24 @@ export default function UserChatbot() {
         const msg: Message = { role: "assistant", content: redirectMsg };
         setMessages([...messagesRef.current, msg]);
         messagesRef.current = [...messagesRef.current, msg];
-        if (voiceModeRef.current) speakText(redirectMsg);
+        let didRedirect = false;
+        const runRedirect = () => {
+          if (didRedirect) return;
+          didRedirect = true;
+          const redirected = redirectFromChatbot(redirectUrl);
+          if (!redirected && redirectUrl) {
+            const consentMsg: Message = {
+              role: "assistant",
+              content:
+                "Bạn chưa đồng ý chuyển trang tự động. Khi cần đặt chỗ, hãy gửi lại yêu cầu và xác nhận chuyển trang.",
+            };
+            setMessages([...messagesRef.current, consentMsg]);
+            messagesRef.current = [...messagesRef.current, consentMsg];
+          }
+        };
+        if (voiceModeRef.current) speakText(redirectMsg, runRedirect);
         setTimeout(() => {
-          if (redirectUrl) window.location.href = redirectUrl;
+          runRedirect();
         }, 1800);
         setLoading(false);
         return;
@@ -899,9 +947,24 @@ export default function UserChatbot() {
         messagesRef.current = [...messagesRef.current, assistantMsg];
         setLoading(false);
         setVoiceState("speaking");
-        speakText(redirectMsg, () => {
-          if (redirectUrl) window.location.href = redirectUrl;
-        });
+        let didRedirect = false;
+        const runRedirect = () => {
+          if (didRedirect) return;
+          didRedirect = true;
+          const redirected = redirectFromChatbot(redirectUrl);
+          if (!redirected && redirectUrl) {
+            const consentMsg: Message = {
+              role: "assistant",
+              content:
+                "Bạn chưa đồng ý chuyển trang tự động. Khi cần đặt chỗ, hãy gửi lại yêu cầu và xác nhận chuyển trang.",
+            };
+            setMessages([...messagesRef.current, consentMsg]);
+            messagesRef.current = [...messagesRef.current, consentMsg];
+          }
+          setVoiceState("idle");
+        };
+        speakText(redirectMsg, runRedirect);
+        setTimeout(runRedirect, 2500);
         return;
       }
       const text2 =

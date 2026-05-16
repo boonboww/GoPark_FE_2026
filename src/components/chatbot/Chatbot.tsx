@@ -17,7 +17,7 @@ export default function Chatbot() {
 
   if (!isAuthenticated || !user) return null;
 
-  const role = user.role || (user.roles?.[0] ?? "");
+  const role = (user.role || user.roles?.[0] || "").toUpperCase();
 
   if (role === "OWNER") return <OwnerChatbot />;
   if (role === "USER") return <UserChatbot />;
