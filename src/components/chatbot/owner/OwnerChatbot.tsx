@@ -7,7 +7,7 @@ type Message = {
   role: "user" | "assistant";
   content: string;
   type?: "text" | "revenue-chart";
-  data?: any;
+  data?: RevenueChartData;
 };
 type Status = "unknown" | "connected" | "disconnected";
 type VoiceState =
@@ -16,6 +16,73 @@ type VoiceState =
   | "prompted"
   | "question-listening"
   | "speaking";
+type RevenueChartData = {
+  title?: string;
+  suggestion?: string;
+  chartData?: {
+    headers?: string[];
+    rows?: Array<Array<React.ReactNode>>;
+  };
+};
+type ChatSession = {
+  id: string;
+  title?: string;
+  updatedAt?: string;
+  messages?: Message[];
+};
+type SpeechRecognitionEventLike = {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+};
+type SpeechRecognitionErrorLike = {
+  error: string;
+};
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((ev: SpeechRecognitionEventLike) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((e: SpeechRecognitionErrorLike) => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+type SpeechWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
+const getSpeechRecognition = () => {
+  if (typeof window === "undefined") return null;
+  const win = window as SpeechWindow;
+  return win.SpeechRecognition || win.webkitSpeechRecognition || null;
+};
+
+const normalizeSpeechText = (text: string) =>
+  text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const isWakeWord = (text: string) => {
+  const normalized = normalizeSpeechText(text);
+  const compact = normalized.replace(/\s+/g, "");
+  return (
+    compact.includes("heygopark") ||
+    compact.includes("heygopac") ||
+    compact.includes("heygopack") ||
+    compact.includes("heygopart") ||
+    compact.includes("heigopark") ||
+    compact.includes("egopark") ||
+    compact.includes("naygopark") ||
+    normalized.includes("hey go park") ||
+    normalized.includes("hey go pak")
+  );
+};
 
 const OWNER_API_URL = `${API_BASE_URL}/chatbot/owner/chat`;
 
@@ -89,7 +156,22 @@ export default function OwnerChatbot() {
   // Voice AI mode
   const [voiceMode, setVoiceMode] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
-  const wakeRecognitionRef = useRef<any>(null);
+  const [wakeBanner, setWakeBanner] = useState(false);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [showSessions, setShowSessions] = useState(false);
+  const [panelSize, setPanelSize] = useState<{ width: number; height: number }>(
+    { width: 440, height: 640 },
+  );
+  const [isPanelLarge, setIsPanelLarge] = useState(false);
+  const resizingRef = useRef(false);
+  const resizeStartRef = useRef({
+    mouseX: 0,
+    mouseY: 0,
+    width: 440,
+    height: 640,
+  });
+  const wakeRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>(messages);
   const voiceModeRef = useRef(false);
@@ -119,18 +201,62 @@ export default function OwnerChatbot() {
     if (open) setHasUnread(false);
   }, [open]);
 
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const dx = e.clientX - resizeStartRef.current.mouseX;
+      const dy = e.clientY - resizeStartRef.current.mouseY;
+      setPanelSize({
+        width: Math.max(340, Math.min(780, resizeStartRef.current.width - dx)),
+        height: Math.max(440, Math.min(900, resizeStartRef.current.height - dy)),
+      });
+    };
+    const onUp = () => {
+      resizingRef.current = false;
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, []);
+
+  const onResizeMouseDown = (e: React.MouseEvent) => {
+    resizingRef.current = true;
+    resizeStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      width: panelSize.width,
+      height: panelSize.height,
+    };
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const togglePanelSize = () => {
+    setIsPanelLarge((current) => {
+      const next = !current;
+      setPanelSize(
+        next
+          ? { width: Math.min(780, window.innerWidth - 48), height: Math.min(860, window.innerHeight - 48) }
+          : { width: 440, height: 640 },
+      );
+      return next;
+    });
+  };
+
   const startQuestionListener = useCallback(() => {
-    const win: any = typeof window !== "undefined" ? window : {};
-    const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
+    const SR = getSpeechRecognition();
     if (!SR) return;
     const r = new SR();
     r.lang = "vi-VN";
     r.interimResults = false;
     r.continuous = false;
     setVoiceState("question-listening");
-    r.onresult = async (ev: any) => {
+    r.onresult = async (ev) => {
       const question = Array.from(ev.results)
-        .map((x: any) => x[0].transcript)
+        .map((x) => x[0]?.transcript ?? "")
         .join("")
         .trim();
       if (question) {
@@ -147,59 +273,79 @@ export default function OwnerChatbot() {
         startWakeListener();
       }
     };
-    r.start();
+    r.onerror = () => {
+      setVoiceState("wake-listening");
+      startWakeListener();
+    };
+    try {
+      r.start();
+    } catch {}
   }, []);
 
   const startWakeListener = useCallback(() => {
-    const win: any = typeof window !== "undefined" ? window : {};
-    const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
+    const SR = getSpeechRecognition();
     if (!SR) return;
+    try {
+      if (wakeRecognitionRef.current) wakeRecognitionRef.current.onend = null;
+      wakeRecognitionRef.current?.stop();
+    } catch {}
     const r = new SR();
     r.lang = "vi-VN";
-    r.interimResults = false;
+    r.interimResults = true;
     r.continuous = true;
-    r.onresult = (ev: any) => {
+    r.onresult = (ev) => {
       const transcript = Array.from(ev.results)
-        .map((x: any) => x[0].transcript)
-        .join(" ")
-        .toLowerCase();
-      if (
-        transcript.includes("hey gopark") ||
-        transcript.includes("hey go park") ||
-        transcript.includes("hê gopark")
-      ) {
+        .map((x) => x[0]?.transcript ?? "")
+        .join(" ");
+      if (isWakeWord(transcript)) {
         r.stop();
+        setOpen(true);
+        setVoiceMode(true);
+        voiceModeRef.current = true;
+        setWakeBanner(true);
+        window.setTimeout(() => setWakeBanner(false), 2200);
         setVoiceState("prompted");
         voiceStateRef.current = "prompted";
         speakText("Xin chào! Bạn muốn hỏi gì?", () => {
-          if (voiceModeRef.current) startQuestionListener();
+          startQuestionListener();
         });
       }
     };
     r.onend = () => {
-      if (voiceModeRef.current && voiceStateRef.current === "wake-listening") {
-        try {
-          r.start();
-        } catch {}
+      if (voiceStateRef.current === "wake-listening") {
+        setTimeout(() => {
+          try {
+            r.start();
+          } catch {}
+        }, 300);
       }
     };
-    r.start();
+    r.onerror = (e) => {
+      if (e.error === "no-speech" || e.error === "aborted") return;
+      if (voiceStateRef.current === "wake-listening") {
+        setTimeout(() => startWakeListener(), 1000);
+      }
+    };
+    try {
+      r.start();
+    } catch {}
     wakeRecognitionRef.current = r;
     setVoiceState("wake-listening");
   }, [startQuestionListener]);
 
   useEffect(() => {
-    if (voiceMode) {
-      setOpen(true);
-      startWakeListener();
-    } else {
-      window.speechSynthesis?.cancel();
+    startWakeListener();
+    return () => {
       try {
         wakeRecognitionRef.current?.stop();
       } catch {}
-      setVoiceState("idle");
-    }
-  }, [voiceMode, startWakeListener]);
+    };
+  }, [startWakeListener]);
+
+  useEffect(() => {
+    if (voiceMode) return;
+    window.speechSynthesis?.cancel();
+  }, [voiceMode]);
 
   const checkStatus = useCallback(async () => {
     try {
@@ -222,6 +368,90 @@ export default function OwnerChatbot() {
     return () => clearInterval(t);
   }, [checkStatus]);
 
+  const loadSessions = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const r = await fetch(`${API_BASE_URL}/chatbot/owner/sessions`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await r.json();
+      setSessions(data?.data || []);
+    } catch {}
+  }, [accessToken]);
+
+  const createNewSession = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const r = await fetch(`${API_BASE_URL}/chatbot/owner/sessions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          title: `Phân tích ${new Date().toLocaleString("vi-VN")}`,
+        }),
+      });
+      const data = await r.json();
+      const newSession = data?.data;
+      if (newSession?.id) {
+        setCurrentSessionId(newSession.id);
+        setMessages([WELCOME_MSG]);
+        messagesRef.current = [WELCOME_MSG];
+        setSessions((prev) => [newSession, ...prev]);
+        setShowSessions(false);
+      }
+    } catch {}
+  }, [accessToken]);
+
+  const loadSessionMessages = useCallback(
+    async (sessionId: string) => {
+      if (!accessToken) return;
+      try {
+        const r = await fetch(`${API_BASE_URL}/chatbot/owner/sessions/${sessionId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const data = await r.json();
+        const session = data?.data as ChatSession | undefined;
+        const msgs = session?.messages?.length
+          ? [WELCOME_MSG, ...session.messages]
+          : [WELCOME_MSG];
+        setMessages(msgs);
+        messagesRef.current = msgs;
+        setCurrentSessionId(sessionId);
+        setShowSessions(false);
+      } catch {}
+    },
+    [accessToken],
+  );
+
+  const deleteSessionById = useCallback(
+    async (sessionId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!accessToken) return;
+      try {
+        await fetch(`${API_BASE_URL}/chatbot/owner/sessions/${sessionId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+        if (currentSessionId === sessionId) {
+          setCurrentSessionId(null);
+          setMessages([WELCOME_MSG]);
+          messagesRef.current = [WELCOME_MSG];
+        }
+      } catch {}
+    },
+    [accessToken, currentSessionId],
+  );
+
+  useEffect(() => {
+    if (open && accessToken) {
+      loadSessions();
+      if (!currentSessionId) createNewSession();
+    }
+  }, [open, accessToken, currentSessionId, loadSessions, createNewSession]);
+
   async function sendMessage(text?: string) {
     const content = (text ?? input).trim();
     if (!content || loading) return;
@@ -234,7 +464,10 @@ export default function OwnerChatbot() {
     try {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
-      const resp = await fetch(OWNER_API_URL, {
+      const url = currentSessionId
+        ? `${API_BASE_URL}/chatbot/owner/sessions/${currentSessionId}/chat`
+        : OWNER_API_URL;
+      const resp = await fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -245,15 +478,14 @@ export default function OwnerChatbot() {
       const response = await resp.json();
 
       // Revenue chart data
-      if (
-        response?.data?.action === "revenue_chart" &&
-        response?.data?.chartData
-      ) {
+      const responseData = response?.data || response;
+      const chartPayload = responseData?.chartData || responseData?.data?.chartData;
+      if (chartPayload?.action === "revenue_chart") {
         const msg: Message = {
           role: "assistant",
           type: "revenue-chart",
-          content: response?.text || "Đây là dữ liệu doanh thu của bạn:",
-          data: response.data,
+          content: responseData?.text || "Đây là dữ liệu doanh thu của bạn:",
+          data: chartPayload,
         };
         setMessages([...messagesRef.current, msg]);
         messagesRef.current = [...messagesRef.current, msg];
@@ -262,9 +494,8 @@ export default function OwnerChatbot() {
       }
 
       const text2 =
-        response?.data?.text ||
-        response?.text ||
-        response?.message ||
+        responseData?.text ||
+        responseData?.message ||
         "Không có phản hồi";
       const assistantMsg: Message = { role: "assistant", content: text2 };
       setMessages([...messagesRef.current, assistantMsg]);
@@ -291,7 +522,10 @@ export default function OwnerChatbot() {
     try {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
-      const resp = await fetch(OWNER_API_URL, {
+      const url = currentSessionId
+        ? `${API_BASE_URL}/chatbot/owner/sessions/${currentSessionId}/chat`
+        : OWNER_API_URL;
+      const resp = await fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -300,12 +534,21 @@ export default function OwnerChatbot() {
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const response = await resp.json();
+      const responseData = response?.data || response;
+      const chartPayload = responseData?.chartData || responseData?.data?.chartData;
       const text2 =
-        response?.data?.text ||
-        response?.text ||
-        response?.message ||
+        responseData?.text ||
+        responseData?.message ||
         "Không có phản hồi";
-      const assistantMsg: Message = { role: "assistant", content: text2 };
+      const assistantMsg: Message =
+        chartPayload?.action === "revenue_chart"
+          ? {
+              role: "assistant",
+              type: "revenue-chart",
+              content: text2,
+              data: chartPayload,
+            }
+          : { role: "assistant", content: text2 };
       setMessages([...messagesRef.current, assistantMsg]);
       messagesRef.current = [...messagesRef.current, assistantMsg];
       setLoading(false);
@@ -335,8 +578,9 @@ export default function OwnerChatbot() {
 
   function clearHistory() {
     setMessages([WELCOME_MSG]);
-    if (typeof window !== "undefined")
-      localStorage.removeItem("gopark_owner_chat");
+    messagesRef.current = [WELCOME_MSG];
+    createNewSession();
+    if (typeof window !== "undefined") localStorage.removeItem("gopark_owner_chat");
   }
 
   const statusDot: Record<Status, string> = {
@@ -364,12 +608,18 @@ export default function OwnerChatbot() {
         @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
         .ow * { box-sizing: border-box; font-family: 'Be Vietnam Pro', sans-serif; }
         @keyframes owFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes owWakePop { 0%{opacity:0; transform:translate(-50%,-46%) scale(.92);} 15%,85%{opacity:1; transform:translate(-50%,-50%) scale(1);} 100%{opacity:0; transform:translate(-50%,-54%) scale(.98);} }
+        .ow-wake-banner { position:fixed; left:50%; top:28%; z-index:100020; transform:translate(-50%,-50%); min-width:min(520px, calc(100vw - 32px)); padding:28px 32px; border-radius:28px; background:rgba(26,16,0,.94); border:1px solid rgba(245,158,11,.42); box-shadow:0 28px 80px rgba(0,0,0,.5), 0 0 0 10px rgba(245,158,11,.1); color:#fef3c7; text-align:center; animation:owWakePop 2.2s ease both; backdrop-filter:blur(14px); }
+        .ow-wake-title { font-size:34px; line-height:1.05; font-weight:800; }
+        .ow-wake-sub { margin-top:8px; font-size:14px; color:#fcd34d; }
         .ow-panel {
           position: fixed; right: 24px; bottom: 24px; width: 440px; height: min(640px, calc(100dvh - 48px));
           background: #0d0d1a; border-radius: 20px;
           box-shadow: 0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(245,158,11,0.2);
           display: flex; flex-direction: column; overflow: hidden; z-index: 100010; animation: owFadeIn 0.22s ease;
         }
+        .ow-resize-handle { position:absolute; top:0; left:0; width:18px; height:18px; cursor:nw-resize; z-index:3; }
+        .ow-resize-handle::after { content:""; position:absolute; top:5px; left:5px; width:8px; height:8px; border-top:2px solid rgba(252,211,77,.55); border-left:2px solid rgba(252,211,77,.55); border-radius:2px; }
         @media(max-width:480px){ .ow-panel{ right:0; left:0; bottom:0; width:100%; height:75dvh; border-radius:18px 18px 0 0; } }
         .ow-hdr { padding: 12px 14px; background: linear-gradient(160deg,#1a1000 0%,#2d1f00 100%); border-bottom: 1px solid rgba(245,158,11,0.2); flex-shrink: 0; }
         .ow-hdr-row { display:flex; align-items:center; justify-content:space-between; }
@@ -435,11 +685,98 @@ export default function OwnerChatbot() {
         .ow-wave span:nth-child(3){animation-delay:.3s;height:14px;}
         .ow-wave span:nth-child(4){animation-delay:.15s;height:10px;}
         .ow-wave span:nth-child(5){animation-delay:0s;height:6px;}
+        .ow-sessions-overlay { position:absolute; inset:0; background:#0d0d1a; z-index:10; display:flex; flex-direction:column; border-radius:20px; overflow:hidden; }
+        .ow-sessions-hdr { padding:12px 14px; background:linear-gradient(160deg,#1a1000,#2d1f00); border-bottom:1px solid rgba(245,158,11,0.2); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+        .ow-sessions-title { font-size:14px; font-weight:700; color:#fef3c7; }
+        .ow-sessions-list { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px; }
+        .ow-session-item { display:flex; align-items:center; gap:8px; padding:10px 12px; background:rgba(255,255,255,.04); border:1px solid rgba(245,158,11,.12); border-radius:10px; cursor:pointer; transition:all 0.15s; }
+        .ow-session-item:hover { background:rgba(245,158,11,.08); border-color:rgba(245,158,11,.25); }
+        .ow-session-item.active { background:rgba(245,158,11,.13); border-color:rgba(245,158,11,.42); }
+        .ow-session-info { flex:1; min-width:0; }
+        .ow-session-name { font-size:12px; font-weight:600; color:#fde68a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .ow-session-date { font-size:10px; color:#7c5b1c; margin-top:2px; }
+        .ow-session-del { background:transparent; border:none; color:#7c5b1c; cursor:pointer; padding:3px; border-radius:4px; flex-shrink:0; }
+        .ow-session-del:hover { color:#ef4444; background:rgba(239,68,68,.1); }
+        .ow-new-session-btn { margin:10px; padding:10px; background:linear-gradient(135deg,#b45309,#f59e0b); border:none; border-radius:10px; color:#fff; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; flex-shrink:0; }
       `}</style>
 
       <div className="ow">
+        {wakeBanner && (
+          <div className="ow-wake-banner" role="status" aria-live="polite">
+            <div className="ow-wake-title">Hey GoPark</div>
+            <div className="ow-wake-sub">Tôi đang nghe câu hỏi của bạn</div>
+          </div>
+        )}
         {open && (
-          <div className="ow-panel">
+          <div
+            className="ow-panel"
+            style={{
+              width: panelSize.width,
+              height: panelSize.height,
+            }}
+          >
+            <div
+              className="ow-resize-handle"
+              onMouseDown={onResizeMouseDown}
+              title="Keo de thay doi kich thuoc"
+            />
+            {showSessions && (
+              <div className="ow-sessions-overlay">
+                <div className="ow-sessions-hdr">
+                  <span className="ow-sessions-title">Lịch sử phân tích</span>
+                  <button className="ow-ibtn" onClick={() => setShowSessions(false)}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="ow-sessions-list">
+                  {sessions.length === 0 && (
+                    <div style={{ textAlign: "center", color: "#7c5b1c", fontSize: 12, padding: 20 }}>
+                      Chưa có cuộc trò chuyện nào
+                    </div>
+                  )}
+                  {sessions.map((s) => (
+                    <div
+                      key={s.id}
+                      className={`ow-session-item${s.id === currentSessionId ? " active" : ""}`}
+                      onClick={() => loadSessionMessages(s.id)}
+                    >
+                      <div style={{ fontSize: 16 }}>📊</div>
+                      <div className="ow-session-info">
+                        <div className="ow-session-name">{s.title}</div>
+                        <div className="ow-session-date">
+                          {s.updatedAt
+                            ? new Date(s.updatedAt).toLocaleString("vi-VN", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })
+                            : ""}
+                        </div>
+                      </div>
+                      <button
+                        className="ow-session-del"
+                        onClick={(e) => deleteSessionById(s.id, e)}
+                        title="Xóa"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14H6L5 6" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button className="ow-new-session-btn" onClick={createNewSession}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  Cuộc trò chuyện mới
+                </button>
+              </div>
+            )}
             {/* Header */}
             <div className="ow-hdr">
               <div className="ow-hdr-row">
@@ -477,8 +814,24 @@ export default function OwnerChatbot() {
                   </div>
                   <button
                     className="ow-ibtn"
+                    onClick={() => setShowSessions(true)}
+                    title="Lịch sử chat"
+                  >
+                    <svg
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                  </button>
+                  <button
+                    className="ow-ibtn"
                     onClick={clearHistory}
-                    title="Xóa lịch sử"
+                    title="Cuộc trò chuyện mới"
                   >
                     <svg
                       width="13"
@@ -492,6 +845,41 @@ export default function OwnerChatbot() {
                       <path d="M19 6l-1 14H6L5 6" />
                       <path d="M10 11v6M14 11v6" />
                     </svg>
+                  </button>
+                  <button
+                    className="ow-ibtn"
+                    onClick={togglePanelSize}
+                    title={isPanelLarge ? "Thu nho chatbot" : "Phong to chatbot"}
+                  >
+                    {isPanelLarge ? (
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M8 3v5H3" />
+                        <path d="M16 21v-5h5" />
+                        <path d="M3 8l6-6" />
+                        <path d="M21 16l-6 6" />
+                      </svg>
+                    ) : (
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M3 9V3h6" />
+                        <path d="M21 15v6h-6" />
+                        <path d="M3 3l7 7" />
+                        <path d="M21 21l-7-7" />
+                      </svg>
+                    )}
                   </button>
                   <button
                     className="ow-ibtn"
@@ -512,7 +900,7 @@ export default function OwnerChatbot() {
                   </button>
                 </div>
               </div>
-              {/* Voice AI toggle */}
+              {/* AI speech toggle */}
               <div className="ow-voice-row">
                 <span className="ow-voice-label">
                   <svg
@@ -527,7 +915,7 @@ export default function OwnerChatbot() {
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" y1="19" x2="12" y2="23" />
                   </svg>
-                  Chế độ giọng nói AI
+                  AI đọc câu trả lời
                 </span>
                 <label className="ow-toggle">
                   <input
@@ -538,21 +926,19 @@ export default function OwnerChatbot() {
                   <span className="ow-toggle-slider" />
                 </label>
               </div>
-              {voiceMode && (
-                <div className="ow-voice-status">
-                  {(voiceState === "wake-listening" ||
-                    voiceState === "question-listening") && (
-                    <span className="ow-wave">
-                      <span style={{ height: 6 }} />
-                      <span />
-                      <span />
-                      <span />
-                      <span style={{ height: 6 }} />
-                    </span>
-                  )}{" "}
-                  {voiceStateLabel[voiceState]}
-                </div>
-              )}
+              <div className="ow-voice-status">
+                {(voiceState === "wake-listening" ||
+                  voiceState === "question-listening") && (
+                  <span className="ow-wave">
+                    <span style={{ height: 6 }} />
+                    <span />
+                    <span />
+                    <span />
+                    <span style={{ height: 6 }} />
+                  </span>
+                )}{" "}
+                {voiceStateLabel[voiceState]}
+              </div>
             </div>
 
             {/* Messages */}
@@ -595,9 +981,9 @@ export default function OwnerChatbot() {
                             </thead>
                             <tbody>
                               {m.data.chartData.rows?.map(
-                                (row: any[], idx: number) => (
+                                (row: Array<React.ReactNode>, idx: number) => (
                                   <tr key={idx}>
-                                    {row.map((cell: any, ci: number) => (
+                                    {row.map((cell, ci: number) => (
                                       <td
                                         key={ci}
                                         className={

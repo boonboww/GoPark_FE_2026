@@ -203,7 +203,12 @@ export function BookingForm({
     }
 
     if (defaultVehicle) {
-      setSelectedPlate(defaultVehicle);
+      const vehicleFromQuery = dataLot?.userVehicles?.find(
+        (v: any) =>
+          String(v.id) === String(defaultVehicle) ||
+          String(v.plate_number) === String(defaultVehicle),
+      );
+      setSelectedPlate(vehicleFromQuery?.plate_number || defaultVehicle);
     }
 
     if (defaultPayment) {
