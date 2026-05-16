@@ -6,6 +6,7 @@ interface ConfigState {
   notificationsEnabled: boolean;
   biometricEnabled: boolean;
   privacyMode: boolean;
+  language: string;
 }
 
 interface ConfigActions {
@@ -13,6 +14,7 @@ interface ConfigActions {
   setNotificationsEnabled: (enabled: boolean) => void;
   setBiometricEnabled: (enabled: boolean) => void;
   setPrivacyMode: (enabled: boolean) => void;
+  setLanguage: (lang: string) => void;
 }
 
 export const useConfigStore = create<ConfigState & ConfigActions>()(
@@ -23,12 +25,14 @@ export const useConfigStore = create<ConfigState & ConfigActions>()(
       notificationsEnabled: true,
       biometricEnabled: false,
       privacyMode: false,
+      language: "vi",
 
       // Actions
       setLocationEnabled: (enabled) => set({ locationEnabled: enabled }),
       setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
       setBiometricEnabled: (enabled) => set({ biometricEnabled: enabled }),
       setPrivacyMode: (enabled) => set({ privacyMode: enabled }),
+      setLanguage: (lang) => set({ language: lang }),
     }),
     {
       name: "gopark-config-storage", // Key in localStorage

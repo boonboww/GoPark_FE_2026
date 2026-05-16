@@ -5,12 +5,30 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Wallet, Loader2, History, ArrowDownToLine, ArrowUpFromLine, ArrowLeft } from 'lucide-react';
+import { Wallet, Loader2, History, ArrowDownToLine, ArrowUpFromLine, ArrowLeft, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { toast } from 'sonner';
 import { useWallet, useWalletTransactions } from '@/hooks/useWallet';
+import { DatePickerWithRange } from '@/components/ui/date-picker-with-range';
+import { DateRange } from 'react-day-picker';
+import { 
+  subDays, 
+  subWeeks, 
+  subMonths, 
+  isWithinInterval, 
+  startOfDay, 
+  endOfDay,
+  startOfToday,
+  startOfYesterday,
+  startOfWeek,
+  startOfMonth,
+  isAfter,
+  isBefore,
+  parseISO
+} from 'date-fns';
+import dayjs from 'dayjs';
 
 export default function WalletDashboardPage() {
   const router = useRouter();
@@ -23,6 +41,9 @@ export default function WalletDashboardPage() {
   const [isActivating, setIsActivating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [filterType, setFilterType] = useState<string>('all');
 
   const handleActivateWallet = async () => {
     setIsActivating(true);
@@ -76,6 +97,40 @@ export default function WalletDashboardPage() {
     }
   };
 
+  const handleFilterChange = (type: string) => {
+    setFilterType(type);
+    setCurrentPage(1);
+    
+    const today = new Date();
+    
+    switch (type) {
+      case 'today':
+        setDateRange({ from: startOfToday(), to: endOfDay(today) });
+        break;
+      case 'week':
+        setDateRange({ from: startOfWeek(today, { weekStartsOn: 1 }), to: endOfDay(today) });
+        break;
+      case 'month':
+        setDateRange({ from: startOfMonth(today), to: endOfDay(today) });
+        break;
+      case 'all':
+        setDateRange(undefined);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const filteredTransactions = transactions?.filter((tx: any) => {
+    if (!dateRange || !dateRange.from) return true;
+    
+    const txDate = parseISO(tx.created_at || tx.createdAt);
+    const start = startOfDay(dateRange.from);
+    const end = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+    
+    return isWithinInterval(txDate, { start, end });
+  }) || [];
+
   const presetAmounts = [10000, 20000, 50000, 100000, 200000, 500000];
 
   return (
@@ -87,11 +142,11 @@ export default function WalletDashboardPage() {
         </h1>
         <Button 
           variant="outline" 
-          onClick={() => router.back()} 
+          onClick={() => router.push('/')} 
           className="w-full md:w-auto border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950 flex items-center gap-2"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Quay lại
+          <Home className="h-4 w-4" />
+          Quay về trang chủ
         </Button>
       </div>
 
@@ -198,18 +253,65 @@ export default function WalletDashboardPage() {
       {/* Lịch sử */}
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400">
-            <History className="h-5 w-5" />
-            Lịch sử giao dịch
-          </CardTitle>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400">
+              <History className="h-5 w-5" />
+              Lịch sử giao dịch
+            </CardTitle>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              <DatePickerWithRange 
+                date={dateRange} 
+                setDate={(date) => {
+                  setDateRange(date);
+                  setFilterType('custom');
+                  setCurrentPage(1);
+                }} 
+                numberOfMonths={1}
+                className="w-full md:w-auto"
+              />
+              <Button 
+                variant={filterType === 'today' ? "default" : "outline"} 
+                size="sm" 
+                onClick={() => handleFilterChange('today')}
+                className={filterType === 'today' ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+              >
+                Hôm nay
+              </Button>
+              <Button 
+                variant={filterType === 'week' ? "default" : "outline"} 
+                size="sm" 
+                onClick={() => handleFilterChange('week')}
+                className={filterType === 'week' ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+              >
+                Tuần này
+              </Button>
+              <Button 
+                variant={filterType === 'month' ? "default" : "outline"} 
+                size="sm" 
+                onClick={() => handleFilterChange('month')}
+                className={filterType === 'month' ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+              >
+                Tháng này
+              </Button>
+              <Button 
+                variant={filterType === 'all' ? "default" : "outline"} 
+                size="sm" 
+                onClick={() => handleFilterChange('all')}
+                className={filterType === 'all' ? "bg-emerald-600 hover:bg-emerald-700" : ""}
+              >
+                Tất cả
+              </Button>
+            </div>
+          </div>
         </CardHeader>
 
         <CardContent>
           {isFetchingTransactions ? (
             <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-          ) : transactions && transactions.length > 0 ? (
+          ) : filteredTransactions && filteredTransactions.length > 0 ? (
             <>
-              {transactions
+              {filteredTransactions
                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                 .map((tx: any) => {
                   const isDeposit = tx.type === 'DEPOSIT' || Number(tx.amount) > 0;
@@ -245,10 +347,10 @@ export default function WalletDashboardPage() {
                   );
                 })}
               
-              {Math.ceil(transactions.length / itemsPerPage) > 1 && (
+              {Math.ceil(filteredTransactions.length / itemsPerPage) > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <span className="text-sm text-gray-500">
-                    Trang {currentPage} / {Math.ceil(transactions.length / itemsPerPage)}
+                    Trang {currentPage} / {Math.ceil(filteredTransactions.length / itemsPerPage)}
                   </span>
                   <div className="flex gap-2">
                     <Button
@@ -262,8 +364,8 @@ export default function WalletDashboardPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage((p) => Math.min(Math.ceil(transactions.length / itemsPerPage), p + 1))}
-                      disabled={currentPage === Math.ceil(transactions.length / itemsPerPage)}
+                      onClick={() => setCurrentPage((p) => Math.min(Math.ceil(filteredTransactions.length / itemsPerPage), p + 1))}
+                      disabled={currentPage === Math.ceil(filteredTransactions.length / itemsPerPage)}
                     >
                       Tiếp
                     </Button>

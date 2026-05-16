@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Home } from 'lucide-react';
 import { apiClient } from '@/lib/api';
 
 export default function VnpayReturnPage() {
@@ -109,17 +109,12 @@ export default function VnpayReturnPage() {
           )}
 
           <Button
-            className="w-full"
-            onClick={() => {
-              const orderInfo = searchParams.get('vnp_OrderInfo') || '';
-              if (orderInfo.startsWith('PayBooking_')) {
-                router.push('/users/profile');
-              } else {
-                router.push('/users/wallet');
-              }
-            }}
+            className="w-full flex items-center gap-2"
+            variant="outline"
+            onClick={() => router.push('/')}
           >
-            Quay về Ví của tôi
+            <Home className="h-4 w-4" />
+            Quay về trang chủ
           </Button>
         </CardFooter>
       </Card>
