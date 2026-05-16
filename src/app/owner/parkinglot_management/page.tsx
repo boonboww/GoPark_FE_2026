@@ -90,7 +90,7 @@ export default function ParkingLotManagementPage() {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       return bookingService.getBookingsByParkingLot({
         lotId: lotId!,
-        startDate: format(sevenDaysAgo, "yyyy-MM-dd") + "T00:00:00Z",
+        startDate: (sevenDaysAgo && !isNaN(sevenDaysAgo.getTime()) ? format(sevenDaysAgo, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")) + "T00:00:00Z",
       });
     },
     enabled: !!lotId,
@@ -485,7 +485,9 @@ export default function ParkingLotManagementPage() {
                               className="w-full justify-start text-left font-bold border-slate-200 h-10 bg-slate-50"
                             >
                               <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
-                              {date ? format(date, "PPP") : "Chọn ngày"}
+                              {date && !isNaN(date.getTime())
+                                ? format(date, "PPP")
+                                : "Chọn ngày"}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-0" align="start">

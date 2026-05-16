@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { format } from "date-fns";
+import { safeFormat } from "@/lib/utils";
 
 export const columns: ColumnDef<Report>[] = [
   {
@@ -66,7 +67,7 @@ export const columns: ColumnDef<Report>[] = [
     header: "Ngày tạo",
     cell: ({ row }) => {
       const date = row.getValue("created_at") as string;
-      return <div>{format(new Date(date), "MMM d, yyyy")}</div>;
+      return <div>{safeFormat(date, "MMM d, yyyy")}</div>;
     },
   },
   {

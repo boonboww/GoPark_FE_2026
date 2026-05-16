@@ -106,9 +106,10 @@ export function ZoneSlotGrid({
       ? data
       : (data?.data ?? []);
 
-  const lastUpdated = dataUpdatedAt
-    ? format(new Date(dataUpdatedAt), "HH:mm:ss")
-    : null;
+  const lastUpdated =
+    dataUpdatedAt && !isNaN(dataUpdatedAt) && dataUpdatedAt > 0
+      ? format(new Date(dataUpdatedAt), "HH:mm:ss")
+      : null;
 
   // Thống kê
   const totalCount = slots.length;

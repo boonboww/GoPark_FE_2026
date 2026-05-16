@@ -10,6 +10,7 @@ import Link from "next/link"
 
 import { useConfigStore } from "@/stores/config.store"
 import { toast } from "sonner"
+import { fixVietnameseMojibake } from "@/lib/utils"
 
 export function ParkingList({ parkingLots = [], suggestedParkingLots = [], loading = false, onSelectLot, selectedLotId, onRouteFound, onClearRoute, isNavigating, onStartNavigation }: { parkingLots?: any[], suggestedParkingLots?: any[], loading?: boolean, onSelectLot?: (lot: any) => void, selectedLotId?: number, onRouteFound?: (route: any) => void, onClearRoute?: () => void, isNavigating?: boolean, onStartNavigation?: () => void }) {
   const { locationEnabled } = useConfigStore();
@@ -427,8 +428,8 @@ export function ParkingList({ parkingLots = [], suggestedParkingLots = [], loadi
                       <CardContent className="p-3 flex-1 flex flex-col justify-between min-w-0 bg-white dark:bg-transparent">
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-1 min-w-0">
-                            <h3 className="font-black text-sm text-black dark:text-white truncate" title={lot.name}>
-                              {lot.name}
+                            <h3 className="font-black text-sm text-black dark:text-white truncate" title={fixVietnameseMojibake(lot.name)}>
+                              {fixVietnameseMojibake(lot.name)}
                             </h3>
                             {(lot.distanceKm !== undefined && lot.distanceKm !== null) || (lot.nearMeDistanceKm !== undefined && lot.nearMeDistanceKm !== null) || (lot.userDistanceKm !== undefined && lot.userDistanceKm !== null) ? (
                               <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-1 py-0.5 rounded whitespace-nowrap">
@@ -436,8 +437,8 @@ export function ParkingList({ parkingLots = [], suggestedParkingLots = [], loadi
                               </span>
                             ) : null}
                           </div>
-                          <p className="text-[9px] font-medium text-gray-500 dark:text-stone-400 line-clamp-2 leading-tight" title={lot.address}>
-                            {lot.address}
+                          <p className="text-[9px] font-medium text-gray-500 dark:text-stone-400 line-clamp-2 leading-tight" title={fixVietnameseMojibake(lot.address)}>
+                            {fixVietnameseMojibake(lot.address)}
                           </p>
                         </div>
 
@@ -501,8 +502,8 @@ export function ParkingList({ parkingLots = [], suggestedParkingLots = [], loadi
                 <CardContent className="p-3 flex-1 flex flex-col justify-between min-w-0 bg-white dark:bg-transparent">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1 min-w-0">
-                      <h3 className="font-black text-sm text-black dark:text-white truncate" title={lot.name}>
-                        {lot.name}
+                      <h3 className="font-black text-sm text-black dark:text-white truncate" title={fixVietnameseMojibake(lot.name)}>
+                        {fixVietnameseMojibake(lot.name)}
                       </h3>
                       {(lot.distanceKm !== undefined && lot.distanceKm !== null) || (lot.nearMeDistanceKm !== undefined && lot.nearMeDistanceKm !== null) || (lot.userDistanceKm !== undefined && lot.userDistanceKm !== null) ? (
                         <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-1 py-0.5 rounded whitespace-nowrap">
@@ -514,15 +515,15 @@ export function ParkingList({ parkingLots = [], suggestedParkingLots = [], loadi
                           className="text-[10px] text-blue-500 hover:underline shrink-0 font-bold"
                           onClick={(e) => {
                             e.stopPropagation();
-                            alert(lot.name);
+                            alert(fixVietnameseMojibake(lot.name));
                           }}
                         >
                           Xem thêm
                         </button>
                       )}
                     </div>
-                    <p className="text-[9px] font-medium text-gray-500 dark:text-stone-400 line-clamp-2 leading-tight" title={lot.address}>
-                      {lot.address}
+                    <p className="text-[9px] font-medium text-gray-500 dark:text-stone-400 line-clamp-2 leading-tight" title={fixVietnameseMojibake(lot.address)}>
+                      {fixVietnameseMojibake(lot.address)}
                     </p>
                   </div>
 
@@ -547,7 +548,7 @@ export function ParkingList({ parkingLots = [], suggestedParkingLots = [], loadi
                       }}
                     >
                       <Route className="w-3 h-3" />
-                      Chi đường
+                      Chỉ đường
                     </Button>
                   </div>
                 </CardContent>
@@ -615,11 +616,11 @@ export function ParkingList({ parkingLots = [], suggestedParkingLots = [], loadi
               <div className="space-y-3">
                 <div>
                   <h2 className="text-lg font-black text-black dark:text-white mb-1 leading-tight line-clamp-1">
-                    {showQuickView.name}
+                    {fixVietnameseMojibake(showQuickView.name)}
                   </h2>
                   <div className="flex items-start gap-1.5 text-gray-500 dark:text-gray-400">
                     <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-red-500" />
-                    <p className="text-[11px] font-medium line-clamp-1">{showQuickView.address}</p>
+                    <p className="text-[11px] font-medium line-clamp-1">{fixVietnameseMojibake(showQuickView.address)}</p>
                   </div>
                 </div>
 

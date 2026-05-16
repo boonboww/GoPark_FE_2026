@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { safeFormat } from "@/lib/utils";
 import {
   IconSearch,
   IconChevronLeft,
@@ -46,13 +47,13 @@ export function BookingDataTable() {
 
   // Formatting dates for API
   const startDate = dateRange?.from
-    ? format(dateRange.from, "yyyy-MM-dd")
+    ? safeFormat(dateRange.from, "yyyy-MM-dd")
     : undefined;
   // If no "to" date, use "from" date as end date to query a single day
   const endDate = dateRange?.to
-    ? format(dateRange.to, "yyyy-MM-dd")
+    ? safeFormat(dateRange.to, "yyyy-MM-dd")
     : dateRange?.from
-      ? format(dateRange.from, "yyyy-MM-dd")
+      ? safeFormat(dateRange.from, "yyyy-MM-dd")
       : undefined;
 
   const {
@@ -136,17 +137,15 @@ export function BookingDataTable() {
       accessorKey: "startTime",
       header: "Thời gian",
       cell: ({ row }) => {
-        const start = new Date(row.original.startTime);
-        const end = new Date(row.original.endTime);
         return (
           <div className="flex flex-col text-xs gap-0.5">
             <div className="flex items-center gap-1 text-slate-600">
-              <span className="font-bold">{format(start, "HH:mm")}</span>
+              <span className="font-bold">{safeFormat(row.original.startTime, "HH:mm")}</span>
               <span className="text-slate-300">→</span>
-              <span className="font-bold">{format(end, "HH:mm")}</span>
+              <span className="font-bold">{safeFormat(row.original.endTime, "HH:mm")}</span>
             </div>
             <span className="text-slate-400">
-              {format(start, "dd/MM/yyyy", { locale: vi })}
+              {safeFormat(row.original.startTime, "dd/MM/yyyy")}
             </span>
           </div>
         );

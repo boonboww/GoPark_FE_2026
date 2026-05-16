@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useTourStore } from "@/store/tourStore";
 import { useConfigStore } from "@/stores/config.store";
 import { toast } from "sonner";
+import { fixVietnameseMojibake } from "@/lib/utils";
 
 const mapStyles = {
   default: undefined,
@@ -454,7 +455,7 @@ export function ParkingMap({
             <MarkerContent>
               <div className="size-5 rounded-full bg-red-500 border-2 border-white shadow-lg" />
               <MarkerLabel position="bottom" className="bg-background/90 backdrop-blur px-2 py-0.5 rounded border shadow-sm font-bold text-red-600 mt-1">
-                {destination.name}
+                {fixVietnameseMojibake(destination.name)}
               </MarkerLabel>
             </MarkerContent>
           </MapMarker>
@@ -489,7 +490,7 @@ export function ParkingMap({
                 <Layers className="text-white size-4" />
               </div>
                <MarkerLabel position="bottom" className={`font-semibold bg-background/95 backdrop-blur-sm px-2 py-1 rounded-lg border shadow-md w-max break-words max-w-[150px] text-center mt-2 ${selectedParkingLot?.id === lot.id ? 'text-indigo-600 border-indigo-200 z-50' : 'z-10'}`}>
-                <div>{lot.name}</div>
+                <div>{fixVietnameseMojibake(lot.name)}</div>
                 {lot.distanceKm !== undefined && lot.distanceKm !== null ? (
                   <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black opacity-100">{formatDistance(lot.distanceKm * 1000)}</div>
                 ) : lot.nearMeDistanceKm !== undefined && lot.nearMeDistanceKm !== null ? (
@@ -603,7 +604,7 @@ export function ParkingMap({
       {!compact && selectedParkingLot && (
         <div className="absolute top-20 lg:top-4 right-1/2 transform translate-x-1/2 lg:translate-x-0 lg:right-4 z-50 pointer-events-auto bg-background shadow-2xl rounded-2xl p-4 w-11/12 max-w-sm border backdrop-blur-sm animate-in fade-in zoom-in duration-200">
           <div className="flex justify-between items-start mb-2">
-            <h3 className="font-bold text-lg text-primary truncate max-w-[80%]">{selectedParkingLot.name}</h3>
+            <h3 className="font-bold text-lg text-primary truncate max-w-[80%]">{fixVietnameseMojibake(selectedParkingLot.name)}</h3>
             <button onClick={() => setSelectedParkingLot?.(null)} className="text-muted-foreground hover:bg-muted p-1 rounded-full bg-secondary transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
             </button>
@@ -612,7 +613,7 @@ export function ParkingMap({
           <img src={selectedParkingLot.imageUrl || "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=400&h=200&q=80"} alt={selectedParkingLot.name} className="w-full h-52 object-cover rounded-xl mb-3 shadow-inner" />
 
           <div className="space-y-1.5 text-sm mb-4 text-muted-foreground">
-            <p className="flex items-center gap-2"><MapPin className="size-4 shrink-0 text-indigo-500" /> <span className="line-clamp-2">{selectedParkingLot.address}</span></p>
+            <p className="flex items-center gap-2"><MapPin className="size-4 shrink-0 text-indigo-500" /> <span className="line-clamp-2">{fixVietnameseMojibake(selectedParkingLot.address)}</span></p>
             <p className="flex items-center gap-2"><Layers className="size-4 shrink-0 text-emerald-500" /> <span>Trống: <strong className="text-emerald-600">{selectedParkingLot.available_slots || 0}</strong> / {selectedParkingLot.total_slots || 0} chỗ</span></p>
             {selectedParkingLot.open_time && (
               <p className="flex items-center gap-2"><Clock className="size-4 shrink-0 text-orange-500" /> <span>{new Date(selectedParkingLot.open_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedParkingLot.close_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></p>
