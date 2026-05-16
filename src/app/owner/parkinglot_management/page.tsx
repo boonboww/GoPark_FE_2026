@@ -65,6 +65,7 @@ interface FloorData {
   id: string;
   floorId: number;
   name: string;
+  isLocked: boolean;
   zones: ZoneData[];
 }
 
@@ -78,7 +79,7 @@ export default function ParkingLotManagementPage() {
   const [isFilterOpen, setIsFilterOpen] = React.useState(false);
   const [isFetchingAvailable, setIsFetchingAvailable] = React.useState(false);
   const [availableMapData, setAvailableMapData] = React.useState<any>(null);
-  
+
   const isTourActive = useTourStore((state) => state.isTourActive);
 
   // Fetch all bookings to find overdue ones
@@ -141,6 +142,7 @@ export default function ParkingLotManagementPage() {
         id: (floor.id || "").toString(),
         floorId: floor.id as number,
         name: floor.floor_name || floor.name || `Tầng ${floor.floor_number}`,
+        isLocked: floor.description?.includes("[LOCKED]") || false,
         zones: (Array.isArray(rawZones) ? rawZones : []).map((zone: any) => ({
           id: (zone.id || "").toString(),
           zoneId: zone.id as number,
@@ -190,8 +192,9 @@ export default function ParkingLotManagementPage() {
     zoneName?: string;
   }>({ data: null, status: "available" });
 
-
-  const currentFloor = floorsData.find((f: FloorData) => f.id === selectedFloor);
+  const currentFloor = floorsData.find(
+    (f: FloorData) => f.id === selectedFloor,
+  );
   const activeZones = React.useMemo(() => {
     if (!currentFloor) return [];
     if (selectedZone === "all") return currentFloor.zones;
@@ -240,7 +243,7 @@ export default function ParkingLotManagementPage() {
           slotId: "9992",
           totalPrice: 20000,
           startTime: new Date(Date.now() - 3600000).toISOString(),
-          endTime: new Date(Date.now() + 3600000).toISOString()
+          endTime: new Date(Date.now() + 3600000).toISOString(),
         } as any;
       }
 
@@ -551,7 +554,6 @@ export default function ParkingLotManagementPage() {
               </div>
             </div>
 
-
             {/* Zone pills row */}
             <div className="flex items-center px-4 py-2.5 gap-2 overflow-x-auto">
               <div className="flex items-center gap-1.5 mr-1 shrink-0">
@@ -651,7 +653,10 @@ export default function ParkingLotManagementPage() {
               </div>
             </div>
 
-            <div id="parking-grid-map" className="flex-1 overflow-auto bg-slate-50/40 p-4 sm:p-8 relative min-h-[460px]">
+            <div
+              id="parking-grid-map"
+              className="flex-1 overflow-auto bg-slate-50/40 p-4 sm:p-8 relative min-h-[460px]"
+            >
               {/* Dot pattern background */}
               <div
                 className="absolute inset-0 opacity-[0.035] pointer-events-none"
@@ -718,6 +723,7 @@ export default function ParkingLotManagementPage() {
                             isPreviewMode={!!availableMapData}
                             overdueSlotIds={overdueSlotIds}
                             validActiveSlotIds={validActiveSlotIds}
+                            isFloorLocked={currentFloor?.isLocked}
                           />
                         ) : (
                           <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
@@ -743,24 +749,54 @@ export default function ParkingLotManagementPage() {
             {isTourActive && (
               <div className="flex items-center gap-6 mt-4 p-4 border-2 border-dashed border-primary/50 bg-primary/5 rounded-2xl w-full justify-center">
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-xs font-bold text-slate-500 uppercase">Mẫu Slot Trống</span>
-                  <div id="tour-mock-available-slot" onClick={() => handleSlotClick({ id: 9991, code: "M-A01", status: "AVAILABLE" } as any)}>
+                  <span className="text-xs font-bold text-slate-500 uppercase">
+                    Mẫu Slot Trống
+                  </span>
+                  <div
+                    id="tour-mock-available-slot"
+                    onClick={() =>
+                      handleSlotClick({
+                        id: 9991,
+                        code: "M-A01",
+                        status: "AVAILABLE",
+                      } as any)
+                    }
+                  >
                     <Slot
-                      slot={{ id: 9991, code: "M-A01", status: "available", label: "M-A01" }}
+                      slot={{
+                        id: 9991,
+                        code: "M-A01",
+                        status: "available",
+                        label: "M-A01",
+                      }}
                       onClick={() => {}}
                     />
                   </div>
                 </div>
                 <div className="flex flex-col items-center gap-2">
-                  <span className="text-xs font-bold text-slate-500 uppercase">Mẫu Slot Có Khách</span>
-                  <div id="tour-mock-occupied-slot" onClick={() => handleSlotClick({ id: 9992, code: "M-A02", status: "OCCUPIED" } as any)}>
+                  <span className="text-xs font-bold text-slate-500 uppercase">
+                    Mẫu Slot Có Khách
+                  </span>
+                  <div
+                    id="tour-mock-occupied-slot"
+                    onClick={() =>
+                      handleSlotClick({
+                        id: 9992,
+                        code: "M-A02",
+                        status: "OCCUPIED",
+                      } as any)
+                    }
+                  >
                     <Slot
-                      slot={{ 
-                        id: 9992, code: "M-A02", status: "occupied", label: "M-A02",
+                      slot={{
+                        id: 9992,
+                        code: "M-A02",
+                        status: "occupied",
+                        label: "M-A02",
                         ticket: {
                           startTime: new Date(Date.now() - 3600000), // 1 hour ago
-                          endTime: new Date(Date.now() + 3600000)    // 1 hour left
-                        }
+                          endTime: new Date(Date.now() + 3600000), // 1 hour left
+                        },
                       }}
                       onClick={() => {}}
                     />
@@ -771,7 +807,10 @@ export default function ParkingLotManagementPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               {/* Available */}
-              <div id="legend-slot-available" className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full">
+              <div
+                id="legend-slot-available"
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full"
+              >
                 <div className="w-4 h-7 rounded-sm bg-white border-2 border-dashed border-slate-300 shadow-sm shrink-0" />
                 <span className="text-xs font-semibold text-muted-foreground">
                   Chỗ trống
@@ -780,7 +819,10 @@ export default function ParkingLotManagementPage() {
               </div>
 
               {/* Occupied */}
-              <div id="legend-slot-occupied" className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border border-border rounded-full">
+              <div
+                id="legend-slot-occupied"
+                className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 border border-border rounded-full"
+              >
                 <div className="relative w-4 h-7 rounded-sm bg-muted border-2 border-muted-foreground shadow-sm overflow-hidden shrink-0">
                   <div className="absolute bottom-0 left-0 w-full h-1/2 bg-muted-foreground" />
                 </div>
@@ -851,7 +893,9 @@ export default function ParkingLotManagementPage() {
               {activeTab === "setup" && (
                 <SetupWizardTab onClose={() => setIsConfigOpen(false)} />
               )}
-              {activeTab === "edit" && <StructureManagerTab onClose={() => setIsConfigOpen(false)} />}
+              {activeTab === "edit" && (
+                <StructureManagerTab onClose={() => setIsConfigOpen(false)} />
+              )}
             </div>
           </DialogContent>
         </Dialog>

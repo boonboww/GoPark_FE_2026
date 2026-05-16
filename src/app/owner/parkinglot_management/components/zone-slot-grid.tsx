@@ -11,6 +11,7 @@ import {
   Zap,
   Car,
   BookCheck,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -38,6 +39,7 @@ interface ZoneSlotGridProps {
   isPreviewMode?: boolean;
   overdueSlotIds?: string[];
   validActiveSlotIds?: Set<string>;
+  isFloorLocked?: boolean;
 }
 
 // ──────────────────────────────────────────────────────────
@@ -72,11 +74,12 @@ export function ZoneSlotGrid({
   isPreviewMode = false,
   overdueSlotIds = [],
   validActiveSlotIds = new Set(),
+  isFloorLocked = false,
 }: ZoneSlotGridProps) {
   // Convert overdueSlotIds to strings for safe comparison
-  const overdueStrIds = React.useMemo(() => 
-    overdueSlotIds.map(id => id.toString()), 
-    [overdueSlotIds]
+  const overdueStrIds = React.useMemo(
+    () => overdueSlotIds.map((id) => id.toString()),
+    [overdueSlotIds],
   );
   const queryClient = useQueryClient();
   const queryKey = ["zoneSlots", lotId, floorId, zoneId];
@@ -108,10 +111,10 @@ export function ZoneSlotGrid({
     : null;
 
   // Thống kê
-  const totalCount     = slots.length;
+  const totalCount = slots.length;
   const availableCount = slots.filter((s) => s.status === "AVAILABLE").length;
-  const occupiedCount  = slots.filter((s) => s.status === "OCCUPIED").length;
-  const reservedCount  = slots.filter((s) => s.status === "RESERVED").length;
+  const occupiedCount = slots.filter((s) => s.status === "OCCUPIED").length;
+  const reservedCount = slots.filter((s) => s.status === "RESERVED").length;
 
   // ── Generate slots mutation (fallback khi zone rỗng) ──
   const generateMut = useMutation({
@@ -171,8 +174,26 @@ export function ZoneSlotGrid({
     );
   }
 
-  // ──────── Empty state (zone chưa generate) ────────
+  // ──────── Empty state (zone chưa generate hoặc tầng bị khóa) ────────
   if (slots.length === 0) {
+    if (isFloorLocked) {
+      return (
+        <div className="rounded-2xl border-2 border-dashed border-red-200 bg-red-50/30 flex flex-col items-center justify-center py-12 gap-4 transition-all duration-500 animate-in fade-in zoom-in-95">
+          <div className="w-14 h-14 rounded-2xl bg-red-100 border-2 border-red-200 flex items-center justify-center shadow-sm">
+            <Lock className="w-6 h-6 text-red-500" />
+          </div>
+          <div className="text-center">
+            <p className="font-bold text-slate-700">
+              Tầng đang trong trạng thái khóa (Bảo trì)
+            </p>
+            <p className="text-xs text-slate-400 mt-1 max-w-[250px] mx-auto">
+              Tất cả các ô đỗ tại khu {zoneName} đã được tạm dừng hoạt động. Mở
+              khóa tầng để tiếp tục quản lý.
+            </p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="rounded-2xl border-2 border-dashed border-amber-200 bg-amber-50/30 flex flex-col items-center justify-center py-12 gap-4">
         <div className="w-14 h-14 rounded-2xl bg-amber-100 border-2 border-amber-200 flex items-center justify-center shadow-sm">
@@ -230,23 +251,31 @@ export function ZoneSlotGrid({
             <div className="flex items-center gap-1.5 px-3 py-1.5 text-emerald-700 bg-emerald-50/60">
               <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
               <span>{availableCount}</span>
-              <span className="font-normal text-emerald-600 hidden sm:inline">trống</span>
+              <span className="font-normal text-emerald-600 hidden sm:inline">
+                trống
+              </span>
             </div>
             {/* Xe đỗ */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 text-blue-700 bg-blue-50/50">
               <Car className="w-3 h-3 shrink-0" />
               <span>{occupiedCount}</span>
-              <span className="font-normal text-blue-600 hidden sm:inline">đỗ</span>
+              <span className="font-normal text-blue-600 hidden sm:inline">
+                đỗ
+              </span>
             </div>
             {/* Đặt trước */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 text-orange-700 bg-orange-50/50">
               <BookCheck className="w-3 h-3 shrink-0" />
               <span>{reservedCount}</span>
-              <span className="font-normal text-orange-600 hidden sm:inline">đặt</span>
+              <span className="font-normal text-orange-600 hidden sm:inline">
+                đặt
+              </span>
             </div>
             {/* Tổng */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 text-slate-600 bg-slate-50">
-              <span className="text-slate-400 font-normal hidden sm:inline">tổng</span>
+              <span className="text-slate-400 font-normal hidden sm:inline">
+                tổng
+              </span>
               <span className="font-black text-slate-800">{totalCount}</span>
             </div>
           </div>
@@ -284,8 +313,11 @@ export function ZoneSlotGrid({
           {slots.map((apiSlot) => {
             // Self-healing logic: only show occupied/reserved if there's a valid booking
             const isValidActive = validActiveSlotIds.has(apiSlot.id.toString());
-            const isOverdue = isValidActive && overdueStrIds.includes(apiSlot.id.toString());
-            const effectiveStatus = isValidActive ? apiSlot.status : "AVAILABLE";
+            const isOverdue =
+              isValidActive && overdueStrIds.includes(apiSlot.id.toString());
+            const effectiveStatus = isValidActive
+              ? apiSlot.status
+              : "AVAILABLE";
 
             const mappedSlot = {
               id: String(apiSlot.id),
