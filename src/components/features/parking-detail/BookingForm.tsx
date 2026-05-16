@@ -37,6 +37,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { containerVariants, itemVariants } from "@/lib/animations";
 import { BookingFormSkeleton } from "@/components/skeletons/BookingFormSkeleton";
+import { formatOperatingDays } from "@/lib/utils";
 
 const HOURS = Array.from({ length: 24 }, (_, i) =>
   i.toString().padStart(2, "0"),
@@ -55,56 +56,6 @@ const DAY_MAP: Record<string, number> = {
   "CHỦ NHẬT": 0, "CN": 0, "SUNDAY": 0, "SUN": 0
 };
 
-const formatOperatingDays = (daysStr: string) => {
-  if (!daysStr) return "Hàng ngày";
-
-  const days = daysStr.split(",").map((s) => s.trim().toUpperCase());
-
-  const isAllDays =
-    days.length >= 7 ||
-    daysStr.toLowerCase().includes("hàng ngày") ||
-    daysStr.toLowerCase().includes("mỗi ngày") ||
-    daysStr.toLowerCase().includes("tất cả");
-
-  if (isAllDays) return "Hàng ngày";
-
-  const mapping: Record<string, string> = {
-    MONDAY: "T2",
-    TUESDAY: "T3",
-    WEDNESDAY: "T4",
-    THURSDAY: "T5",
-    FRIDAY: "T6",
-    SATURDAY: "T7",
-    SUNDAY: "CN",
-    "THỨ 2": "T2",
-    "THỨ 3": "T3",
-    "THỨ 4": "T4",
-    "THỨ 5": "T5",
-    "THỨ 6": "T6",
-    "THỨ 7": "T7",
-    "CHỦ NHẬT": "CN",
-  };
-
-  const formattedDays = days.map((d) => {
-    for (const [key, val] of Object.entries(mapping)) {
-      if (d.includes(key)) return val;
-    }
-    return d;
-  });
-
-  if (formattedDays.length > 2 && !daysStr.includes("-") && !daysStr.includes("đến")) {
-    // Check if consecutive
-    return formattedDays.join(", ");
-  }
-
-  return daysStr.replace(/Monday/gi, "Thứ 2")
-    .replace(/Tuesday/gi, "Thứ 3")
-    .replace(/Wednesday/gi, "Thứ 4")
-    .replace(/Thursday/gi, "Thứ 5")
-    .replace(/Friday/gi, "Thứ 6")
-    .replace(/Saturday/gi, "Thứ 7")
-    .replace(/Sunday/gi, "Chủ Nhật");
-};
 
 // Kiểm tra xem một giờ có phải là quá khứ không
 const checkIsPastHour = (h: string, selectedDate: string, today: string) => {
@@ -500,12 +451,12 @@ export function BookingForm({
     }
 
     if (!isOperatingDay(start)) {
-      alert(`Bãi đỗ không hoạt động vào thứ này. Lịch hoạt động: ${dataLot.operating_days}`);
+      alert(`Bãi đỗ không hoạt động vào thứ này. Lịch hoạt động: ${formatOperatingDays(dataLot.operating_days)}`);
       return;
     }
 
     if (!isOperatingDay(end)) {
-      alert(`Bãi đỗ không hoạt động vào ngày kết thúc. Lịch hoạt động: ${dataLot.operating_days}`);
+      alert(`Bãi đỗ không hoạt động vào ngày kết thúc. Lịch hoạt động: ${formatOperatingDays(dataLot.operating_days)}`);
       return;
     }
 

@@ -7,6 +7,7 @@ import { useConfigStore } from "@/stores/config.store";
 import { parkingService } from "@/services/parking.service";
 import { ParkingMap } from "@/components/features/findParking/ParkingMap";
 import { useSearchParams } from "next/navigation";
+import { formatOperatingDays } from "@/lib/utils";
 
 type ParkingLotRecord = Record<string, any> & {
   id: number;
@@ -320,7 +321,7 @@ const HeroSection = () => {
               amenities: [
                 { label: "Quy mô", sub: `${lot.total_slots || 0} vị trí`, icon: Car, color: "text-blue-500" },
                 { label: "Chỗ trống", sub: `${lot.available_slots || 0} khả dụng`, icon: BadgeCheck, color: "text-emerald-500" },
-                { label: "Hoạt động", sub: lot.operating_days || "Thứ 2 - CN", icon: Clock, color: "text-amber-500" },
+                { label: "Hoạt động", sub: formatOperatingDays(lot.operating_days), icon: Clock, color: "text-amber-500" },
                 { label: "Trạng thái", sub: (!lot.status || lot.status === "ACTIVE" || lot.available_slots > 0) ? "Sẵn sàng" : "Đã đầy", icon: Shield, color: "text-purple-500" }
               ],
               bgImage: (typeof lot.image === 'string' && lot.image.startsWith('{') ? (() => { try { const p = JSON.parse(lot.image); return p.thumbnail || p.gallery?.[0] || 'book.png'; } catch { return lot.image; } })() : (typeof lot.image === 'object' ? lot.image?.thumbnail || lot.image?.gallery?.[0] || 'book.png' : lot.image)) || "book.png",

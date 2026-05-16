@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, formatOperatingDays } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -75,30 +75,6 @@ export function ParkingInfo() {
     return `${openTime} - ${closeTime}`;
   }
 
-  const formatOperatingDays = (daysStr: string) => {
-    if (!daysStr) return "...";
-    
-    const days = daysStr.split(",").map((s) => s.trim().toUpperCase());
-    
-    const isAllDays = days.length >= 7 || 
-                     daysStr.toLowerCase().includes("hàng ngày") || 
-                     daysStr.toLowerCase().includes("tất cả");
-    if (isAllDays) return "Hàng ngày";
-
-    const mapping: Record<string, string> = {
-      MONDAY: "T2", TUESDAY: "T3", WEDNESDAY: "T4", THURSDAY: "T5", FRIDAY: "T6", SATURDAY: "T7", SUNDAY: "CN",
-      "THỨ 2": "T2", "THỨ 3": "T3", "THỨ 4": "T4", "THỨ 5": "T5", "THỨ 6": "T6", "THỨ 7": "T7", "CHỦ NHẬT": "CN"
-    };
-
-    const formattedDays = days.map(d => {
-      for (const [key, val] of Object.entries(mapping)) {
-        if (d.includes(key)) return val;
-      }
-      return d;
-    });
-
-    return formattedDays.join(", ");
-  };
 
   const handleBooking = () => {
     router.push(`/users/myBooking/${dataLot.id}`);

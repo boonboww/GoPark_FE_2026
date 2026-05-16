@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import Chatbot from "@/components/chatbot/Chatbot";
 import { TourOverlay } from "@/components/layout/TourOverlay";
+import GoogleTranslate from "@/components/GoogleTranslate";
 
 const roboto = Roboto({
   weight: ["300", "400", "500", "700", "900"],
@@ -43,6 +44,7 @@ export default function RootLayout({
           <Toaster />
           <Chatbot />
           <TourOverlay />
+          <GoogleTranslate />
         </ThemeProvider>
       </body>
     </html>

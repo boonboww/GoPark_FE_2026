@@ -59,7 +59,9 @@ const SettingPage = () => {
     biometricEnabled,
     setBiometricEnabled,
     privacyMode,
-    setPrivacyMode
+    setPrivacyMode,
+    language,
+    setLanguage
   } = useConfigStore();
   const { theme, setTheme } = useTheme();
   
@@ -131,6 +133,22 @@ const SettingPage = () => {
     } finally {
       setIsDeletingAccount(false);
     }
+  };
+
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang);
+    // Lưu ý: Cần set cho cả domain cụ thể và root path để đảm bảo cookie hoạt động
+    const domain = window.location.hostname;
+    if (lang === 'en') {
+      document.cookie = `googtrans=/vi/en; path=/;`;
+      document.cookie = `googtrans=/vi/en; path=/; domain=${domain};`;
+    } else {
+      // Đặt lại về tiếng Việt
+      document.cookie = `googtrans=/vi/vi; path=/;`;
+      document.cookie = `googtrans=/vi/vi; path=/; domain=${domain};`;
+    }
+    // Tải lại trang để Google Translate script nhận diện cookie mới
+    window.location.reload();
   };
 
   return (
@@ -215,7 +233,7 @@ const SettingPage = () => {
                         </div>
                         <div>
                           <p className="text-xs font-bold text-gray-400">Ngôn ngữ</p>
-                          <p className="font-bold text-sm">Tiếng Việt (VI)</p>
+                          <p className="font-bold text-sm">{language === 'en' ? 'English (EN)' : 'Tiếng Việt (VI)'}</p>
                         </div>
                       </div>
                       <Button variant="ghost" size="sm" className="font-bold text-primary">Thay đổi</Button>
@@ -366,8 +384,20 @@ const SettingPage = () => {
                   <div className="space-y-3">
                     <Label className="text-sm font-black uppercase text-gray-400 tracking-wider">Ngôn ngữ</Label>
                     <div className="flex gap-2 p-1 bg-gray-50 dark:bg-stone-800 rounded-2xl border border-gray-100 dark:border-stone-700">
-                      <Button variant="ghost" className="flex-1 rounded-xl bg-white dark:bg-stone-700 shadow-sm font-black text-xs">Tiếng Việt</Button>
-                      <Button variant="ghost" className="flex-1 rounded-xl text-gray-400 font-black text-xs hover:text-black dark:hover:text-white">English</Button>
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => handleLanguageChange('vi')}
+                        className={`flex-1 rounded-xl shadow-sm font-black text-xs ${language === 'vi' ? 'bg-white dark:bg-stone-700 text-black dark:text-white' : 'text-gray-400 hover:text-black dark:hover:text-white bg-transparent'}`}
+                      >
+                        Tiếng Việt
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => handleLanguageChange('en')}
+                        className={`flex-1 rounded-xl shadow-sm font-black text-xs ${language === 'en' ? 'bg-white dark:bg-stone-700 text-black dark:text-white' : 'text-gray-400 hover:text-black dark:hover:text-white bg-transparent'}`}
+                      >
+                        English
+                      </Button>
                     </div>
                   </div>
 
