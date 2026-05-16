@@ -7,7 +7,7 @@ type Message = {
   role: "user" | "assistant";
   content: string;
   type?: "text" | "parking-list";
-  data?: any;
+  data?: ParkingListData;
 };
 type Status = "unknown" | "connected" | "disconnected";
 type VoiceState =
@@ -16,6 +16,93 @@ type VoiceState =
   | "prompted"
   | "question-listening"
   | "speaking";
+type ParkingLotSummary = {
+  id: string | number;
+  name?: string;
+  address?: string;
+  hourly_rate?: number;
+  available_slots?: number;
+  total_slots?: number;
+  distance_km?: number;
+  avgRating?: number;
+  [key: string]: unknown;
+};
+type ParkingListData = {
+  lots?: ParkingLotSummary[];
+  best?: ParkingLotSummary;
+  criteria?: "best" | "nearest" | "price_cheapest" | string;
+  [key: string]: unknown;
+};
+type VehicleChip = {
+  label: string;
+  msg: string;
+};
+type ChatSession = {
+  id: string;
+  title?: string;
+  updatedAt?: string;
+  messages?: Array<{
+    role: "user" | "assistant";
+    content: string;
+    type?: "text" | "parking-list";
+    data?: ParkingListData;
+  }>;
+  [key: string]: unknown;
+};
+type SpeechRecognitionEventLike = {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+};
+type SpeechRecognitionErrorLike = {
+  error: string;
+};
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((ev: SpeechRecognitionEventLike) => void) | null;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onerror: ((e: SpeechRecognitionErrorLike) => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+type SpeechWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
+const getSpeechRecognition = () => {
+  if (typeof window === "undefined") return null;
+  const win = window as SpeechWindow;
+  return win.SpeechRecognition || win.webkitSpeechRecognition || null;
+};
+
+const normalizeSpeechText = (text: string) =>
+  text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const isWakeWord = (text: string) => {
+  const normalized = normalizeSpeechText(text);
+  const compact = normalized.replace(/\s+/g, "");
+  return (
+    compact.includes("heygopark") ||
+    compact.includes("heygopac") ||
+    compact.includes("heygopack") ||
+    compact.includes("heygopart") ||
+    compact.includes("heigopark") ||
+    compact.includes("egopark") ||
+    compact.includes("naygopark") ||
+    normalized.includes("hey go park") ||
+    normalized.includes("hey go pak")
+  );
+};
 
 const API_URL = `${API_BASE_URL}/chatbot/chat`;
 const STATUS_URL = `${API_BASE_URL}/chatbot/status`;
@@ -96,10 +183,11 @@ export default function UserChatbot() {
   const [hasUnread, setHasUnread] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>("idle");
-  const [userVehicles, setUserVehicles] = useState<any[]>([]);
+  const [wakeBanner, setWakeBanner] = useState(false);
+  const [userVehicles, setUserVehicles] = useState<VehicleChip[]>([]);
 
   // Session management
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [showSessions, setShowSessions] = useState(false);
 
@@ -111,6 +199,7 @@ export default function UserChatbot() {
   const [panelSize, setPanelSize] = useState<{ width: number; height: number }>(
     { width: 420, height: 600 },
   );
+  const [isPanelLarge, setIsPanelLarge] = useState(false);
   const draggingRef = useRef(false);
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, right: 24, bottom: 24 });
   const resizingRef = useRef(false);
@@ -122,8 +211,8 @@ export default function UserChatbot() {
   });
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const recognitionRef = useRef<any>(null);
-  const wakeRecognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const wakeRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<Message[]>(messages);
   const voiceModeRef = useRef(false);
@@ -213,19 +302,31 @@ export default function UserChatbot() {
     e.stopPropagation();
   };
 
+  const togglePanelSize = () => {
+    setIsPanelLarge((current) => {
+      const next = !current;
+      setPanelSize(
+        next
+          ? { width: Math.min(760, window.innerWidth - 48), height: Math.min(860, window.innerHeight - 48) }
+          : { width: 420, height: 600 },
+      );
+      setPanelPos({ right: 24, bottom: 24 });
+      return next;
+    });
+  };
+
   // Mic input setup
   useEffect(() => {
-    const win: any = typeof window !== "undefined" ? window : {};
-    const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
+    const SR = getSpeechRecognition();
     if (!SR) return;
     const r = new SR();
     r.lang = "vi-VN";
     r.interimResults = true;
     r.continuous = false;
-    r.onresult = (ev: any) =>
+    r.onresult = (ev) =>
       setInput(
         Array.from(ev.results)
-          .map((x: any) => x[0].transcript)
+          .map((x) => x[0]?.transcript ?? "")
           .join(""),
       );
     r.onstart = () => setListening(true);
@@ -236,40 +337,37 @@ export default function UserChatbot() {
 
   // Wake word listener
   const startWakeListener = useCallback(() => {
-    const win: any = typeof window !== "undefined" ? window : {};
-    const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
+    const SR = getSpeechRecognition();
     if (!SR) return;
     // Dừng instance cũ nếu có
     try {
+      if (wakeRecognitionRef.current) wakeRecognitionRef.current.onend = null;
       wakeRecognitionRef.current?.stop();
     } catch {}
     const r = new SR();
     r.lang = "vi-VN";
     r.interimResults = true;
     r.continuous = true;
-    r.onresult = (ev: any) => {
+    r.onresult = (ev) => {
       const transcript = Array.from(ev.results)
-        .map((x: any) => x[0].transcript)
-        .join(" ")
-        .toLowerCase();
-      if (
-        transcript.includes("hey gopark") ||
-        transcript.includes("hey go park") ||
-        transcript.includes("hê gopark") ||
-        transcript.includes("hei gopark") ||
-        transcript.includes("này gopark") ||
-        transcript.includes("ê gopark")
-      ) {
+        .map((x) => x[0]?.transcript ?? "")
+        .join(" ");
+      if (isWakeWord(transcript)) {
         r.stop();
+        setOpen(true);
+        setVoiceMode(true);
+        voiceModeRef.current = true;
+        setWakeBanner(true);
+        window.setTimeout(() => setWakeBanner(false), 2200);
         setVoiceState("prompted");
         voiceStateRef.current = "prompted";
         speakText("Xin chào! Bạn muốn hỏi gì?", () => {
-          if (voiceModeRef.current) startQuestionListener();
+          startQuestionListener();
         });
       }
     };
     r.onend = () => {
-      if (voiceModeRef.current && voiceStateRef.current === "wake-listening") {
+      if (voiceStateRef.current === "wake-listening") {
         setTimeout(() => {
           try {
             r.start();
@@ -277,9 +375,9 @@ export default function UserChatbot() {
         }, 300);
       }
     };
-    r.onerror = (e: any) => {
+    r.onerror = (e) => {
       if (e.error === "no-speech" || e.error === "aborted") return;
-      if (voiceModeRef.current && voiceStateRef.current === "wake-listening") {
+      if (voiceStateRef.current === "wake-listening") {
         setTimeout(() => startWakeListener(), 1000);
       }
     };
@@ -291,17 +389,16 @@ export default function UserChatbot() {
   }, []);
 
   const startQuestionListener = useCallback(() => {
-    const win: any = typeof window !== "undefined" ? window : {};
-    const SR = win.SpeechRecognition || win.webkitSpeechRecognition || null;
+    const SR = getSpeechRecognition();
     if (!SR) return;
     const r = new SR();
     r.lang = "vi-VN";
     r.interimResults = false;
     r.continuous = false;
     setVoiceState("question-listening");
-    r.onresult = async (ev: any) => {
+    r.onresult = async (ev) => {
       const question = Array.from(ev.results)
-        .map((x: any) => x[0].transcript)
+        .map((x) => x[0]?.transcript ?? "")
         .join("")
         .trim();
       if (question) {
@@ -330,20 +427,21 @@ export default function UserChatbot() {
   }, [startWakeListener]);
 
   useEffect(() => {
-    if (voiceMode) {
-      setOpen(true);
-      startWakeListener();
-    } else {
-      window.speechSynthesis?.cancel();
+    startWakeListener();
+    return () => {
       try {
         wakeRecognitionRef.current?.stop();
       } catch {}
-      try {
-        recognitionRef.current?.stop();
-      } catch {}
-      setVoiceState("idle");
-    }
-  }, [voiceMode, startWakeListener]);
+    };
+  }, [startWakeListener]);
+
+  useEffect(() => {
+    if (voiceMode) return;
+    window.speechSynthesis?.cancel();
+    try {
+      recognitionRef.current?.stop();
+    } catch {}
+  }, [voiceMode]);
 
   const checkStatus = useCallback(async () => {
     try {
@@ -390,8 +488,8 @@ export default function UserChatbot() {
               ? { label: `🚗 Xe ${i + 1}: ${match[1]}`, msg: `xe ${i + 1}` }
               : null;
           })
-          .filter(Boolean);
-        setUserVehicles(vehicles as any[]);
+          .filter((vehicle): vehicle is VehicleChip => vehicle !== null);
+        setUserVehicles(vehicles);
       })
       .catch(() => {});
   }, [accessToken]);
@@ -441,11 +539,11 @@ export default function UserChatbot() {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         const data = await r.json();
-        const session = data?.data;
+        const session = data?.data as ChatSession | undefined;
         if (session?.messages?.length) {
           const msgs: Message[] = [
             WELCOME_MSG,
-            ...session.messages.map((m: any) => ({
+            ...session.messages.map((m) => ({
               role: m.role as "user" | "assistant",
               content: m.content,
               type: m.type,
@@ -506,7 +604,7 @@ export default function UserChatbot() {
     try {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
-      let context: any = {};
+      let context: { userLat?: number; userLng?: number } = {};
       if (/gần|nearby|gan/i.test(content)) {
         const loc = await getUserLocation();
         if (loc) context = { userLat: loc.lat, userLng: loc.lng };
@@ -525,13 +623,22 @@ export default function UserChatbot() {
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const response = await resp.json();
-      if (response?.data?.action === "list_parking" && response?.data?.lots) {
+      const responseData = response?.data || response;
+      const parkingPayload =
+        responseData?.action === "list_parking"
+          ? responseData?.lots
+            ? responseData
+            : responseData?.data
+          : responseData?.data?.action === "list_parking"
+            ? responseData.data
+            : null;
+      if (parkingPayload?.lots) {
         const msg: Message = {
           role: "assistant",
           type: "parking-list",
           content:
             response?.data?.text || response?.text || "Tìm thấy các bãi sau:",
-          data: { lots: response.data.lots, criteria: response.data.criteria },
+          data: { lots: parkingPayload.lots, criteria: parkingPayload.criteria },
         };
         setMessages([...messagesRef.current, msg]);
         messagesRef.current = [...messagesRef.current, msg];
@@ -540,10 +647,10 @@ export default function UserChatbot() {
       }
       // Xử lý redirect - check cả data.action và action (BE có thể trả ở 2 chỗ)
       const redirectAction =
-        response?.data?.action === "redirect"
-          ? response.data
-          : response?.action === "redirect"
-            ? response
+        responseData?.action === "redirect"
+          ? responseData
+          : responseData?.data?.action === "redirect"
+            ? responseData.data
             : null;
       if (redirectAction) {
         const redirectUrl =
@@ -563,9 +670,8 @@ export default function UserChatbot() {
         return;
       }
       const text2 =
-        response?.data?.text ||
-        response?.text ||
-        response?.message ||
+        responseData?.text ||
+        responseData?.message ||
         "Không có phản hồi";
       const assistantMsg: Message = { role: "assistant", content: text2 };
       setMessages([...messagesRef.current, assistantMsg]);
@@ -602,15 +708,42 @@ export default function UserChatbot() {
     try {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
-      const resp = await fetch(API_URL, {
+      const url = currentSessionId
+        ? `${API_BASE_URL}/chatbot/sessions/${currentSessionId}/chat`
+        : API_URL;
+      const resp = await fetch(url, {
         method: "POST",
         headers,
         body: JSON.stringify({
-          messages: messagesRef.current.filter((m) => m.role === "user"),
+          messages: [{ role: "user", content }],
         }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const response = await resp.json();
+      const responseData = response?.data || response;
+      const redirectAction =
+        responseData?.action === "redirect"
+          ? responseData
+          : responseData?.data?.action === "redirect"
+            ? responseData.data
+            : null;
+      if (redirectAction) {
+        const redirectUrl =
+          redirectAction.redirectUrl || redirectAction.data?.url;
+        const redirectMsg =
+          redirectAction.text ||
+          redirectAction.message ||
+          "Dang chuyen sang trang dat cho...";
+        const assistantMsg: Message = { role: "assistant", content: redirectMsg };
+        setMessages([...messagesRef.current, assistantMsg]);
+        messagesRef.current = [...messagesRef.current, assistantMsg];
+        setLoading(false);
+        setVoiceState("speaking");
+        speakText(redirectMsg, () => {
+          if (redirectUrl) window.location.href = redirectUrl;
+        });
+        return;
+      }
       const text2 =
         response?.data?.text ||
         response?.text ||
@@ -728,7 +861,7 @@ export default function UserChatbot() {
               </div>
               <div className="uc-parking-card-meta">{primary.address}</div>
             </div>
-            {primary.avgRating > 0 && (
+            {(primary.avgRating ?? 0) > 0 && (
               <div
                 style={{
                   background: "rgba(34,197,94,0.15)",
@@ -813,7 +946,7 @@ export default function UserChatbot() {
                 </tr>
               </thead>
               <tbody>
-                {others.map((lot: any) => (
+                {others.map((lot) => (
                   <tr key={lot.id}>
                     <td
                       style={{
@@ -837,7 +970,7 @@ export default function UserChatbot() {
                       </td>
                     )}
                     <td style={{ whiteSpace: "nowrap" }}>
-                      {lot.avgRating > 0
+                      {(lot.avgRating ?? 0) > 0
                         ? Number(lot.avgRating).toFixed(1)
                         : "-"}
                     </td>
@@ -875,6 +1008,10 @@ export default function UserChatbot() {
         @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
         .uc * { box-sizing: border-box; font-family: 'Be Vietnam Pro', sans-serif; }
         @keyframes ucFadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes ucWakePop { 0%{opacity:0; transform:translate(-50%,-46%) scale(.92);} 15%,85%{opacity:1; transform:translate(-50%,-50%) scale(1);} 100%{opacity:0; transform:translate(-50%,-54%) scale(.98);} }
+        .uc-wake-banner { position:fixed; left:50%; top:28%; z-index:100020; transform:translate(-50%,-50%); min-width:min(520px, calc(100vw - 32px)); padding:28px 32px; border-radius:28px; background:rgba(5,18,31,.92); border:1px solid rgba(34,197,94,.38); box-shadow:0 28px 80px rgba(0,0,0,.48), 0 0 0 10px rgba(34,197,94,.08); color:#f0fdf4; text-align:center; animation:ucWakePop 2.2s ease both; backdrop-filter:blur(14px); }
+        .uc-wake-title { font-size:34px; line-height:1.05; font-weight:800; }
+        .uc-wake-sub { margin-top:8px; font-size:14px; color:#86efac; }
         .uc-panel {
           position: fixed; background: #070f1c; border-radius: 20px;
           box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(34,197,94,0.13);
@@ -992,6 +1129,12 @@ export default function UserChatbot() {
       `}</style>
 
       <div className="uc">
+        {wakeBanner && (
+          <div className="uc-wake-banner" role="status" aria-live="polite">
+            <div className="uc-wake-title">Hey GoPark</div>
+            <div className="uc-wake-sub">Tôi đang nghe câu hỏi của bạn</div>
+          </div>
+        )}
         {open && (
           <div
             ref={panelRef}
@@ -1055,12 +1198,16 @@ export default function UserChatbot() {
                     >
                       <div style={{ fontSize: 16 }}>💬</div>
                       <div className="uc-session-info">
-                        <div className="uc-session-name">{s.title}</div>
+                        <div className="uc-session-name">
+                          {s.title || "Cuộc trò chuyện"}
+                        </div>
                         <div className="uc-session-date">
-                          {new Date(s.updatedAt).toLocaleString("vi-VN", {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          })}
+                          {s.updatedAt
+                            ? new Date(s.updatedAt).toLocaleString("vi-VN", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })
+                            : ""}
                         </div>
                       </div>
                       <button
@@ -1176,6 +1323,41 @@ export default function UserChatbot() {
                   </button>
                   <button
                     className="uc-ibtn"
+                    onClick={togglePanelSize}
+                    title={isPanelLarge ? "Thu nho chatbot" : "Phong to chatbot"}
+                  >
+                    {isPanelLarge ? (
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M8 3v5H3" />
+                        <path d="M16 21v-5h5" />
+                        <path d="M3 8l6-6" />
+                        <path d="M21 16l-6 6" />
+                      </svg>
+                    ) : (
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M3 9V3h6" />
+                        <path d="M21 15v6h-6" />
+                        <path d="M3 3l7 7" />
+                        <path d="M21 21l-7-7" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    className="uc-ibtn"
                     onClick={() => setOpen(false)}
                     title="Đóng"
                   >
@@ -1193,7 +1375,7 @@ export default function UserChatbot() {
                   </button>
                 </div>
               </div>
-              {/* Voice toggle */}
+              {/* AI speech toggle */}
               <div className="uc-voice-row">
                 <span className="uc-voice-label">
                   <svg
@@ -1208,7 +1390,7 @@ export default function UserChatbot() {
                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                     <line x1="12" y1="19" x2="12" y2="23" />
                   </svg>
-                  Chế độ giọng nói AI
+                  AI đọc câu trả lời
                 </span>
                 <label className="uc-toggle">
                   <input
@@ -1219,21 +1401,19 @@ export default function UserChatbot() {
                   <span className="uc-toggle-slider" />
                 </label>
               </div>
-              {voiceMode && (
-                <div className="uc-voice-status">
-                  {(voiceState === "wake-listening" ||
-                    voiceState === "question-listening") && (
-                    <span className="uc-wave">
-                      <span style={{ height: 6 }} />
-                      <span />
-                      <span />
-                      <span />
-                      <span style={{ height: 6 }} />
-                    </span>
-                  )}{" "}
-                  {voiceStateLabel[voiceState]}
-                </div>
-              )}
+              <div className="uc-voice-status">
+                {(voiceState === "wake-listening" ||
+                  voiceState === "question-listening") && (
+                  <span className="uc-wave">
+                    <span style={{ height: 6 }} />
+                    <span />
+                    <span />
+                    <span />
+                    <span style={{ height: 6 }} />
+                  </span>
+                )}{" "}
+                {voiceStateLabel[voiceState]}
+              </div>
             </div>
 
             {/* Messages */}
@@ -1311,7 +1491,7 @@ export default function UserChatbot() {
                   </button>
                 ))}
                 {userVehicles.length > 0 &&
-                  userVehicles.map((v: any) => (
+                  userVehicles.map((v) => (
                     <button
                       key={v.msg}
                       className="uc-chip"
@@ -1336,7 +1516,7 @@ export default function UserChatbot() {
                   value={input}
                   placeholder={
                     voiceMode
-                      ? "Voice mode bật – hoặc gõ câu hỏi..."
+                      ? "AI sẽ đọc câu trả lời – hoặc gõ câu hỏi..."
                       : "Hỏi về bãi đỗ, đặt chỗ, ví tiền..."
                   }
                   onChange={(e) => setInput(e.target.value)}
@@ -1359,17 +1539,15 @@ export default function UserChatbot() {
                       try {
                         r.start();
                       } catch {
-                        const win: any = window;
-                        const SR =
-                          win.SpeechRecognition || win.webkitSpeechRecognition;
+                        const SR = getSpeechRecognition();
                         if (SR) {
                           const nr = new SR();
                           nr.lang = "vi-VN";
                           nr.interimResults = true;
-                          nr.onresult = (ev: any) =>
+                          nr.onresult = (ev) =>
                             setInput(
                               Array.from(ev.results)
-                                .map((x: any) => x[0].transcript)
+                                .map((x) => x[0]?.transcript ?? "")
                                 .join(""),
                             );
                           nr.onstart = () => setListening(true);
