@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { safeFormat } from '@/lib/utils';
 
 // --- Types & Mock Data Interfaces ---
 export interface TransactionLog {
@@ -91,9 +92,7 @@ export function DataTables({ recentTransactions, topParkingLots }: DataTablesPro
                       <TableCell className="font-medium">{tx.parkingLotName}</TableCell>
                       <TableCell>{tx.licensePlate}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {tx.time && !isNaN(new Date(tx.time).getTime()) 
-                          ? format(new Date(tx.time), 'dd MMM, HH:mm') 
-                          : 'N/A'}
+                        {safeFormat(tx.time, 'dd MMM, HH:mm')}
                       </TableCell>
                       <TableCell>{formatCurrency(tx.amount)}</TableCell>
                       <TableCell>{getStatusBadge(tx.status)}</TableCell>

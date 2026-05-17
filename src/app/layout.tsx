@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
+import { Roboto, Inter } from "next/font/google";
 import "./globals.css";
 
 import { QueryProvider } from "@/components/query-provider";
@@ -8,12 +8,16 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import Chatbot from "@/components/chatbot/Chatbot";
 import { TourOverlay } from "@/components/layout/TourOverlay";
-import GoogleTranslate from "@/components/GoogleTranslate";
 
 const roboto = Roboto({
   weight: ["300", "400", "500", "700", "900"],
   subsets: ["latin", "vietnamese"],
   variable: "--font-roboto",
+});
+
+const inter = Inter({
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -30,8 +34,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${roboto.variable} font-sans antialiased`}>
+    <html lang="vi" suppressHydrationWarning>
+      <body className={`${roboto.variable} ${inter.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -44,7 +48,6 @@ export default function RootLayout({
           <Toaster />
           <Chatbot />
           <TourOverlay />
-          <GoogleTranslate />
         </ThemeProvider>
       </body>
     </html>

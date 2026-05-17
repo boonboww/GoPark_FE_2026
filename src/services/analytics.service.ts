@@ -1,6 +1,7 @@
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { get } from "@/lib/api";
+import { safeFormat } from "@/lib/utils";
 
 // Interfaces mapping to the requested schema
 export interface AnalyticsTransaction {
@@ -43,7 +44,7 @@ class AnalyticsService {
   ): Promise<AnalyticsData> {
     try {
       const year = dateRange?.from ? dateRange.from.getFullYear() : 2026;
-      const formattedDate = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+      const formattedDate = safeFormat(dateRange?.to || new Date(), 'yyyy-MM-dd');
       
       const metricsParams: Record<string, string> = {};
       const revenueParams: Record<string, string> = { year: year.toString() };
@@ -57,8 +58,8 @@ class AnalyticsService {
 
       const paymentParams: Record<string, string> = { ...metricsParams };
       if (dateRange?.from && dateRange?.to) {
-        paymentParams.startDate = format(dateRange.from, 'yyyy-MM-dd');
-        paymentParams.endDate = format(dateRange.to, 'yyyy-MM-dd');
+        paymentParams.startDate = safeFormat(dateRange.from, 'yyyy-MM-dd');
+        paymentParams.endDate = safeFormat(dateRange.to, 'yyyy-MM-dd');
       }
 
       const [

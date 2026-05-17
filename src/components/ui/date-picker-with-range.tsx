@@ -5,7 +5,7 @@ import { addDays, format } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { DateRange } from "react-day-picker"
 
-import { cn } from "@/lib/utils"
+import { cn, safeFormat } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -40,11 +40,11 @@ export function DatePickerWithRange({
             {date?.from ? (
               date.to ? (
                 <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
+                  {safeFormat(date.from, "LLL dd, y")} -{" "}
+                  {safeFormat(date.to, "LLL dd, y")}
                 </>
               ) : (
-                format(date.from, "LLL dd, y")
+                safeFormat(date.from, "LLL dd, y")
               )
             ) : (
               <span>Chọn khoảng ngày</span>

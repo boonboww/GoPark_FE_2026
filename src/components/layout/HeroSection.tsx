@@ -7,7 +7,7 @@ import { useConfigStore } from "@/stores/config.store";
 import { parkingService } from "@/services/parking.service";
 import { ParkingMap } from "@/components/features/findParking/ParkingMap";
 import { useSearchParams } from "next/navigation";
-import { formatOperatingDays } from "@/lib/utils";
+import { formatOperatingDays, fixVietnameseMojibake } from "@/lib/utils";
 
 type ParkingLotRecord = Record<string, any> & {
   id: number;
@@ -295,9 +295,21 @@ const HeroSection = () => {
 
         if (data.length > 0) {
           const mappedParkings = data.map((lot: Record<string, any>) => {
-            const openTimeStr = lot.open_time ? new Date(lot.open_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : null;
-            const closeTimeStr = lot.close_time ? new Date(lot.close_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : null;
-            const formattedTimeOpen = openTimeStr && closeTimeStr && openTimeStr !== "Invalid Date" ? `${openTimeStr} - ${closeTimeStr}` : "24/7";
+            const formatTimeUTC = (isoStr?: string) => {
+              if (!isoStr) return null;
+              try {
+                const date = new Date(isoStr);
+                if (isNaN(date.getTime())) return null;
+                const hours = String(date.getUTCHours()).padStart(2, "0");
+                const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+                return `${hours}:${minutes}`;
+              } catch {
+                return null;
+              }
+            };
+            const openTimeStr = formatTimeUTC(lot.open_time);
+            const closeTimeStr = formatTimeUTC(lot.close_time);
+            const formattedTimeOpen = openTimeStr && closeTimeStr ? `${openTimeStr} - ${closeTimeStr}` : "24/7";
 
             return {
               id: lot.id,
@@ -306,8 +318,8 @@ const HeroSection = () => {
               latitude: lot.latitude ?? lot.lat ?? lot.location?.lat,
               longitude: lot.longitude ?? lot.lng ?? lot.location?.lng,
               parkingFloor: lot.parkingFloor || lot.parking_floor || lot.floors || [],
-              name: lot.name,
-              address: lot.address,
+              name: fixVietnameseMojibake(lot.name),
+              address: fixVietnameseMojibake(lot.address),
               description: lot.description || "Bãi đỗ xe an toàn, tiện lợi, hỗ trợ 24/7",
               status: lot.available_slots > 0 ? "Mở cửa" : "Hết chỗ",
               timeOpen: formattedTimeOpen,
@@ -710,8 +722,8 @@ const HeroSection = () => {
                     </div>
                   </div>
                   <div className="p-4 flex flex-col flex-1">
-                    <h3 className="font-bold text-base mb-1 text-gray-800 dark:text-gray-100 group-hover:text-blue-600 transition-colors line-clamp-1">{p.name}</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 flex-1">{p.address}</p>
+                    <h3 className="font-bold text-base mb-1 text-gray-800 dark:text-gray-100 group-hover:text-blue-600 transition-colors line-clamp-1">{fixVietnameseMojibake(p.name)}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2 flex-1">{fixVietnameseMojibake(p.address)}</p>
                     <div className="pt-3 border-t border-gray-100 dark:border-stone-700/50 flex justify-between items-center">
                       <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Giá từ</span>
                       <span className="font-bold text-sm text-black dark:text-white">{p.pricing?.firstHour || "Liên hệ"}</span>
@@ -799,7 +811,7 @@ const HeroSection = () => {
                       >
                         <div className="flex flex-col mb-4">
                           <h2
-                            className={`text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-white leading-tight wrap-break-word transition-all duration-300 ${!isNameExpanded ? 'line-clamp-1' : ''}`}
+                            className={`text-3xl md:text-4xl lg:text-5xl font-bold text-black dark:text-white leading-tight break-words transition-all duration-300 ${!isNameExpanded ? 'line-clamp-1' : ''}`}
                             title={parking.name}
                           >
                             {parking.name}

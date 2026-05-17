@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { cn, formatOperatingDays } from "@/lib/utils";
+import { cn, formatOperatingDays, fixVietnameseMojibake } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -68,11 +68,16 @@ export function ParkingInfo() {
 
   function formatTime(startTime: string, endTime: string, days: string) {
     if (!startTime || !endTime || !days) return "Chưa cập nhật";
-    const opendate = new Date(startTime);
-    const closedate = new Date(endTime);
-    const openTime = opendate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
-    const closeTime = closedate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
-    return `${openTime} - ${closeTime}`;
+    try {
+      const opendate = new Date(startTime);
+      const closedate = new Date(endTime);
+      if (isNaN(opendate.getTime()) || isNaN(closedate.getTime())) return "Chưa cập nhật";
+      const openTime = `${String(opendate.getUTCHours()).padStart(2, '0')}:${String(opendate.getUTCMinutes()).padStart(2, '0')}`;
+      const closeTime = `${String(closedate.getUTCHours()).padStart(2, '0')}:${String(closedate.getUTCMinutes()).padStart(2, '0')}`;
+      return `${openTime} - ${closeTime}`;
+    } catch {
+      return "Chưa cập nhật";
+    }
   }
 
 
@@ -92,11 +97,11 @@ export function ParkingInfo() {
               <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-none px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
                 {dataLot.status}
               </Badge>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{dataLot.name}</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{fixVietnameseMojibake(dataLot.name)}</h1>
             </div>
             <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
               <MapPin className="w-4 h-4 shrink-0 text-blue-600" />
-              <p className="text-xs md:text-sm font-medium">{dataLot.address}</p>
+              <p className="text-xs md:text-sm font-medium">{fixVietnameseMojibake(dataLot.address)}</p>
             </div>
           </div>
 
@@ -220,7 +225,7 @@ export function ParkingInfo() {
           <div className="space-y-3">
             <h3 className="text-base font-bold text-gray-900 dark:text-white">Mô tả</h3>
             <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm leading-relaxed text-justify">
-              {dataLot.description}
+              {fixVietnameseMojibake(dataLot.description)}
             </p>
           </div>
 

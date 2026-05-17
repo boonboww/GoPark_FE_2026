@@ -22,7 +22,7 @@ import {
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
-import { apiClient, patch } from "@/lib/api";
+import { cn, safeFormat } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { apiClient } from "@/lib/api";
 
 interface RequestItem {
   id: string;
@@ -190,7 +191,7 @@ export default function MyRequestsPage() {
                   <Calendar className="w-3 h-3" /> Thời gian gửi
                 </p>
                 <p className="text-sm font-medium">
-                  {format(new Date(request.createdAt), 'HH:mm:ss - dd/MM/yyyy', { locale: vi })}
+                  {safeFormat(request.createdAt, 'HH:mm:ss - dd/MM/yyyy')}
                 </p>
               </div>
             </div>
@@ -274,7 +275,7 @@ export default function MyRequestsPage() {
                           {n.action === 'APPROVED' ? 'Chấp nhận' : n.action === 'REJECTED' ? 'Từ chối' : 'Cập nhật'}
                         </Badge>
                         <span className="text-[10px] text-slate-400 font-mono">
-                          {format(new Date(n.timestamp), 'HH:mm dd/MM/yyyy', { locale: vi })}
+                          {safeFormat(n.timestamp, 'HH:mm dd/MM/yyyy')}
                         </span>
                       </div>
                       <p className="text-sm text-slate-700 italic">"{n.reason || "Không có lý do cụ thể."}"</p>
@@ -343,7 +344,7 @@ export default function MyRequestsPage() {
                     </div>
                     
                     <p className="text-xs text-gray-500 mb-2">
-                      Gửi lúc: {format(new Date(request.createdAt), 'HH:mm - dd/MM/yyyy', { locale: vi })}
+                      Gửi lúc: {safeFormat(request.createdAt, 'HH:mm - dd/MM/yyyy')}
                     </p>
 
                     {renderPayloadSummary(request.type, request.payload)}
@@ -357,7 +358,7 @@ export default function MyRequestsPage() {
                           onClick={async () => {
                             try {
                               // Gọi API xác nhận để Backend chuyển role sang Owner
-                               await patch(`/request/${request.id}/confirm`);
+                               await apiClient(`/request/${request.id}/confirm`, { method: "PATCH" });
                               
                               // Sau đó mới đăng xuất và chuyển trang login
                               localStorage.removeItem("auth-storage");

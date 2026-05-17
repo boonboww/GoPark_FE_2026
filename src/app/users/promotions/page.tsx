@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { differenceInDays, format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { safeFormat } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -94,7 +95,9 @@ export default function PromotionsPage() {
         return list.filter(v => v.is_eligible && !claimedIds.includes(v.id));
       case "expiring":
         return list.filter(v => {
-            const days = differenceInDays(new Date(v.end_time), new Date());
+            const end = v.end_time ? new Date(v.end_time) : null;
+            if (!end || isNaN(end.getTime())) return false;
+            const days = differenceInDays(end, new Date());
             return days >= 0 && days <= 5;
         });
       default:
@@ -330,7 +333,9 @@ const VoucherCard = ({
   showUseButton: boolean;
   setActiveTab?: (val: TabType) => void;
 }) => {
-    const daysRemaining = differenceInDays(new Date(voucher.end_time), new Date());
+    const end = voucher.end_time ? new Date(voucher.end_time) : null;
+    const isValidEnd = end && !isNaN(end.getTime());
+    const daysRemaining = isValidEnd ? differenceInDays(end, new Date()) : -1;
     const isExpiring = daysRemaining >= 0 && daysRemaining < 7;
     const isEligible = voucher.is_eligible ?? true;
 
@@ -393,7 +398,7 @@ const VoucherCard = ({
                             <div className="flex items-center gap-2">
                                 <Clock className={`w-3.5 h-3.5 ${isExpiring ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />
                                 <span className={`text-[10px] font-black ${isExpiring ? 'text-red-500' : 'text-gray-400'}`}>
-                                    {daysRemaining < 0 ? 'ĐÃ HẾT HẠN' : isExpiring ? `CÒN ${daysRemaining} NGÀY` : `HSD: ${format(new Date(voucher.end_time), "dd/MM/yyyy")}`}
+                                    {daysRemaining < 0 ? 'HẾT HẠN/KHÔNG RÕ' : isExpiring ? `CÒN ${daysRemaining} NGÀY` : `HSD: ${safeFormat(voucher.end_time, "dd/MM/yyyy")}`}
                                 </span>
                             </div>
                             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-gray-400 hover:text-green-600 transition-colors">

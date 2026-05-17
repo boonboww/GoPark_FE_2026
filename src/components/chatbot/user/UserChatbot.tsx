@@ -6,6 +6,7 @@ import {
   ChatMessageContent,
   CHAT_MESSAGE_CONTENT_STYLES,
 } from "../shared/ChatMessageContent";
+import { fixVietnameseMojibake } from "@/lib/utils";
 
 type Message = {
   role: "user" | "assistant";
@@ -212,77 +213,6 @@ function getUserLocation(): Promise<{ lat: number; lng: number } | null> {
   });
 }
 
-// Hàm khôi phục các ký tự bị lỗi () do Backend/DB làm mất byte UTF-8
-function fixVietnameseMojibake(text: string) {
-  if (!text) return text;
-  let fixed = text;
-  // CHỈ thay thế các cụm từ dài và an toàn, KHÔNG thay thế ký tự đơn lẻ
-  // để tránh làm hỏng cấu trúc JSON (như chữ 'n' trong 'null' hay 'action')
-  const replacements: Record<string, string> = {
-    // Cụm từ có chứa ký tự \ufffd ()
-    "Nguy\ufffdn Hu\ufffd": "Nguyễn Huệ",
-    "Nguy\ufffdn V\ufffdn Linh": "Nguyễn Văn Linh",
-    "\ufffdi\ufffdn Bi\ufffdn Ph\ufffd": "Điện Biên Phủ",
-    "Ph\ufffd\ufffdng H\ufffdi Ch\ufffdu": "Phường Hải Châu",
-    "H\ufffda C\ufffd\ufffdng": "Hòa Cường",
-    "Thanh Th\ufffdy": "Thanh Thủy",
-    "Thanh B\ufffdnh": "Thanh Bình",
-    "X\ufffda Kh\ufffdm \ufffd\ufffdc": "Xã Khâm Đức",
-    "Th\ufffdnh ph\ufffd": "Thành phố",
-    "H\ufffd Ch\ufffd Minh": "Hồ Chí Minh",
-    "Th\ufffdc Gi\ufffdn": "Thạc Gián",
-    "B\ufffdu H\ufffdc": "Bàu Hạc",
-    "Thanh Kh\ufffd": "Thanh Khê",
-    "\ufffd\ufffd N\ufffdng": "Đà Nẵng",
-    "Vi\ufffdt Nam": "Việt Nam",
-    "T\ufffd 4 \ufffd\ufffdn 10 ch\ufffd": "Từ 4 đến 10 chỗ",
-    "Nguy\ufffdn": "Nguyễn",
-    "Ph\ufffd\ufffdng": "Phường",
-    "Kh\ufffdm \ufffd\ufffdc": "Khâm Đức",
-    "Bi\ufffdn Ph\ufffd": "Biên Phủ",
-    "Qu\ufffdn 1": "Quận 1",
-    "B\ufffdi \ufffd\ufffd ": "Bãi đỗ ",
-    "Qu\ufffdn": "Quận",
-    "Ch\ufffd tr\ufffdng": "Chỗ trống",
-    "Gi\ufffda": "Giá",
-    "\ufffd/gi\ufffd": "đ/giờ",
-    "\ufffd/gi": "đ/gi",
-    "\ufffdnh gi\ufffda": "Đánh giá",
-
-    // Cụm từ bị mất hẳn ký tự (khoảng trắng)
-    "Nguyn Hu": "Nguyễn Huệ",
-    "Nguyn Vn Linh": "Nguyễn Văn Linh",
-    "in Bin Ph": "Điện Biên Phủ",
-    "Phng Hi Chu": "Phường Hải Châu",
-    "Ha Cng": "Hòa Cường",
-    "Thanh Thy": "Thanh Thủy",
-    "Thanh Bnh": "Thanh Bình",
-    "X Khm c": "Xã Khâm Đức",
-    "Thnh ph": "Thành phố",
-    "H Ch Minh": "Hồ Chí Minh",
-    "Thc Gin": "Thạc Gián",
-    "Bu Hc": "Bàu Hạc",
-    "Thanh Kh": "Thanh Khê",
-    " Nng": "Đà Nẵng",
-    "Vit Nam": "Việt Nam",
-    "T 4 n 10 ch": "Từ 4 đến 10 chỗ",
-    "Nguyn": "Nguyễn",
-    "Phng": "Phường",
-    "Khm c": "Khâm Đức",
-    "Bin Ph": "Biên Phủ",
-    "Qun 1": "Quận 1",
-    "Bi  ": "Bãi đỗ ",
-    "Qun": "Quận",
-    "Ch tr ng": "Chỗ trống",
-    " /giờ": "đ/giờ"
-  };
-
-  const sortedKeys = Object.keys(replacements).sort((a, b) => b.length - a.length);
-  for (const key of sortedKeys) {
-    fixed = fixed.split(key).join(replacements[key]);
-  }
-  return fixed;
-}
 
 export default function UserChatbot() {
   const [open, setOpen] = useState(false);
@@ -1035,9 +965,9 @@ export default function UserChatbot() {
           >
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, color: "#ecfccb", fontSize: 14 }}>
-                {primary.name}
+                {fixVietnameseMojibake(primary.name)}
               </div>
-              <div className="uc-parking-card-meta">{primary.address}</div>
+              <div className="uc-parking-card-meta">{fixVietnameseMojibake(primary.address)}</div>
             </div>
             {(primary.avgRating ?? 0) > 0 && (
               <div
@@ -1134,7 +1064,7 @@ export default function UserChatbot() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {lot.name}
+                      {fixVietnameseMojibake(lot.name)}
                     </td>
                     <td style={{ whiteSpace: "nowrap" }}>
                       {(lot.hourly_rate || 20000).toLocaleString("vi-VN")}đ

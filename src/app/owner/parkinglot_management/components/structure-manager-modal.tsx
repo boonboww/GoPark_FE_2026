@@ -22,6 +22,8 @@ import {
   Zap,
   Eye,
   EyeOff,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -113,6 +115,36 @@ export function StructureManagerTab({ onClose }: { onClose?: () => void }) {
       setEditingFloor(null);
     },
     onError: (err: any) => toast.error(err.message || "Lỗi cập nhật tầng"),
+  });
+
+  // Toggle floor status (Lock/Unlock) using description as marker
+  const toggleFloorStatusMut = useMutation({
+    mutationFn: ({ floor, isLocking }: { floor: any; isLocking: boolean }) => {
+      const currentDesc = floor.description || "";
+      let newDesc = currentDesc;
+
+      if (isLocking) {
+        if (!currentDesc.includes("[LOCKED]")) {
+          newDesc = `[LOCKED] ${currentDesc}`.trim();
+        }
+      } else {
+        newDesc = currentDesc.replace("[LOCKED]", "").trim();
+      }
+
+      return parkingService.updateFloor(lotId as number, floor.id, {
+        description: newDesc,
+      });
+    },
+    onSuccess: (_, variables) => {
+      toast.success(
+        variables.isLocking
+          ? "🔒 Đã khóa tầng thành công"
+          : "🔓 Đã mở khóa tầng thành công",
+      );
+      invalidate();
+    },
+    onError: (err: any) =>
+      toast.error(err.message || "Lỗi cập nhật trạng thái tầng"),
   });
 
   // Update zone + pricing
@@ -328,7 +360,7 @@ export function StructureManagerTab({ onClose }: { onClose?: () => void }) {
     setEditingFloor(floor.id);
     setFloorForm({
       floor_name: floor.floor_name,
-      description: floor.description ?? "",
+      description: (floor.description ?? "").replace("[LOCKED]", "").trim(),
     });
   };
 
@@ -516,7 +548,11 @@ export function StructureManagerTab({ onClose }: { onClose?: () => void }) {
             return (
               <div
                 key={floor.id}
-                className="bg-white rounded-2xl shadow-sm border overflow-hidden"
+                className={cn(
+                  "bg-white rounded-2xl shadow-sm border overflow-hidden transition-all duration-300",
+                  floor.description?.includes("[LOCKED]") &&
+                    "opacity-80 border-red-200 bg-red-50/20 grayscale-[0.3]",
+                )}
               >
                 {/* Floor Header */}
                 <div
@@ -544,6 +580,11 @@ export function StructureManagerTab({ onClose }: { onClose?: () => void }) {
                         chỗ đỗ
                       </p>
                     </div>
+                    {floor.description?.includes("[LOCKED]") && (
+                      <div className="ml-2 px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded-full flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> ĐANG KHÓA
+                      </div>
+                    )}
                   </div>
                   <div
                     className="flex items-center gap-2"
@@ -573,6 +614,39 @@ export function StructureManagerTab({ onClose }: { onClose?: () => void }) {
                       className="text-xs h-8 hover:bg-slate-100"
                     >
                       <Edit2 className="w-3 h-3 mr-1.5" /> Sửa tầng
+                    </Button>
+                    <Button
+                      variant={
+                        !floor.description?.includes("[LOCKED]")
+                          ? "outline"
+                          : "destructive"
+                      }
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFloorStatusMut.mutate({
+                          floor: floor,
+                          isLocking: !floor.description?.includes("[LOCKED]"),
+                        });
+                      }}
+                      disabled={toggleFloorStatusMut.isPending}
+                      className={cn(
+                        "text-xs h-8 transition-all",
+                        !floor.description?.includes("[LOCKED]")
+                          ? "text-amber-600 border-amber-200 hover:bg-amber-50"
+                          : "bg-red-500 hover:bg-red-600 text-white shadow-sm",
+                      )}
+                    >
+                      {toggleFloorStatusMut.isPending ? (
+                        <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                      ) : !floor.description?.includes("[LOCKED]") ? (
+                        <Lock className="w-3 h-3 mr-1.5" />
+                      ) : (
+                        <Unlock className="w-3 h-3 mr-1.5" />
+                      )}
+                      {!floor.description?.includes("[LOCKED]")
+                        ? "Khóa tầng"
+                        : "Mở khóa"}
                     </Button>
                     <button
                       className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 transition-colors"

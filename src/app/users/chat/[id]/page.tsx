@@ -570,7 +570,7 @@ export default function ChatRoom({ params }: { params: Promise<{ id: string }> }
                     ) : m.type === 'FILE' ? (
                       <a href={m.content} target="_blank" className="underline font-medium break-all text-green-100">Tệp đính kèm</a>
                     ) : (
-                      <p className={`whitespace-pre-wrap wrap-break-word ${m.content === '[RECALLED]' ? 'italic opacity-80' : ''}`}>
+                      <p className={`whitespace-pre-wrap break-words ${m.content === '[RECALLED]' ? 'italic opacity-80' : ''}`}>
                         {messageBody === '[RECALLED]' ? 'Tin nhắn đã được thu hồi' : messageBody}
                       </p>
                     )}

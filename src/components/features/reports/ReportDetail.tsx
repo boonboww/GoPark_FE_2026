@@ -2,6 +2,7 @@ import { Report } from "@/types/report";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportPriorityBadge, ReportStatusBadge } from "./ReportBadges";
 import { format } from "date-fns";
+import { safeFormat } from "@/lib/utils";
 
 interface ReportDetailProps {
   report: Report;
@@ -44,12 +45,12 @@ export function ReportDetail({ report }: ReportDetailProps) {
             <p className="text-sm">{report.booking_id || "N/A"}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Ngày tạo</p>
-            <p className="text-sm">{format(new Date(report.created_at), "PPp")}</p>
+            <p className="text-sm font-medium">Ngày tạo</p>
+            <p className="text-sm">{safeFormat(report.created_at, "PPp")}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">Cập nhật lần cuối</p>
-            <p className="text-sm">{format(new Date(report.updated_at), "PPp")}</p>
+            <p className="text-sm font-medium">Cập nhật lần cuối</p>
+            <p className="text-sm">{safeFormat(report.updated_at, "PPp")}</p>
           </div>
         </div>
       </CardContent>
