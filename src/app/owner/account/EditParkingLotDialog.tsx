@@ -58,10 +58,16 @@ interface EditParkingLotDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const extractTime = (isoString?: string, fallback = "06:00") => {
-  if (!isoString) return fallback;
+const extractTime = (timeStr?: string, fallback = "06:00") => {
+  if (!timeStr) return fallback;
   try {
-    const date = new Date(isoString);
+    if (timeStr.includes(':')) {
+      const parts = timeStr.split(':');
+      if (parts.length >= 2) {
+        return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+      }
+    }
+    const date = new Date(timeStr);
     if (isNaN(date.getTime())) return fallback;
     return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
   } catch {
@@ -172,8 +178,8 @@ export default function EditParkingLotDialog({
       // 2. Cập nhật thông tin & thêm ảnh mới
       return parkingService.updateParkingLot(parkingLot!.id, {
         ...values,
-        open_time: `1970-01-01T${values.open_time}:00.000Z`,
-        close_time: `1970-01-01T${values.close_time}:00.000Z`,
+        open_time: values.open_time,
+        close_time: values.close_time,
         operating_days: values.operating_days.join(","),
         images: selectedFiles.length > 0 ? selectedFiles : undefined,
       });

@@ -680,6 +680,13 @@ export function ParkingMap({
             <p className="flex items-center gap-2"><Layers className="size-4 shrink-0 text-emerald-500" /> <span>Trống: <strong className="text-emerald-600">{selectedParkingLot.available_slots || 0}</strong> / {selectedParkingLot.total_slots || 0} chỗ</span></p>
             {selectedParkingLot.open_time && (() => {
               try {
+                if (selectedParkingLot.open_time.includes(':') && selectedParkingLot.close_time.includes(':')) {
+                  const openParts = selectedParkingLot.open_time.split(':');
+                  const closeParts = selectedParkingLot.close_time.split(':');
+                  return (
+                    <p className="flex items-center gap-2"><Clock className="size-4 shrink-0 text-orange-500" /> <span>{openParts[0].padStart(2, '0')}:${openParts[1].padStart(2, '0')} - {closeParts[0].padStart(2, '0')}:${closeParts[1].padStart(2, '0')}</span></p>
+                  );
+                }
                 const opendate = new Date(selectedParkingLot.open_time);
                 const closedate = new Date(selectedParkingLot.close_time);
                 if (isNaN(opendate.getTime()) || isNaN(closedate.getTime())) return null;

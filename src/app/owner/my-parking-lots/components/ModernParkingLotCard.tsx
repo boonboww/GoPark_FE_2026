@@ -43,6 +43,10 @@ export function ModernParkingLotCard({
         const minutes = String(date.getUTCMinutes()).padStart(2, "0");
         return `${hours}:${minutes}`;
       }
+      if (timeStr.includes(":")) {
+        const parts = timeStr.split(":");
+        return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
+      }
       return timeStr;
     } catch {
       return timeStr;

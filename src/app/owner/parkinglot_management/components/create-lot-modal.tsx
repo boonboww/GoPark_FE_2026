@@ -136,8 +136,8 @@ export function CreateLotModal({
       setIsSubmitting(true);
       await parkingService.createParkingLot({
         ...values,
-        open_time: `1970-01-01T${values.open_time || "06:00"}:00.000Z`,
-        close_time: `1970-01-01T${values.close_time || "22:00"}:00.000Z`,
+        open_time: values.open_time || "06:00",
+        close_time: values.close_time || "22:00",
         operating_days: values.operating_days.join(","),
         images: selectedImages,
       });

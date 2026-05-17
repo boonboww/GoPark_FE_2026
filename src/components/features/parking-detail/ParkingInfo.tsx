@@ -70,6 +70,11 @@ export function ParkingInfo() {
   function formatTime(startTime: string, endTime: string, days: string) {
     if (!startTime || !endTime || !days) return "Chưa cập nhật";
     try {
+      if (startTime.includes(':') && endTime.includes(':')) {
+        const startParts = startTime.split(':');
+        const endParts = endTime.split(':');
+        return `${startParts[0].padStart(2, '0')}:${startParts[1].padStart(2, '0')} - ${endParts[0].padStart(2, '0')}:${endParts[1].padStart(2, '0')}`;
+      }
       const opendate = dayjs(startTime);
       const closedate = dayjs(endTime);
       if (!opendate.isValid() || !closedate.isValid()) return "Chưa cập nhật";

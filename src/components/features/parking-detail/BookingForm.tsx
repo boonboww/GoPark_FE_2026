@@ -175,6 +175,9 @@ export function BookingForm({
   //giờ mở cửa
   const openTimeStr = useMemo(() => {
     if (!dataLot?.open_time) return "00:00";
+    if (dataLot.open_time.includes(':')) {
+      return dataLot.open_time.substring(0, 5);
+    }
     const d = dayjs(dataLot.open_time);
     return d.isValid() ? d.format("HH:mm") : "00:00";
   }, [dataLot]);
@@ -182,6 +185,9 @@ export function BookingForm({
   //giờ đóng cửa
   const closeTimeStr = useMemo(() => {
     if (!dataLot?.close_time) return "23:59";
+    if (dataLot.close_time.includes(':')) {
+      return dataLot.close_time.substring(0, 5);
+    }
     const d = dayjs(dataLot.close_time);
     return d.isValid() ? d.format("HH:mm") : "23:59";
   }, [dataLot]);

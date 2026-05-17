@@ -298,6 +298,10 @@ const HeroSection = () => {
             const formatTimeUTC = (isoStr?: string) => {
               if (!isoStr) return null;
               try {
+                if (isoStr.includes(':')) {
+                  const parts = isoStr.split(':');
+                  return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
+                }
                 const date = new Date(isoStr);
                 if (isNaN(date.getTime())) return null;
                 const hours = String(date.getUTCHours()).padStart(2, "0");
