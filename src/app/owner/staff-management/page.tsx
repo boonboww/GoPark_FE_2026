@@ -171,7 +171,6 @@ export default function StaffManagementPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <SiteHeader />
         <div className="max-w-[1400px] mx-auto p-6 lg:p-8 space-y-8 w-full">
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6">
@@ -189,7 +188,10 @@ export default function StaffManagementPage() {
               onOpenChange={setIsCreateDialogOpen}
             >
               <DialogTrigger asChild>
-                <Button id="add-staff-btn" className="bg-black hover:bg-slate-800 text-white font-bold px-8 py-7 rounded-[24px] shadow-xl shadow-slate-200 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3">
+                <Button
+                  id="add-staff-btn"
+                  className="bg-black hover:bg-slate-800 text-white font-bold px-8 py-7 rounded-[24px] shadow-xl shadow-slate-200 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3"
+                >
                   <UserPlus className="w-6 h-6" />
                   Thêm nhân viên mới
                 </Button>
@@ -224,7 +226,10 @@ export default function StaffManagementPage() {
                             value={field.value}
                           >
                             <FormControl>
-                              <SelectTrigger id="staff-lot-select" className="h-12 rounded-xl bg-slate-50 border-transparent focus:ring-0">
+                              <SelectTrigger
+                                id="staff-lot-select"
+                                className="h-12 rounded-xl bg-slate-50 border-transparent focus:ring-0"
+                              >
                                 <SelectValue placeholder="Chọn bãi đỗ xe" />
                               </SelectTrigger>
                             </FormControl>
@@ -367,7 +372,10 @@ export default function StaffManagementPage() {
 
           {/* Filters and List */}
           <div className="space-y-6">
-            <div id="staff-search-filter" className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-[32px] border border-slate-100 shadow-sm">
+            <div
+              id="staff-search-filter"
+              className="flex flex-col md:flex-row gap-4 items-center bg-white p-4 rounded-[32px] border border-slate-100 shadow-sm"
+            >
               <div className="relative flex-1 w-full">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
