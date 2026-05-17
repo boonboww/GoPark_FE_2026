@@ -2,6 +2,10 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useAuthStore } from "@/stores/auth.store";
 import { API_BASE_URL } from "@/lib/api";
+import {
+  ChatMessageContent,
+  CHAT_MESSAGE_CONTENT_STYLES,
+} from "../shared/ChatMessageContent";
 
 type Message = {
   role: "user" | "assistant";
@@ -87,14 +91,18 @@ const isWakeWord = (text: string) => {
 const OWNER_API_URL = `${API_BASE_URL}/chatbot/owner/chat`;
 
 const QUICK_CHIPS = [
-  "📊 Doanh thu tuần này",
-  "📈 So sánh tháng này vs tháng trước",
-  "🏆 Bãi doanh thu cao nhất",
-  "💡 Gợi ý tăng doanh thu",
-  "📅 Doanh thu theo quý",
-  "🔍 Phân tích xu hướng",
-  "⚠️ Bãi hoạt động kém",
-  "📋 Báo cáo tổng quan",
+  "Dashboard hôm nay",
+  "Phân tích chi tiết doanh thu",
+  "Doanh thu tuần này",
+  "Doanh thu tháng này",
+  "Doanh thu quý này",
+  "So sánh tuần này với tuần trước",
+  "So sánh tháng này với tháng trước",
+  "Top 5 bãi tốt nhất",
+  "Bãi hoạt động kém",
+  "Gợi ý tăng doanh thu",
+  "Xem thông tin bãi",
+  "Báo cáo tổng quan",
 ];
 
 const WELCOME_MSG: Message = {
@@ -656,6 +664,7 @@ export default function OwnerChatbot() {
         .ow-revenue-table th { background:rgba(245,158,11,0.12); color:#fcd34d; padding:7px 8px; text-align:left; font-weight:600; }
         .ow-revenue-table td { padding:7px 8px; border-bottom:1px solid rgba(245,158,11,0.08); color:#fef3c7; }
         .ow-revenue-table tr:last-child td { border-bottom:none; }
+        ${CHAT_MESSAGE_CONTENT_STYLES}
         .ow-revenue-highlight { color:#fbbf24; font-weight:700; }
         .ow-inp-area { flex-shrink:0; padding:8px 12px 12px; border-top:1px solid rgba(245,158,11,.1); }
         .ow-inp-box { display:flex; gap:8px; align-items:flex-end; background:rgba(255,255,255,.04); border:1px solid rgba(245,158,11,.2); border-radius:16px; padding:6px 8px 6px 14px; }
@@ -966,7 +975,7 @@ export default function OwnerChatbot() {
                   <div className={`ow-bub${m.role === "user" ? " u" : " b"}`}>
                     {m.type === "revenue-chart" && m.data?.chartData ? (
                       <div>
-                        <div>{m.content}</div>
+                        <ChatMessageContent content={m.content} />
                         <div className="ow-revenue-card">
                           <div className="ow-revenue-title">
                             📊 {m.data.title || "Báo cáo doanh thu"}
@@ -1017,7 +1026,7 @@ export default function OwnerChatbot() {
                         </div>
                       </div>
                     ) : (
-                      m.content
+                      <ChatMessageContent content={m.content} />
                     )}
                   </div>
                 </div>

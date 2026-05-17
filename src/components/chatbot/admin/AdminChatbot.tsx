@@ -3,6 +3,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { API_BASE_URL } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth.store";
+import {
+  ChatMessageContent,
+  CHAT_MESSAGE_CONTENT_STYLES,
+} from "../shared/ChatMessageContent";
 
 type Message = {
   role: "user" | "assistant";
@@ -19,7 +23,7 @@ type ChatSession = {
 const WELCOME_MSG: Message = {
   role: "assistant",
   content:
-    "Xin chao Admin. Toi co the tra nhanh data he thong:\n- tong quan he thong\n- tim user theo email\n- tim bai do\n- doanh thu hom nay/thang nay\n- yeu cau cho duyet\n- hoa don chua thanh toan",
+    "Xin chào Admin. Tôi có thể tra nhanh dữ liệu hệ thống:\n- tổng quan hệ thống\n- tìm user theo email\n- tìm bãi đỗ\n- top 5 bãi nhiều chỗ trống\n- doanh thu hôm nay/tháng này\n- yêu cầu chờ duyệt\n- hóa đơn chưa thanh toán",
 };
 
 export default function AdminChatbot() {
@@ -217,11 +221,18 @@ export default function AdminChatbot() {
   }
 
   const quick = [
-    "tong quan he thong",
-    "doanh thu hom nay",
-    "doanh thu thang nay",
-    "yeu cau cho duyet",
-    "hoa don chua thanh toan",
+    "cảnh báo hệ thống",
+    "hóa đơn chưa thanh toán",
+    "tổng quan hệ thống",
+    "doanh thu hôm nay",
+    "doanh thu tháng này",
+    "yêu cầu chờ duyệt",
+    "hóa đơn chưa thanh toán",
+    "top 5 bãi giá rẻ nhất",
+    "top 5 bãi nhiều chỗ trống",
+    "top 5 bãi đánh giá cao nhất",
+    "tim user nguyendung",
+    "tìm bãi Mỹ Khê",
   ];
 
   return (
@@ -240,9 +251,10 @@ export default function AdminChatbot() {
         .ac-badge { font-size:10px; font-weight:700; color:#bfdbfe; border:1px solid rgba(96,165,250,.35); border-radius:999px; padding:3px 8px; background:rgba(37,99,235,.12); }
         .ac-btn { width:28px; height:28px; border:0; border-radius:7px; background:rgba(255,255,255,.07); color:#bfdbfe; cursor:pointer; display:flex; align-items:center; justify-content:center; }
         .ac-msgs { flex:1; overflow:auto; padding:12px; display:flex; flex-direction:column; gap:10px; }
-        .ac-msg { max-width:86%; padding:10px 12px; border-radius:14px; white-space:pre-wrap; font-size:13px; line-height:1.55; }
+        .ac-msg { max-width:96%; padding:10px 12px; border-radius:14px; white-space:pre-wrap; font-size:13px; line-height:1.55; }
         .ac-msg.a { align-self:flex-start; background:rgba(255,255,255,.06); border:1px solid rgba(96,165,250,.16); }
         .ac-msg.u { align-self:flex-end; background:#2563eb; color:#fff; }
+        ${CHAT_MESSAGE_CONTENT_STYLES}
         .ac-chips { border-top:1px solid rgba(96,165,250,.13); padding:8px 10px; display:flex; gap:6px; overflow-x:auto; }
         .ac-chip { flex-shrink:0; border:1px solid rgba(96,165,250,.28); background:rgba(37,99,235,.1); color:#bfdbfe; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer; }
         .ac-input { border-top:1px solid rgba(96,165,250,.13); padding:10px; display:flex; gap:8px; }
@@ -297,7 +309,7 @@ export default function AdminChatbot() {
             <div className="ac-msgs">
               {messages.map((message, index) => (
                 <div key={index} className={`ac-msg ${message.role === "user" ? "u" : "a"}`}>
-                  {message.content}
+                  <ChatMessageContent content={message.content} />
                 </div>
               ))}
               {loading && <div className="ac-msg a">Dang tra cuu...</div>}
