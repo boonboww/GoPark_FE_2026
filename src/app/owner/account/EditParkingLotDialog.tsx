@@ -63,7 +63,7 @@ const extractTime = (isoString?: string, fallback = "06:00") => {
   try {
     const date = new Date(isoString);
     if (isNaN(date.getTime())) return fallback;
-    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
   } catch {
     return fallback;
   }
@@ -172,8 +172,8 @@ export default function EditParkingLotDialog({
       // 2. Cập nhật thông tin & thêm ảnh mới
       return parkingService.updateParkingLot(parkingLot!.id, {
         ...values,
-        open_time: new Date(`1970-01-01T${values.open_time}:00`).toISOString(),
-        close_time: new Date(`1970-01-01T${values.close_time}:00`).toISOString(),
+        open_time: `1970-01-01T${values.open_time}:00.000Z`,
+        close_time: `1970-01-01T${values.close_time}:00.000Z`,
         operating_days: values.operating_days.join(","),
         images: selectedFiles.length > 0 ? selectedFiles : undefined,
       });

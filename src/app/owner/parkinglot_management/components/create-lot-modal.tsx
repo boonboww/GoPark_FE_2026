@@ -134,13 +134,10 @@ export function CreateLotModal({
   const onSubmit = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
-      const openDate = new Date(`1970-01-01T${values.open_time}:00`);
-      const closeDate = new Date(`1970-01-01T${values.close_time}:00`);
-      
       await parkingService.createParkingLot({
         ...values,
-        open_time: !isNaN(openDate.getTime()) ? openDate.toISOString() : new Date("1970-01-01T06:00:00").toISOString(),
-        close_time: !isNaN(closeDate.getTime()) ? closeDate.toISOString() : new Date("1970-01-01T22:00:00").toISOString(),
+        open_time: `1970-01-01T${values.open_time || "06:00"}:00.000Z`,
+        close_time: `1970-01-01T${values.close_time || "22:00"}:00.000Z`,
         operating_days: values.operating_days.join(","),
         images: selectedImages,
       });

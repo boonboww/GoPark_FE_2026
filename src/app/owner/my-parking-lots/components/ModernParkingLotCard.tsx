@@ -38,11 +38,10 @@ export function ModernParkingLotCard({
     try {
       if (timeStr.includes("T")) {
         const date = new Date(timeStr);
-        return date.toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false
-        });
+        if (isNaN(date.getTime())) return timeStr;
+        const hours = String(date.getUTCHours()).padStart(2, "0");
+        const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+        return `${hours}:${minutes}`;
       }
       return timeStr;
     } catch {

@@ -295,9 +295,21 @@ const HeroSection = () => {
 
         if (data.length > 0) {
           const mappedParkings = data.map((lot: Record<string, any>) => {
-            const openTimeStr = lot.open_time ? new Date(lot.open_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : null;
-            const closeTimeStr = lot.close_time ? new Date(lot.close_time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : null;
-            const formattedTimeOpen = openTimeStr && closeTimeStr && openTimeStr !== "Invalid Date" ? `${openTimeStr} - ${closeTimeStr}` : "24/7";
+            const formatTimeUTC = (isoStr?: string) => {
+              if (!isoStr) return null;
+              try {
+                const date = new Date(isoStr);
+                if (isNaN(date.getTime())) return null;
+                const hours = String(date.getUTCHours()).padStart(2, "0");
+                const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+                return `${hours}:${minutes}`;
+              } catch {
+                return null;
+              }
+            };
+            const openTimeStr = formatTimeUTC(lot.open_time);
+            const closeTimeStr = formatTimeUTC(lot.close_time);
+            const formattedTimeOpen = openTimeStr && closeTimeStr ? `${openTimeStr} - ${closeTimeStr}` : "24/7";
 
             return {
               id: lot.id,

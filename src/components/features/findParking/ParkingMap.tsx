@@ -615,9 +615,20 @@ export function ParkingMap({
           <div className="space-y-1.5 text-sm mb-4 text-muted-foreground">
             <p className="flex items-center gap-2"><MapPin className="size-4 shrink-0 text-indigo-500" /> <span className="line-clamp-2">{fixVietnameseMojibake(selectedParkingLot.address)}</span></p>
             <p className="flex items-center gap-2"><Layers className="size-4 shrink-0 text-emerald-500" /> <span>Trống: <strong className="text-emerald-600">{selectedParkingLot.available_slots || 0}</strong> / {selectedParkingLot.total_slots || 0} chỗ</span></p>
-            {selectedParkingLot.open_time && (
-              <p className="flex items-center gap-2"><Clock className="size-4 shrink-0 text-orange-500" /> <span>{new Date(selectedParkingLot.open_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedParkingLot.close_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></p>
-            )}
+            {selectedParkingLot.open_time && (() => {
+              try {
+                const opendate = new Date(selectedParkingLot.open_time);
+                const closedate = new Date(selectedParkingLot.close_time);
+                if (isNaN(opendate.getTime()) || isNaN(closedate.getTime())) return null;
+                const openTime = `${String(opendate.getUTCHours()).padStart(2, '0')}:${String(opendate.getUTCMinutes()).padStart(2, '0')}`;
+                const closeTime = `${String(closedate.getUTCHours()).padStart(2, '0')}:${String(closedate.getUTCMinutes()).padStart(2, '0')}`;
+                return (
+                  <p className="flex items-center gap-2"><Clock className="size-4 shrink-0 text-orange-500" /> <span>{openTime} - {closeTime}</span></p>
+                );
+              } catch {
+                return null;
+              }
+            })()}
             {(selectedParkingLot.minprice || selectedParkingLot.minPrice) && (
               <p className="flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-500 shrink-0"><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /></svg>

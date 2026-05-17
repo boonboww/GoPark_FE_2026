@@ -68,11 +68,16 @@ export function ParkingInfo() {
 
   function formatTime(startTime: string, endTime: string, days: string) {
     if (!startTime || !endTime || !days) return "Chưa cập nhật";
-    const opendate = new Date(startTime);
-    const closedate = new Date(endTime);
-    const openTime = opendate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
-    const closeTime = closedate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
-    return `${openTime} - ${closeTime}`;
+    try {
+      const opendate = new Date(startTime);
+      const closedate = new Date(endTime);
+      if (isNaN(opendate.getTime()) || isNaN(closedate.getTime())) return "Chưa cập nhật";
+      const openTime = `${String(opendate.getUTCHours()).padStart(2, '0')}:${String(opendate.getUTCMinutes()).padStart(2, '0')}`;
+      const closeTime = `${String(closedate.getUTCHours()).padStart(2, '0')}:${String(closedate.getUTCMinutes()).padStart(2, '0')}`;
+      return `${openTime} - ${closeTime}`;
+    } catch {
+      return "Chưa cập nhật";
+    }
   }
 
 

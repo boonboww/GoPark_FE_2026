@@ -23,16 +23,30 @@ export function getStaffLotId(email: string | undefined): number | null {
  */
 export function formatTimeDisplay(timeStr?: any): string {
   if (!timeStr) return "N/A";
-  if (typeof timeStr !== 'string') {
-    return dayjs(timeStr).format("HH:mm");
-  }
-  if (timeStr.includes(":") && timeStr.length <= 8) {
+  try {
+    if (typeof timeStr === 'string' && timeStr.includes("T")) {
+      const date = new Date(timeStr);
+      if (!isNaN(date.getTime()) && (date.getUTCFullYear() === 1970 || date.getUTCFullYear() === 1969)) {
+        const hours = String(date.getUTCHours()).padStart(2, "0");
+        const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+        return `${hours}:${minutes}`;
+      }
+    }
+    const d = dayjs(timeStr);
+    if (d.isValid()) {
+      const date = d.toDate();
+      if (date.getUTCFullYear() === 1970 || date.getUTCFullYear() === 1969) {
+        const hours = String(date.getUTCHours()).padStart(2, "0");
+        const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+        return `${hours}:${minutes}`;
+      }
+      return d.format("HH:mm");
+    }
+  } catch (e) {}
+  
+  if (typeof timeStr === 'string' && timeStr.includes(":") && timeStr.length <= 8) {
     return timeStr.substring(0, 5);
   }
-  try {
-    const d = dayjs(timeStr);
-    if (d.isValid()) return d.format("HH:mm");
-  } catch (e) {}
   return "N/A";
 }
 
@@ -42,19 +56,37 @@ export function formatTimeDisplay(timeStr?: any): string {
 export function parseParkingTime(timeStr: any, defaultTime: string = "00:00"): string {
   if (!timeStr) return defaultTime;
   
-  // Nếu là Date object (từ timestamp)
-  const d = dayjs(timeStr);
-  if (d.isValid() && typeof timeStr !== 'string') {
-    return d.format("HH:mm");
-  }
+  try {
+    const s = String(timeStr).trim();
+    if (s.includes("T")) {
+      const date = new Date(s);
+      if (!isNaN(date.getTime()) && (date.getUTCFullYear() === 1970 || date.getUTCFullYear() === 1969)) {
+        const hours = String(date.getUTCHours()).padStart(2, "0");
+        const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+        return `${hours}:${minutes}`;
+      }
+    }
+    
+    // Nếu là Date object (từ timestamp)
+    const d = dayjs(timeStr);
+    if (d.isValid() && typeof timeStr !== 'string') {
+      const date = d.toDate();
+      if (date.getUTCFullYear() === 1970 || date.getUTCFullYear() === 1969) {
+        const hours = String(date.getUTCHours()).padStart(2, "0");
+        const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+        return `${hours}:${minutes}`;
+      }
+      return d.format("HH:mm");
+    }
 
-  const s = String(timeStr).trim();
-  if (s.includes(":")) {
-    const parts = s.split(":");
-    return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
-  }
+    if (s.includes(":")) {
+      const parts = s.split(":");
+      return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+    }
 
-  if (d.isValid()) return d.format("HH:mm");
+    if (d.isValid()) return d.format("HH:mm");
+  } catch (e) {}
+  
   return defaultTime;
 }
 
