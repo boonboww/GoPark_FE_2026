@@ -604,7 +604,7 @@ export default function OwnerChatbot() {
 
   const voiceStateLabel: Record<VoiceState, string> = {
     idle: "",
-    "wake-listening": '🎙️ Đang chờ "Hey GoPark"...',
+    "wake-listening": "Đang chờ lệnh thoại...",
     prompted: "🤖 Bạn muốn hỏi gì?",
     "question-listening": "👂 Đang nghe câu hỏi...",
     speaking: "🔊 Đang trả lời...",
@@ -710,12 +710,6 @@ export default function OwnerChatbot() {
       `}</style>
 
       <div className="ow">
-        {wakeBanner && (
-          <div className="ow-wake-banner" role="status" aria-live="polite">
-            <div className="ow-wake-title">Hey GoPark</div>
-            <div className="ow-wake-sub">Tôi đang nghe câu hỏi của bạn</div>
-          </div>
-        )}
         {open && (
           <div
             className="ow-panel"
@@ -804,7 +798,7 @@ export default function OwnerChatbot() {
                     </svg>
                   </div>
                   <div>
-                    <div className="ow-bname">GoPark Analytics</div>
+                    <div className="ow-bname">GoPark Assistant</div>
                     <div className="ow-bsub">
                       {user?.profile?.name
                         ? `Chào, ${user.profile.name}`
@@ -813,7 +807,7 @@ export default function OwnerChatbot() {
                   </div>
                 </div>
                 <div className="ow-acts">
-                  <span className="ow-role-badge">🏢 OWNER</span>
+                  <span className="ow-role-badge">OWNER</span>
                   <div className="ow-pill">
                     <div
                       className="ow-dot"

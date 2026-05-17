@@ -238,7 +238,8 @@ export default function AdminChatbot() {
   return (
     <>
       <style>{`
-        .ac * { box-sizing:border-box; font-family:Inter, Arial, sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+        .ac * { box-sizing:border-box; font-family:'Be Vietnam Pro', Inter, Arial, sans-serif; }
         .ac-panel { position:fixed; right:24px; bottom:24px; width:460px; height:660px; background:#08111f; color:#e5f0ff; border:1px solid rgba(96,165,250,.25); border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,.55); z-index:100010; display:flex; flex-direction:column; overflow:hidden; }
         .ac-resize { position:absolute; top:0; left:0; width:18px; height:18px; cursor:nw-resize; z-index:2; }
         .ac-resize:after { content:""; position:absolute; top:5px; left:5px; width:8px; height:8px; border-top:2px solid rgba(147,197,253,.65); border-left:2px solid rgba(147,197,253,.65); border-radius:2px; }
@@ -292,8 +293,8 @@ export default function AdminChatbot() {
             <div className="ac-hdr">
               <div className="ac-row">
                 <div className="ac-brand">
-                  <div className="ac-name">GoPark Admin AI</div>
-                  <div className="ac-sub">{user?.email || "Tra cuu du lieu he thong"}</div>
+                  <div className="ac-name">GoPark Assistant</div>
+                  <div className="ac-sub">{user?.email || "Tra cứu dữ liệu hệ thống"}</div>
                 </div>
                 <div className="ac-actions">
                   <span className="ac-badge">ADMIN</span>

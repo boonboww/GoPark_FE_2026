@@ -5,7 +5,13 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ParkingContext } from "./ParkingContext";
 
-function ParkingProvider({children} : {children : React.ReactNode}) {
+function ParkingProvider({
+    children,
+    defaultSlotId,
+} : {
+    children : React.ReactNode;
+    defaultSlotId?: string;
+}) {
 
     const [dataLot,setDataLot] = useState<any>({});
     const [loadingLot,setLoadingLot] = useState(true);
@@ -25,6 +31,25 @@ function ParkingProvider({children} : {children : React.ReactNode}) {
             setLoadingLot(false);
         })
     },[parkingLotId])
+
+    useEffect(() => {
+        if (!defaultSlotId || !dataLot?.parkingFloor?.length) return;
+
+        for (const floor of dataLot.parkingFloor) {
+            for (const zone of floor.parkingZones || []) {
+                const slot = (zone.slot || []).find((item: any) => String(item.id) === String(defaultSlotId));
+                if (slot) {
+                    setSelectedSpot({
+                        floorName: floor.floor_name,
+                        zoneName: zone.zone_name,
+                        zoneId: zone.id,
+                        slot,
+                    });
+                    return;
+                }
+            }
+        }
+    }, [dataLot, defaultSlotId])
 
     return(
         <ParkingContext.Provider value={{dataLot,setDataLot,loadingLot,

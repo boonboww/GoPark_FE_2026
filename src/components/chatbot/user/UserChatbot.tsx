@@ -740,7 +740,12 @@ export default function UserChatbot() {
         } else if (missing.includes('thoi gian vao/ra') && suggestions.timeExamples?.length) {
           newChips.push(...suggestions.timeExamples);
         } else if (missing.includes('vi tri do') && suggestions.slots?.length) {
-          newChips.push(...suggestions.slots.map((slot: any) => slot.label || slot.code).filter(Boolean));
+          newChips.push(
+            ...suggestions.slots
+              .filter((slot: any) => slot.available !== false)
+              .map((slot: any) => slot.code ? `${slot.label || "vi tri"} (${slot.code})` : slot.label)
+              .filter(Boolean),
+          );
         } else if (missing.includes('xe hoac bien so') && suggestions.vehicles?.length) {
           newChips.push(...suggestions.vehicles.map((v: any) => v.label));
         } else if (missing.includes('phuong thuc thanh toan') && suggestions.payments?.length) {
@@ -855,7 +860,12 @@ export default function UserChatbot() {
         } else if (missing.includes('thoi gian vao/ra') && suggestions.timeExamples?.length) {
           newChips.push(...suggestions.timeExamples);
         } else if (missing.includes('vi tri do') && suggestions.slots?.length) {
-          newChips.push(...suggestions.slots.map((slot: any) => slot.label || slot.code).filter(Boolean));
+          newChips.push(
+            ...suggestions.slots
+              .filter((slot: any) => slot.available !== false)
+              .map((slot: any) => slot.code ? `${slot.label || "vi tri"} (${slot.code})` : slot.label)
+              .filter(Boolean),
+          );
         } else if (missing.includes('xe hoac bien so') && suggestions.vehicles?.length) {
           newChips.push(...suggestions.vehicles.map((v: any) => v.label));
         } else if (missing.includes('phuong thuc thanh toan') && suggestions.payments?.length) {

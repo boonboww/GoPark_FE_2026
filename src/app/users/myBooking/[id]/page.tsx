@@ -19,12 +19,13 @@ const MyBooking = () => {
   const endTime = searchParams.get("end") ?? undefined;
   const vehicleId = searchParams.get("vehicle") ?? undefined;
   const paymentMethod = searchParams.get("payment") ?? undefined;
+  const slotId = searchParams.get("slot") ?? undefined;
 
   return (
     <>
       <Header />
 
-      <ParkingProvider>
+      <ParkingProvider defaultSlotId={slotId}>
         <div className="min-h-screen bg-gray-50/80 dark:bg-gray-900/50 pb-16 font-sans">
           {/* 1. Tiêu đề & Breadcrumb - Định hướng rõ ràng người dùng đang ở bước cuối */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
