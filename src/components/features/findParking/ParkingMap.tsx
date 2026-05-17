@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { Map, MapControls, useMap, MapMarker, MarkerContent, MapRoute, MapTrafficRoute, MapArea, MarkerLabel, MapRef, MapPopup } from "@/components/ui/map";
 import { Button } from "@/components/ui/button";
 import { RotateCcw, Mountain, LocateFixed, Layers, Route, Clock, Loader2, MapPin } from "lucide-react";
@@ -199,7 +199,58 @@ export function ParkingMap({
   const mapRef = useRef<MapRef>(null);
   const [mapStyle, setMapStyle] = useState<StyleKey>("default");
   const [showTraffic, setShowTraffic] = useState(false);
-  const [trafficPopup, setTrafficPopup] = useState<{ congestion: string, point: [number, number] } | null>(null);
+  const [trafficPopup, setTrafficPopup] = useState<{ congestion: string, point: [number, number], streetName?: string } | null>(null);
+
+  const handleTrafficSegmentClick = useCallback(async (congestion: string, point: [number, number]) => {
+    setTrafficPopup({ congestion, point, streetName: "Đang tải..." });
+    try {
+      // 1. Thử sử dụng OpenStreetMap Nominatim (Free, hỗ trợ tên đường tiếng Việt rất tốt, không giới hạn Key)
+      const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${point[1]}&lon=${point[0]}&zoom=18&addressdetails=1&accept-language=vi`;
+      const response = await fetch(nominatimUrl, {
+        headers: {
+          "User-Agent": "GoPark-App/1.0"
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.address) {
+          const addr = data.address;
+          let street = addr.road || addr.pedestrian || addr.suburb || addr.neighbourhood;
+          if (!street && data.display_name) {
+            const parts = data.display_name.split(',');
+            street = parts[0]?.trim();
+            // Nếu phần tử đầu tiên trùng với tên cơ sở/tiện ích thì lấy phần tử tiếp theo làm tên đường
+            if (street === addr.amenity && parts.length > 1) {
+              street = parts[1]?.trim();
+            }
+          }
+          if (street) {
+            setTrafficPopup({ congestion, point, streetName: street });
+            return;
+          }
+        }
+      }
+
+      // 2. Fallback sang TomTom Reverse Geocode nếu Nominatim thất bại hoặc không có dữ liệu
+      const tomtomKey = "3icfNeKskIEkZryzyj4d1hUUvG6hllOg";
+      const tomtomResponse = await fetch(`https://api.tomtom.com/search/2/reverseGeocode/${point[1]},${point[0]}.json?key=${tomtomKey}`);
+      if (tomtomResponse.ok) {
+        const tomtomData = await tomtomResponse.json();
+        if (tomtomData.addresses && tomtomData.addresses.length > 0) {
+          const addr = tomtomData.addresses[0].address;
+          const street = addr.streetName || addr.freeformAddress || "Đường không xác định";
+          setTrafficPopup({ congestion, point, streetName: street });
+          return;
+        }
+      }
+      
+      setTrafficPopup({ congestion, point, streetName: "Đường không xác định" });
+    } catch (error) {
+      console.error("Geocoding error:", error);
+      setTrafficPopup({ congestion, point, streetName: "Đường không xác định" });
+    }
+  }, []);
   const selectedStyleUrl = mapStyles[mapStyle];
   const is3D = mapStyle === "openstreetmap3d";
 
@@ -320,15 +371,9 @@ export function ParkingMap({
     async function fetchRoutes() {
       setIsLoadingRoute(true);
       try {
-        // Kiểm tra nếu có Mapbox Token để lấy dữ liệu kẹt xe (Traffic-aware)
-        // Nếu không có, fallback về OSRM mặc định
-        const mapboxToken = (window as any).mapboxgl?.accessToken || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-        
-        let url = `https://router.project-osrm.org/route/v1/driving/${myLocation![0]},${myLocation![1]};${destination!.lng},${destination!.lat}?overview=full&geometries=geojson&alternatives=true`;
-        
-        if (mapboxToken) {
-          url = `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/${myLocation![0]},${myLocation![1]};${destination!.lng},${destination!.lat}?overview=full&geometries=geojson&alternatives=true&annotations=congestion,duration,distance&access_token=${mapboxToken}`;
-        }
+        const tomtomKey = "3icfNeKskIEkZryzyj4d1hUUvG6hllOg"; // api key tomtom
+        // Sử dụng TomTom Routing API với traffic=true và sectionType=traffic để lấy dữ liệu kẹt xe thật
+        const url = `https://api.tomtom.com/routing/1/calculateRoute/${myLocation![1]},${myLocation![0]}:${destination!.lat},${destination!.lng}/json?key=${tomtomKey}&traffic=true&sectionType=traffic&maxAlternatives=2`;
 
         const response = await fetch(url);
         const data = await response.json();
@@ -336,21 +381,34 @@ export function ParkingMap({
         if (data.routes?.length > 0) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const routeData: RouteData[] = data.routes.map((route: any) => {
-            // MÔ PHỎNG KẸT XE: Tạo dữ liệu ngẫu nhiên nếu không có dữ liệu thật từ API
-            let congestionData = route.annotation?.congestion;
-            if (!congestionData) {
-              const levels = ['low', 'low', 'low', 'moderate', 'heavy', 'severe'];
-              congestionData = Array.from({ length: route.geometry.coordinates.length - 1 }, () => 
-                levels[Math.floor(Math.random() * levels.length)]
-              );
+            const leg = route.legs[0];
+            const coordinates = leg.points.map((p: any) => [p.longitude, p.latitude]);
+            const duration = route.summary.travelTimeInSeconds;
+            const distance = route.summary.lengthInMeters;
+
+            // Build congestion array from TomTom's sections
+            const congestion: string[] = Array(coordinates.length - 1).fill('low');
+
+            if (route.sections) {
+              route.sections.forEach((sec: any) => {
+                if (sec.sectionType === 'TRAFFIC') {
+                  const level = sec.magnitudeOfDelay; // 0 = Free flow, 1 = Unknown, 2 = Minor, 3 = Moderate, 4 = Major
+                  let cong = 'low';
+                  if (level === 2) cong = 'moderate';
+                  if (level === 3) cong = 'heavy';
+                  if (level === 4) cong = 'severe';
+
+                  // Áp dụng màu kẹt xe cho các đoạn (segment) tương ứng
+                  for (let i = sec.startPointIndex; i < sec.endPointIndex; i++) {
+                    if (i < congestion.length) {
+                      congestion[i] = cong;
+                    }
+                  }
+                }
+              });
             }
 
-            return {
-              coordinates: route.geometry.coordinates,
-              duration: route.duration,
-              distance: route.distance,
-              congestion: congestionData,
-            };
+            return { coordinates, duration, distance, congestion };
           });
           setRoutes(routeData);
           setSelectedIndex(0);
@@ -422,10 +480,10 @@ export function ParkingMap({
       >
         {!compact && (
           <>
-            <MapController 
-              mapStyle={mapStyle} 
-              onStyleChange={setMapStyle} 
-              myLocation={myLocation} 
+            <MapController
+              mapStyle={mapStyle}
+              onStyleChange={setMapStyle}
+              myLocation={myLocation}
               setMyLocation={setMyLocation}
               showTraffic={showTraffic}
               setShowTraffic={setShowTraffic}
@@ -489,7 +547,7 @@ export function ParkingMap({
               >
                 <Layers className="text-white size-4" />
               </div>
-               <MarkerLabel position="bottom" className={`font-semibold bg-background/95 backdrop-blur-sm px-2 py-1 rounded-lg border shadow-md w-max break-words max-w-[150px] text-center mt-2 ${selectedParkingLot?.id === lot.id ? 'text-indigo-600 border-indigo-200 z-50' : 'z-10'}`}>
+              <MarkerLabel position="bottom" className={`font-semibold bg-background/95 backdrop-blur-sm px-2 py-1 rounded-lg border shadow-md w-max break-words max-w-[150px] text-center mt-2 ${selectedParkingLot?.id === lot.id ? 'text-indigo-600 border-indigo-200 z-50' : 'z-10'}`}>
                 <div>{fixVietnameseMojibake(lot.name)}</div>
                 {lot.distanceKm !== undefined && lot.distanceKm !== null ? (
                   <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black opacity-100">{formatDistance(lot.distanceKm * 1000)}</div>
@@ -514,7 +572,7 @@ export function ParkingMap({
                 coordinates={route.coordinates}
                 congestion={route.congestion}
                 width={8}
-                onSegmentClick={(congestion, point) => setTrafficPopup({ congestion, point })}
+                onSegmentClick={handleTrafficSegmentClick}
               />
             );
           }
@@ -536,7 +594,7 @@ export function ParkingMap({
               coordinates={directionRoute.coordinates}
               congestion={directionRoute.congestion}
               width={6}
-              onSegmentClick={(congestion, point) => setTrafficPopup({ congestion, point })}
+              onSegmentClick={handleTrafficSegmentClick}
             />
           ) : (
             <MapRoute
@@ -554,36 +612,41 @@ export function ParkingMap({
             longitude={trafficPopup.point[0]}
             latitude={trafficPopup.point[1]}
             onClose={() => setTrafficPopup(null)}
+            closeButton={true}
             className="z-50"
           >
             <div className="p-1 min-w-[150px]">
               <div className="flex items-center gap-2 mb-2">
-                <div className={`size-3 rounded-full ${
-                  trafficPopup.congestion === 'severe' ? 'bg-red-600 animate-pulse' : 
-                  trafficPopup.congestion === 'heavy' ? 'bg-orange-500' : 
-                  trafficPopup.congestion === 'moderate' ? 'bg-yellow-500' : 'bg-green-500'
-                }`} />
+                <div className={`size-3 rounded-full ${trafficPopup.congestion === 'severe' ? 'bg-red-600 animate-pulse' :
+                  trafficPopup.congestion === 'heavy' ? 'bg-orange-500' :
+                    trafficPopup.congestion === 'moderate' ? 'bg-yellow-500' : 'bg-green-500'
+                  }`} />
                 <span className="font-bold text-sm uppercase">
-                  {trafficPopup.congestion === 'severe' ? 'Kẹt xe nghiêm trọng' : 
-                   trafficPopup.congestion === 'heavy' ? 'Kẹt xe nặng' : 
-                   trafficPopup.congestion === 'moderate' ? 'Mật độ đông' : 'Thông thoáng'}
+                  {trafficPopup.congestion === 'severe' ? 'Kẹt xe nghiêm trọng' :
+                    trafficPopup.congestion === 'heavy' ? 'Kẹt xe nặng' :
+                      trafficPopup.congestion === 'moderate' ? 'Mật độ đông' : 'Thông thoáng'}
                 </span>
               </div>
               <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between">
+                {trafficPopup.streetName && (
+                  <div className="pb-1 border-b font-bold text-indigo-600 dark:text-indigo-400 text-xs">
+                    📍 {trafficPopup.streetName}
+                  </div>
+                )}
+                <div className="flex justify-between pt-1">
                   <span className="text-muted-foreground">Mật độ:</span>
                   <span className="font-bold">
-                    {trafficPopup.congestion === 'severe' ? '95%' : 
-                     trafficPopup.congestion === 'heavy' ? '80%' : 
-                     trafficPopup.congestion === 'moderate' ? '60%' : '20%'}
+                    {trafficPopup.congestion === 'severe' ? '95%' :
+                      trafficPopup.congestion === 'heavy' ? '80%' :
+                        trafficPopup.congestion === 'moderate' ? '60%' : '20%'}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tốc độ TB:</span>
                   <span className="font-bold text-red-600">
-                    {trafficPopup.congestion === 'severe' ? '5 km/h' : 
-                     trafficPopup.congestion === 'heavy' ? '15 km/h' : 
-                     trafficPopup.congestion === 'moderate' ? '30 km/h' : '50 km/h'}
+                    {trafficPopup.congestion === 'severe' ? '5 km/h' :
+                      trafficPopup.congestion === 'heavy' ? '15 km/h' :
+                        trafficPopup.congestion === 'moderate' ? '30 km/h' : '50 km/h'}
                   </span>
                 </div>
                 <div className="pt-1 mt-1 border-t text-[10px] italic text-muted-foreground">
@@ -687,76 +750,53 @@ export function ParkingMap({
   )
 }
 
-// Component helper để quản lý layer kẹt xe (Traffic) sử dụng Mapbox Tiles
+// Component helper để quản lý layer kẹt xe (Traffic) sử dụng TomTom Raster Tiles
 function TrafficLayerManager({ visible }: { visible: boolean }) {
   const { map, isLoaded } = useMap();
-  
+
   useEffect(() => {
     if (!isLoaded || !map) return;
 
-    const sourceId = 'mapbox-traffic';
-    const trafficLayers = [
-      'traffic-low',
-      'traffic-moderate',
-      'traffic-heavy',
-      'traffic-severe'
-    ];
+    const sourceId = 'tomtom-traffic-source';
+    const layerId = 'tomtom-traffic-layer';
 
     if (visible) {
-      // Thêm source Mapbox Traffic nếu chưa có
-      // LƯU Ý: Cần Mapbox Access Token. Nếu không có token, bỏ qua để tránh lỗi "Failed to fetch"
-      const mapboxToken = (window as any).mapboxgl?.accessToken || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-
-      if (mapboxToken && !map.getSource(sourceId)) {
+      if (!map.getSource(sourceId)) {
         try {
           map.addSource(sourceId, {
-            type: 'vector',
-            url: 'mapbox://mapbox.mapbox-traffic-v1'
+            type: 'raster',
+            tiles: [
+              'https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=3icfNeKskIEkZryzyj4d1hUUvG6hllOg'
+            ],
+            tileSize: 256
           });
         } catch (e) {
-          console.error("Lỗi khi thêm Mapbox Traffic source:", e);
+          console.error("Lỗi khi thêm TomTom Traffic source:", e);
         }
       }
 
-      // CHỈ thêm các layers nếu source đã tồn tại thành công
       if (map.getSource(sourceId)) {
-        const layers = [
-          { id: 'traffic-low', color: '#2ecc71', filter: ['==', 'congestion', 'low'] },
-          { id: 'traffic-moderate', color: '#f1c40f', filter: ['==', 'congestion', 'moderate'] },
-          { id: 'traffic-heavy', color: '#e67e22', filter: ['==', 'congestion', 'heavy'] },
-          { id: 'traffic-severe', color: '#e74c3c', filter: ['==', 'congestion', 'severe'] }
-        ];
-
-        layers.forEach(layer => {
-          if (!map.getLayer(layer.id)) {
-            map.addLayer({
-              id: layer.id,
-              type: 'line',
-              source: sourceId,
-              'source-layer': 'traffic',
-              filter: layer.filter as any,
-              paint: {
-                'line-color': layer.color,
-                'line-width': 3,
-                'line-opacity': 0.8
-              }
-            });
-          } else {
-            map.setLayoutProperty(layer.id, 'visibility', 'visible');
-          }
-        });
+        if (!map.getLayer(layerId)) {
+          map.addLayer({
+            id: layerId,
+            type: 'raster',
+            source: sourceId,
+            paint: {
+              'raster-opacity': 0.8
+            }
+          });
+        } else {
+          map.setLayoutProperty(layerId, 'visibility', 'visible');
+        }
       }
     } else {
-      // Ẩn các layer traffic
-      trafficLayers.forEach(layerId => {
-        if (map.getLayer(layerId)) {
-          map.setLayoutProperty(layerId, 'visibility', 'none');
-        }
-      });
+      if (map.getLayer(layerId)) {
+        map.setLayoutProperty(layerId, 'visibility', 'none');
+      }
     }
 
     return () => {
-      // Cleanup nếu cần
+      // Cleanup không bắt buộc
     };
   }, [map, isLoaded, visible]);
 
