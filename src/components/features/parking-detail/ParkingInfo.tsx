@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatOperatingDays, fixVietnameseMojibake } from "@/lib/utils";
+import dayjs from "dayjs";
 import {
   Dialog,
   DialogContent,
@@ -69,17 +70,14 @@ export function ParkingInfo() {
   function formatTime(startTime: string, endTime: string, days: string) {
     if (!startTime || !endTime || !days) return "Chưa cập nhật";
     try {
-      const opendate = new Date(startTime);
-      const closedate = new Date(endTime);
-      if (isNaN(opendate.getTime()) || isNaN(closedate.getTime())) return "Chưa cập nhật";
-      const openTime = `${String(opendate.getUTCHours()).padStart(2, '0')}:${String(opendate.getUTCMinutes()).padStart(2, '0')}`;
-      const closeTime = `${String(closedate.getUTCHours()).padStart(2, '0')}:${String(closedate.getUTCMinutes()).padStart(2, '0')}`;
-      return `${openTime} - ${closeTime}`;
+      const opendate = dayjs(startTime);
+      const closedate = dayjs(endTime);
+      if (!opendate.isValid() || !closedate.isValid()) return "Chưa cập nhật";
+      return `${opendate.format("HH:mm")} - ${closedate.format("HH:mm")}`;
     } catch {
       return "Chưa cập nhật";
     }
   }
-
 
   const handleBooking = () => {
     router.push(`/users/myBooking/${dataLot.id}`);

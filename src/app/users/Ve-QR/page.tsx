@@ -30,8 +30,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Header from "@/components/layout/Header";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuthStore } from "@/stores/auth.store";
-import { get } from "@/lib/api";
+import { get, del } from "@/lib/api";
 import { ExtendBookingModal } from "@/components/features/parking-detail/ExtendBookingModal";
+import { CancelDialogs } from "./CancelDialogs";
 import dayjs from "dayjs";
 
 // Shadcn UI Components
@@ -88,10 +89,44 @@ export default function VeQRPage() {
   const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
   const [bookingToExtend, setBookingToExtend] = useState<Booking | null>(null);
 
+  // Dialog States
+  const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: 'info'
+  });
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlertConfig({ isOpen: true, title, message, type });
+  };
+
   const handleOpenExtend = (booking: Booking) => {
     console.log("Dữ liệu chuẩn bị gán vào state:", booking);
     setBookingToExtend(booking);
     setIsExtendModalOpen(true);
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    try {
+      setLoading(true);
+      await del(`/booking/${bookingId}`);
+      showAlert("Hủy vé thành công", "Lượt đặt chỗ của bạn đã được hủy. Tiền vé đã được hoàn trả đầy đủ vào ví của bạn!", "success");
+      await getListBookingMyQR();
+      setActiveBooking(null);
+    } catch (err: any) {
+      console.error("Lỗi hủy vé:", err);
+      showAlert("Hủy vé thất bại", err.message || "Hủy vé thất bại. Vui lòng thử lại!", "error");
+    } finally {
+      setLoading(false);
+      setCancelBookingId(null);
+    }
   };
 
   const getListBookingMyQR = async () => {
@@ -415,6 +450,24 @@ export default function VeQRPage() {
                         <Plus className={`w-6 h-6 transition-transform ${activeBooking ? "group-hover:rotate-90" : ""}`} />
                         GIA HẠN THÊM
                       </Button>
+
+                      <Button
+                        onClick={() => activeBooking && setCancelBookingId(activeBooking.id)}
+                        disabled={!activeBooking || activeBooking.status !== "CONFIRMED"}
+                        style={{
+                          backgroundColor: (activeBooking && activeBooking.status === "CONFIRMED") ? "#FFF5F5" : undefined,
+                          color: (activeBooking && activeBooking.status === "CONFIRMED") ? "#E53E3E" : undefined,
+                          borderColor: (activeBooking && activeBooking.status === "CONFIRMED") ? "#FED7D7" : "transparent"
+                        }}
+                        className={`w-full mt-4 py-9 rounded-2xl font-black uppercase tracking-[0.2em] text-sm shadow-xl transition-all flex items-center justify-center gap-4 group border-2
+                          ${activeBooking && activeBooking.status === "CONFIRMED"
+                            ? "hover:bg-red-100 hover:border-red-300 shadow-lg hover:-translate-y-1 active:scale-[0.98]"
+                            : "bg-[#E5E7EB] dark:bg-[#374151] text-zinc-400 shadow-none cursor-not-allowed"
+                          }`}
+                      >
+                        <Ticket className={`w-6 h-6 transition-transform`} />
+                        HỦY VÉ
+                      </Button>
                     </div>
                   </div>
 
@@ -595,7 +648,8 @@ export default function VeQRPage() {
                           </Badge>
                           <span className="text-[10px] font-bold  uppercase tracking-widest">
                             {booking.status === 'COMPLETED' ? 'CHECK-OUT' :
-                              booking.status === 'CONFIRMED' ? 'CHƯA CHECK-IN' : 'CHECK-IN'}
+                              booking.status === 'CANCELLED' ? 'ĐÃ HỦY' :
+                                booking.status === 'CONFIRMED' ? 'CHƯA CHECK-IN' : 'CHECK-IN'}
                           </span>
                         </div>
                       </TableCell>
@@ -641,6 +695,16 @@ export default function VeQRPage() {
         isOpen={isExtendModalOpen}
         onClose={() => setIsExtendModalOpen(false)}
         booking={bookingToExtend}
+      />
+
+      <CancelDialogs
+        cancelBookingId={cancelBookingId}
+        onCancelClose={() => setCancelBookingId(null)}
+        onCancelConfirm={() => cancelBookingId && handleCancelBooking(cancelBookingId)}
+        loading={loading}
+        alertConfig={alertConfig}
+        onAlertClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+        brandGreen={BRAND_GREEN}
       />
     </div>
   );

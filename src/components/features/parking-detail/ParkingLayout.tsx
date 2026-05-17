@@ -50,14 +50,18 @@ export function ParkingLayout() {
           </motion.h2>
 
           {/* Chú thích */}
-          <motion.div variants={itemVariants} className="flex justify-center gap-6 mb-8 text-sm text-gray-700 dark:text-gray-300">
+          <motion.div variants={itemVariants} className="flex justify-center flex-wrap gap-6 mb-8 text-sm text-gray-700 dark:text-gray-300">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></div>
               <span>Trống</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-800"></div>
+              <div className="w-6 h-6 rounded bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-300 dark:border-yellow-800"></div>
               <span>Đã đặt</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-red-100 dark:bg-red-900/40 border border-red-300 dark:border-red-800"></div>
+              <span>Đang đỗ</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-blue-500 border border-blue-600 shadow-sm"></div>
@@ -102,22 +106,31 @@ export function ParkingLayout() {
                               return a.id - b.id; 
                             })
                               .map((slot: any) => {
-                              const isAvailable = slot.status !== "AVAILABLE";
+                              const isAvailable = slot.status === "AVAILABLE";
+                              const isReserved = slot.status === "RESERVED";
+                              const isOccupied = slot.status === "OCCUPIED";
                               const isSelected = selectedSpot?.slot.id === slot.id;
 
+                              let buttonClass = "";
+                              if (isSelected) {
+                                buttonClass = "bg-blue-500 text-white shadow-md transform scale-105 border-transparent";
+                              } else if (isOccupied) {
+                                buttonClass = "bg-red-100 dark:bg-red-900/40 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-800 cursor-not-allowed";
+                              } else if (isReserved) {
+                                buttonClass = "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-600 dark:text-yellow-500 border border-yellow-200 dark:border-yellow-700 cursor-not-allowed";
+                              } else if (isAvailable) {
+                                buttonClass = "bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20";
+                              } else {
+                                // Default fallback for DISABLED or other status
+                                buttonClass = "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 border border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-50";
+                              }
 
                               return (
                                 <button
                                   key={slot.id}
                                   onClick={() => handleSelect(floor,zone,slot)}
-                                  disabled={isAvailable}
-                                  className={`w-12 h-16 rounded-md flex items-center justify-center font-semibold text-sm transition-all
-                                    ${isAvailable 
-                                      ? "bg-red-100 dark:bg-red-900/40 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-800 cursor-not-allowed" 
-                                      : isSelected 
-                                        ? "bg-blue-500 text-white shadow-md transform scale-105 border-transparent" 
-                                        : "bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                    }`}
+                                  disabled={!isAvailable}
+                                  className={`w-12 h-16 rounded-md flex items-center justify-center font-semibold text-sm transition-all ${buttonClass}`}
                                 >
                                   {/* Lấy 1 hoặc 2 chữ số cuối (ví dụ A1 -> 1) */}
                                   {slot.code?.match(/\d+/)?.[0] || slot.code}
