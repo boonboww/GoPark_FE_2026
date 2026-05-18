@@ -127,7 +127,6 @@ const QUICK_CHIPS = [
   "Xe đã đăng ký",
   "Hướng dẫn thanh toán",
   "Cách hủy đặt chỗ",
-  "Khuyến mãi hiện có",
   "Liên hệ hỗ trợ",
 ];
 
